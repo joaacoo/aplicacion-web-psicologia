@@ -1,0 +1,23 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class Waitlist extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'usuario_id',
+        'dia_semana',
+        'hora_inicio',
+        'fecha_especifica',
+    ];
+
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'usuario_id');
+    }
+}

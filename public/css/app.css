@@ -1,0 +1,238 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&family=Syne:wght@400;500;600;700;800&family=Fraunces:wght@400;700;900&display=swap');
+@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css');
+
+:root {
+    /* Palette from provided HTML */
+    --color-celeste: #AEE2FA;
+    --color-rosa: #FF9EC6;
+    --color-amarillo: #FFF5C0;
+    --color-verde: #B5EAD7;
+    --color-lila: #E2CBF5;
+    --color-dark: #2D2D2D;
+    --color-white: #FFFFFF;
+
+    /* Spacing & Borders */
+    --border-thick: 3px solid var(--color-dark);
+    --shadow-hard: 5px 5px 0px var(--color-dark);
+    --radius-large: 20px;
+    --radius-pill: 50px;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Manrope', sans-serif;
+    color: var(--color-dark);
+    background-color: var(--color-white);
+    line-height: 1.6;
+    margin: 0;
+    padding: 0;
+}
+
+h1,
+h2,
+h3,
+h4,
+.btn,
+.neobrutalist-btn {
+    font-family: 'Syne', sans-serif;
+}
+
+.logo,
+h3.special-font {
+    font-family: 'Fraunces', serif;
+    font-weight: 900;
+}
+
+/* --- Components --- */
+
+/* Cards (Replacing old .neobrutalist-card with new style) */
+.neobrutalist-card,
+.card {
+    background: var(--color-white);
+    border: var(--border-thick);
+    border-radius: var(--radius-large);
+    box-shadow: var(--shadow-hard);
+    padding: 2rem;
+    transition: transform 0.3s ease;
+}
+
+/* Buttons (Matching .btn from reference) */
+.neobrutalist-btn,
+.btn {
+    display: inline-block;
+    background-color: var(--color-rosa);
+    color: var(--color-dark);
+    font-weight: 700;
+    padding: 10px 25px;
+    border: var(--border-thick);
+    border-radius: var(--radius-pill);
+    /* Pill shape */
+    box-shadow: var(--shadow-hard);
+    transition: all 0.2s ease;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-size: 0.9rem;
+    text-decoration: none;
+    text-align: center;
+}
+
+.neobrutalist-btn:hover,
+.btn:hover {
+    transform: translate(2px, 2px);
+    box-shadow: 3px 3px 0px var(--color-dark);
+    background-color: #ff85b6;
+}
+
+.neobrutalist-btn:active,
+.btn:active {
+    transform: translate(5px, 5px);
+    box-shadow: 0px 0px 0px var(--color-dark);
+}
+
+/* Variant Colors for Buttons */
+.bg-amarillo {
+    background-color: var(--color-amarillo) !important;
+}
+
+.bg-celeste {
+    background-color: var(--color-celeste) !important;
+}
+
+.bg-verde {
+    background-color: var(--color-verde) !important;
+}
+
+.bg-lila {
+    background-color: var(--color-lila) !important;
+}
+
+/* Inputs */
+.neobrutalist-input {
+    width: 100%;
+    padding: 0.8rem 1.2rem;
+    margin-bottom: 1rem;
+    border: var(--border-thick);
+    border-radius: var(--radius-large);
+    /* Rounded inputs too */
+    background-color: white;
+    font-family: 'Manrope', sans-serif;
+    font-size: 1rem;
+    box-shadow: 3px 3px 0px var(--color-dark);
+    outline: none;
+    transition: all 0.2s;
+}
+
+.neobrutalist-input:focus {
+    background-color: var(--color-amarillo);
+    transform: translateY(-2px);
+    box-shadow: 5px 5px 0px var(--color-dark);
+}
+
+/* --- Layout --- */
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+/* Navbar (Matching reference) */
+.navbar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background-color: var(--color-white);
+    border-bottom: var(--border-thick);
+    padding: 1rem 0;
+}
+
+.nav-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.logo-text {
+    font-family: "Times New Roman", Times, serif;
+    font-size: 1.5rem;
+    /* Keeping size as it wasnt specified to change, usually implicit */
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    color: #2c2c2c;
+    -webkit-font-smoothing: antialiased;
+    text-decoration: none;
+}
+
+.nav-links {
+    display: flex;
+    gap: 1.5rem;
+    align-items: center;
+}
+
+/* Utilities */
+.text-center {
+    text-align: center;
+}
+
+.flex {
+    display: flex;
+}
+
+.flex-col {
+    flex-direction: column;
+}
+
+.items-center {
+    align-items: center;
+}
+
+.justify-center {
+    justify-content: center;
+}
+
+.gap-4 {
+    gap: 1rem;
+}
+
+.w-full {
+    width: 100%;
+}
+
+.mt-4 {
+    margin-top: 1rem;
+}
+
+.mb-4 {
+    margin-bottom: 1rem;
+}
+
+/* Alerts */
+.alert {
+    padding: 1rem;
+    border: var(--border-thick);
+    box-shadow: var(--shadow-hard);
+    border-radius: var(--radius-large);
+    margin-bottom: 1.5rem;
+    font-weight: 600;
+}
+
+.alert-success {
+    background-color: var(--color-verde);
+}
+
+.alert-error {
+    background-color: var(--color-rosa);
+}
+
+/* Footer */
+.footer {
+    background-color: var(--color-dark);
+    color: var(--color-white);
+    padding: 2rem 0;
+    text-align: center;
+    border-top: var(--border-thick);
+}
