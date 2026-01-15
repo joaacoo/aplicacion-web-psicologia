@@ -96,21 +96,26 @@ class AppointmentController extends Controller
                   $sub->where('dia_semana', $appointment->fecha_hora->dayOfWeek)
                       ->where('hora_inicio', $appointment->fecha_hora->format('H:i:s'));
               });
+        })->orWhere(function($q) {
+            // Also include people with no specific time preference
+            $q->whereNull('fecha_especifica')->whereNull('dia_semana');
         })->orderBy('created_at', 'asc')->first();
 
         if ($nextInLine) {
-            // Notificar que se liberó un lugar
-            \App\Models\Notification::create([
-                'usuario_id' => $nextInLine->usuario_id,
-                'mensaje' => '¡Buenas noticias! Se liberó el turno del ' . $appointment->fecha_hora->format('d/m H:i') . '. Podés reservarlo ahora.',
-                'link' => route('patient.dashboard')
-            ]);
-            
-            try {
-                \Illuminate\Support\Facades\Mail::raw('Se liberó un turno el ' . $appointment->fecha_hora->format('d/m H:i') . ' que te interesaba. Entrá al portal rápido para reservarlo antes de que alguien más lo tome.', function($msg) use ($nextInLine) {
-                    $msg->to($nextInLine->user->email)->subject('¡Turno disponible!');
-                });
-            } catch (\Exception $e) {}
+            if ($nextInLine->usuario_id && $nextInLine->user) {
+                // Notificar por DB
+                \App\Models\Notification::create([
+                    'usuario_id' => $nextInLine->usuario_id,
+                    'mensaje' => '¡Buenas noticias! Se liberó el turno del ' . $appointment->fecha_hora->format('d/m H:i') . '. Podés reservarlo ahora.',
+                    'link' => route('patient.dashboard')
+                ]);
+
+                try {
+                    \Illuminate\Support\Facades\Mail::raw('Se liberó un turno el ' . $appointment->fecha_hora->format('d/m H:i') . ' que te interesaba. Entrá al portal rápido para reservarlo antes de que alguien más lo tome.', function($msg) use ($nextInLine) {
+                        $msg->to($nextInLine->user->email)->subject('¡Turno disponible!');
+                    });
+                } catch (\Exception $e) {}
+            }
 
             // Opcionalmente: Podríamos borrarlo de la lista para que no siga recibiendo avisos si no lo toma?
             // User dice "notificar automáticamente al primero". Si lo borramos y no lo toma, se pierde.

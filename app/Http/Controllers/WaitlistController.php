@@ -2,36 +2,47 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Waitlist;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
+use App\Models\Waitlist;
 
 class WaitlistController extends Controller
 {
+    public function create()
+    {
+        return view('waitlist');
+    }
+
     public function store(Request $request)
     {
         $request->validate([
-            'fecha_especifica' => 'required|date|after_or_equal:today',
-            'hora_inicio' => 'required',
+            'name' => 'required|string|max:255',
+            'phone' => 'required|string|max:255',
+            'availability' => 'required|string',
+            'modality' => 'required|string',
         ]);
-
-        // Evitar duplicados
-        $exists = Waitlist::where('usuario_id', Auth::id())
-            ->where('fecha_especifica', $request->fecha_especifica)
-            ->where('hora_inicio', $request->hora_inicio)
-            ->exists();
-
-        if ($exists) {
-            return response()->json(['message' => 'Ya estás en la lista para este turno.'], 422);
-        }
 
         Waitlist::create([
-            'usuario_id' => Auth::id(),
+            'usuario_id' => auth()->id(),
+            'name' => $request->name,
+            'phone' => $request->phone,
+            'availability' => $request->availability,
+            'modality' => $request->modality,
             'fecha_especifica' => $request->fecha_especifica,
             'hora_inicio' => $request->hora_inicio,
-            'dia_semana' => \Carbon\Carbon::parse($request->fecha_especifica)->dayOfWeek,
+            'dia_semana' => $request->fecha_especifica ? \Carbon\Carbon::parse($request->fecha_especifica)->dayOfWeek : null,
         ]);
 
-        return response()->json(['message' => '¡Listo! Te avisaremos si este turno se libera.']);
+        // check if user is auth to redirect to dashboard, else redirect to home/login with message
+        if (auth()->check()) {
+            return redirect()->route('dashboard')->with('success', '¡Te uniste a la lista de espera! Te avisaremos cuando haya un lugar.');
+        }
+
+        return redirect()->route('login')->with('success', '¡Te uniste a la lista de espera! Te contactaremos pronto.');
+    }
+    public function destroy($id)
+    {
+        $item = Waitlist::findOrFail($id);
+        $item->delete();
+        return back()->with('success', 'Paciente eliminado de la lista de espera.');
     }
 }

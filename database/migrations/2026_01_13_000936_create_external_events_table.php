@@ -11,12 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('waitlists', function (Blueprint $table) {
+        Schema::create('external_events', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
-            $table->string('phone');
-            $table->text('availability');
-            $table->string('modality'); // Presencial, Virtual, Indistinto
+            $table->foreignId('user_id')->constrained('usuarios')->onDelete('cascade');
+            $table->string('title')->nullable();
+            $table->dateTime('start_time');
+            $table->dateTime('end_time');
+            $table->string('external_id')->nullable();
             $table->timestamps();
         });
     }
@@ -26,6 +27,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('waitlists');
+        Schema::dropIfExists('external_events');
     }
 };

@@ -11,13 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('waitlists', function (Blueprint $table) {
-            $table->id();
-            $table->string('name');
-            $table->string('phone');
-            $table->text('availability');
-            $table->string('modality'); // Presencial, Virtual, Indistinto
-            $table->timestamps();
+        Schema::table('users', function (Blueprint $table) {
+            $table->boolean('block_weekends')->default(false)->after('password');
         });
     }
 
@@ -26,6 +21,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('waitlists');
+        Schema::table('users', function (Blueprint $table) {
+            $table->dropColumn('block_weekends');
+        });
     }
 };

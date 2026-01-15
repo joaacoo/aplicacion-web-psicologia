@@ -17,7 +17,7 @@
             @csrf
 
             <div class="text-center mb-8">
-                <img src="{{ asset('img/069b6f01-e0b6-4089-9e31-e383edf4ff62.jpg') }}" alt="Logo Lic. Nazarena De Luca" style="width: 150px; height: auto; margin: 0 auto; border: 3px solid #000; box-shadow: 4px 4px 0px #000; border-radius: 15px;">
+                <img src="{{ asset('img/logo-nuevo.png') }}" alt="Logo Lic. Nazarena De Luca" style="width: 250px; height: auto; margin: 0 auto;">
             </div>
             
             <div class="mb-4">

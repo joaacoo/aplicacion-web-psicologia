@@ -2,9 +2,30 @@
 
 @section('title', 'Admin Dashboard - Lic. Nazarena De Luca')
 
+
 @section('content')
+<div id="agenda"></div>
 <div class="flex flex-col gap-8">
     
+    <!-- Admin Next Session Widget -->
+    @if(isset($nextAdminAppointment))
+        <div class="neobrutalist-card" style="margin-bottom: 2rem; background: var(--color-verde); border-color: #000;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                <div>
+                    <h3 style="margin: 0; font-size: 1.3rem;"><i class="fa-solid fa-bell"></i> Tu próxima sesión comienza pronto</h3>
+                    <p style="margin: 0.5rem 0 0 0; font-size: 1.1rem; font-weight: 800;">
+                        {{ $nextAdminAppointment->user->nombre }} {{ $nextAdminAppointment->user->apellido }} - {{ $nextAdminAppointment->fecha_hora->locale('es')->isoFormat('dddd D [de] MMMM') }} a las {{ $nextAdminAppointment->fecha_hora->format('H:i') }} hs
+                    </p>
+                </div>
+                <div>
+                    <a href="https://meet.google.com/landing" target="_blank" class="neobrutalist-btn bg-amarillo" style="text-decoration: none; display: inline-block; box-shadow: 4px 4px 0px #000; padding: 0.8rem 1.5rem; font-weight: 900;">
+                        <i class="fa-solid fa-video"></i> ABRIR MEET
+                    </a>
+                </div>
+            </div>
+        </div>
+    @endif
+
     <!-- Turnos para el Día de Hoy -->
     <div id="hoy" class="neobrutalist-card" style="background: white; margin-bottom: 2rem;">
         <div style="margin-bottom: 1.5rem; border-bottom: 3px solid #000; padding-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
@@ -59,11 +80,221 @@
         </div>
     </div>
 
+    <!-- Configuración de Horarios de Atención -->
+    <div id="disponibilidad" class="neobrutalist-card" style="background: white; margin-bottom: 2rem;">
+        <div style="margin-bottom: 1.5rem; border-bottom: 3px solid #000; padding-bottom: 0.5rem;">
+            <h3 style="margin: 0; font-size: 1.5rem;"><i class="fa-solid fa-clock"></i> Horarios de Atención</h3>
+            <p style="margin: 0.5rem 0 0 0; font-size: 0.9rem; color: #555;">
+                <strong>Modo Google Calendar:</strong> Si creás eventos en tu Google Calendar que digan <strong>"LIBRE"</strong> o <strong>"DISPONIBLE"</strong>, esos serán los únicos que verán los pacientes ese día. 
+                Sino, se usarán estos horarios base como alternativa.
+            </p>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 4rem;">
+            <!-- Formulario para agregar -->
+            <div style="background: #fdfdfd; border: 3px solid #000; padding: 1.5rem; border-radius: 15px; box-shadow: 4px 4px 0px #000;">
+                <h4 style="margin-top: 0; font-weight: 800;">Agregar Nuevo Horario</h4>
+                <form action="{{ route('admin.availabilities.store') }}" method="POST">
+                    @csrf
+                    <div style="margin-bottom: 1rem;">
+                        <label style="display:block; font-weight: 800; font-size: 0.85rem; margin-bottom: 0.3rem;">Día de la semana:</label>
+                        <select name="dia_semana" class="neobrutalist-input" style="width:100%; margin-bottom:0;" required>
+                            <option value="all">TODOS LOS DÍAS</option>
+                            <option value="1">Lunes</option>
+                            <option value="2">Martes</option>
+                            <option value="3">Miércoles</option>
+                            <option value="4">Jueves</option>
+                            <option value="5">Viernes</option>
+                            <option value="6">Sábado</option>
+                            <option value="0">Domingo</option>
+                        </select>
+                    </div>
+                    <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem;">
+                        <div style="flex:1;">
+                            <label style="display:block; font-weight: 800; font-size: 0.85rem; margin-bottom: 0.3rem;">Desde (Ej: 14:00):</label>
+                            <input type="time" name="hora_inicio" class="neobrutalist-input" style="width:100%; margin-bottom:0;" required>
+                        </div>
+                        <div style="flex:1;">
+                            <label style="display:block; font-weight: 800; font-size: 0.85rem; margin-bottom: 0.3rem;">Hasta (Ej: 15:00):</label>
+                            <input type="time" name="hora_fin" class="neobrutalist-input" style="width:100%; margin-bottom:0;" required>
+                        </div>
+                    </div>
+                    <button type="submit" class="neobrutalist-btn bg-amarillo w-full">Guardar Horario</button>
+                </form>
+            </div>
+
+            <!-- Listado de horarios -->
+            <div style="max-height: 350px; overflow-y: auto; border: 3px solid #000; border-radius: 15px; background: white; box-shadow: 4px 4px 0px #000;">
+                <table style="width:100%; border-collapse: collapse;">
+                    <thead style="background: #000; color: white;">
+                        <tr>
+                            <th style="padding: 0.8rem; text-align: left;">Día</th>
+                            <th style="padding: 0.8rem; text-align: left;">Rango</th>
+                            <th style="padding: 0.8rem; text-align: right;">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @php
+                            $diasStrings = [0 => 'Domingo', 1 => 'Lunes', 2 => 'Martes', 3 => 'Miércoles', 4 => 'Jueves', 5 => 'Viernes', 6 => 'Sábado'];
+                        @endphp
+                        @forelse($availabilities as $avail)
+                            <tr style="border-bottom: 2px solid #eee;">
+                                <td style="padding: 0.8rem; font-weight: 800;">{{ $diasStrings[$avail->dia_semana] }}</td>
+                                <td style="padding: 0.8rem;">{{ \Carbon\Carbon::parse($avail->hora_inicio)->format('H:i') }} - {{ \Carbon\Carbon::parse($avail->hora_fin)->format('H:i') }} hs</td>
+                                <td style="padding: 0.8rem; text-align: right;">
+                                    <form id="delete-avail-{{ $avail->id }}" action="{{ route('admin.availabilities.destroy', $avail->id) }}" method="POST">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="button" class="neobrutalist-btn" style="background: var(--color-rosa); padding: 0.3rem 0.6rem; font-size: 0.7rem;" onclick="confirmAction('delete-avail-{{ $avail->id }}', '¿Eliminar este horario de atención?')"><i class="fa-solid fa-trash"></i></button>
+                                    </form>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr><td colspan="3" style="padding: 2rem; text-align: center; color: #999;">No configuraste horarios todavía.</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <!-- Block Specific Day -->
+        <div style="background: #e0f2f1; border: 3px solid #000; padding: 1.5rem; border-radius: 15px; box-shadow: 4px 4px 0px #000; max-width: 400px; margin-top: 2rem; margin-left: auto; margin-right: auto;">
+            <h4 style="margin-top: 0; font-weight: 800; color: #004d40;">Bloquear Día Específico</h4>
+            <p style="font-size: 0.8rem; margin-bottom: 1rem;">Bloqueá una fecha completa (feriados, vacaciones, etc).</p>
+            
+            <form id="block-day-form" action="{{ route('admin.blocked-days.store') }}" method="POST">
+                @csrf
+                <div style="margin-bottom: 1rem;">
+                    <label style="display:block; font-weight: 800; font-size: 0.85rem; margin-bottom: 0.3rem;">Fecha a bloquear:</label>
+                    <input type="date" name="date" class="neobrutalist-input w-full" style="margin-bottom: 0.5rem;" required min="{{ date('Y-m-d') }}">
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <label style="display:block; font-weight: 800; font-size: 0.85rem; margin-bottom: 0.3rem;">Motivo (Opcional):</label>
+                    <input type="text" name="reason" placeholder="Ej: Vacaciones / Licencia" class="neobrutalist-input w-full" style="margin-bottom: 0;">
+                </div>
+                <button type="button" class="neobrutalist-btn bg-verde w-full" style="margin-bottom: 0;" onclick="confirmAction('block-day-form', '¿Bloquear esta fecha?')">Bloquear Fecha</button>
+            </form>
+            
+            <div style="border-top: 2px dashed #999; margin: 1rem 0;"></div>
+            
+            <!-- Weekend Toggle -->
+            <form id="toggle-weekends-form" action="{{ route('admin.calendar.toggle-weekends') }}" method="POST">
+                @csrf
+                <button type="button" class="neobrutalist-btn w-full" style="background: {{ $blockWeekends ? '#d32f2f' : '#388e3c' }}; color: white; display: flex; align-items: center; justify-content: center; gap: 0.5rem; font-size: 0.8rem; padding: 6px;" onclick="confirmAction('toggle-weekends-form', '¿Alternar bloqueo de fines de semana?')">
+                    @if($blockWeekends)
+                        <i class="fa-solid fa-lock"></i> Sáb/Dom: BLOQUEADOS
+                    @else
+                        <i class="fa-solid fa-unlock"></i> Sáb/Dom: LIBRES
+                    @endif
+                </button>
+            </form>
+
+                <!-- List of Blocked Days -->
+                <div style="margin-top: 1.5rem; max-height: 200px; overflow-y: auto; background: white; border: 2px solid #000; padding: 0.5rem; border-radius: 8px;">
+                     @forelse($blockedDays ?? [] as $bd)
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed #ccc; padding: 0.5rem; font-size: 0.85rem;">
+                            <div>
+                                <strong>{{ \Carbon\Carbon::parse($bd->date)->format('d/m/Y') }}</strong>
+                                <span style="display:block; font-size: 0.75rem; color: #666;">{{ $bd->reason ?? 'Sin motivo' }}</span>
+                            </div>
+                            <form id="delete-blocked-{{ $bd->id }}" action="{{ route('admin.blocked-days.destroy', $bd->id) }}" method="POST">
+                                @csrf
+                                @method('DELETE')
+                                <button type="button" class="neobrutalist-btn" style="background: var(--color-rosa); padding: 2px 5px; font-size: 0.65rem;" onclick="confirmAction('delete-blocked-{{ $bd->id }}', '¿Desbloquear este día?')"><i class="fa-solid fa-times"></i></button>
+                            </form>
+                        </div>
+                    @empty
+                        <p style="text-align: center; font-size: 0.8rem; color: #777; margin: 0.5rem 0;">No hay días bloqueados.</p>
+                    @endforelse
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Agenda Mensual -->
     <div id="agenda" class="neobrutalist-card" style="background: white; margin-bottom: 2rem;">
         <div style="margin-bottom: 1.5rem; border-bottom: 3px solid #000; padding-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center;">
             <h3 style="margin: 0; font-size: 1.5rem;"><i class="fa-solid fa-calendar-days"></i> Agenda Mensual</h3>
         </div>
+
+        <!-- Google Calendar Sync (NEW) -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem;">
+            <!-- EXPORT: App -> Google -->
+            <div style="background: #e3f2fd; border: 3px solid #000; border-radius: 12px; padding: 1.5rem; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 4px 4px 0px #000;">
+                <div>
+                    <h4 style="margin: 0; font-size: 1.1rem; color: #1565c0; font-weight: 800;"><i class="fa-solid fa-cloud-arrow-up"></i> Exportar a Google Calendar</h4>
+                    <p style="margin: 0.5rem 0 1rem 0; font-size: 0.85rem; color: #555;">Visualizá tus turnos confirmados en tu calendario personal.</p>
+                </div>
+                
+                <div style="display: flex; flex-direction: column; gap: 0.8rem;">
+                    @if(auth()->user()->ical_token)
+                        <div style="background: white; border: 2px solid #000; padding: 0.6rem; border-radius: 8px; font-family: monospace; font-size: 0.75rem; display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;">
+                            <span id="ical-url" style="color: #333; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 180px;">{{ route('agenda.feed', auth()->user()->ical_token) }}</span>
+                            <button onclick="copyIcalUrl(this)" class="neobrutalist-btn bg-amarillo" style="padding: 0.3rem 0.6rem; font-size: 0.7rem; box-shadow: 2px 2px 0px #000;">Copiar</button>
+                        </div>
+                    @else
+                        <form id="generate-token-form" action="{{ route('admin.calendar.generateToken') }}" method="POST">
+                            @csrf
+                            <button type="button" class="neobrutalist-btn bg-celeste w-full" style="font-size: 0.85rem; padding: 0.6rem;" onclick="confirmAction('generate-token-form', '¿Generar nuevo token de calendario?')">Generar Link</button>
+                        </form>
+                    @endif
+                    <a href="https://support.google.com/calendar/answer/37100?hl=es#zippy=%2Cusar-un-v%C3%ADnculo-para-agregar-el-calendario" target="_blank" style="font-size: 0.75rem; color: #1565c0; text-decoration: underline;">¿Cómo agregar este link a mi Google?</a>
+                </div>
+            </div>
+
+            <!-- IMPORT: Google -> App -->
+            <div style="background: #f0fdf4; border: 3px solid #000; border-radius: 12px; padding: 1.5rem; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 4px 4px 0px #000;">
+                <div>
+                    <h4 style="margin: 0; font-size: 1.1rem; color: #166534; font-weight: 800;"><i class="fa-solid fa-cloud-arrow-down"></i> Bloquear desde Google Calendar</h4>
+                    <p style="margin: 0.5rem 0 1rem 0; font-size: 0.85rem; color: #555;">Tus eventos de Google bloquearán automáticamente turnos en la web.</p>
+                </div>
+
+                <form id="update-google-url-form" action="{{ route('admin.calendar.google-url') }}" method="POST" style="margin-bottom: 0.5rem;">
+                    @csrf
+                    <div style="display: flex; gap: 0.5rem;">
+                        <input type="password" name="google_calendar_url" class="neobrutalist-input w-full" 
+                               value="{{ auth()->user()->google_calendar_url }}"
+                               placeholder="Pegá aquí la Dirección secreta (URL iCal)..." 
+                               style="font-size: 0.75rem; height: 38px; margin:0;"
+                               autocomplete="off"
+                               onmouseover="this.type='text'" onmouseout="this.type='password'">
+                        <button type="button" class="neobrutalist-btn bg-verde" style="font-size: 0.8rem; padding: 0 1rem; flex-shrink: 0;" onclick="confirmAction('update-google-url-form', '¿Guardar dirección de Google Calendar?')">Guardar</button>
+                    </div>
+                    @error('google_calendar_url')
+                        <p style="color:red; font-size: 0.7rem; margin-top: 0.3rem;">{{ $message }}</p>
+                    @enderror
+                </form>
+
+                <div style="margin-top: 0.5rem; background: #fffadc; border: 1px dashed #eab308; padding: 0.6rem; border-radius: 8px;">
+                    <p style="font-size: 0.7rem; color: #854d0e; margin: 0; line-height: 1.3;">
+                        <i class="fa-solid fa-lock"></i> <strong>Privacidad:</strong> Este link es privado y solo se usa para sincronizar tus horarios. 
+                        El sistema lo procesa de forma interna y no es visible para nadie más.
+                    </p>
+                    <p style="font-size: 0.7rem; color: #166534; margin: 0.4rem 0 0 0; font-weight: 700;">
+                        <i class="fa-solid fa-check-circle"></i> Sincronización automática activada.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            function copyIcalUrl(btn) {
+                const url = document.getElementById('ical-url').innerText;
+                navigator.clipboard.writeText(url).then(() => {
+                    const originalText = btn.innerText;
+                    btn.innerText = '¡Copiado!';
+                    btn.classList.add('bg-verde');
+                    btn.classList.remove('bg-amarillo');
+                    
+                    setTimeout(() => {
+                        btn.innerText = originalText;
+                        btn.classList.add('bg-amarillo');
+                        btn.classList.remove('bg-verde');
+                    }, 2000);
+                }).catch(err => {
+                    console.error('Error al copiar: ', err);
+                });
+            }
+        </script>
 
         <!-- Calendar Navigation & Jumper -->
         <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; margin-bottom: 1.5rem; justify-content: center; background: #f0f0f0; padding: 1rem; border: 3px solid #000; border-radius: 10px;">
@@ -74,15 +305,56 @@
             </div>
 
             <div style="display: flex; gap: 0.5rem; align-items: center;">
-                <select id="jumpMonth" class="neobrutalist-input" style="min-width: 110px; height: 40px; margin:0; padding: 0 0.5rem; cursor: pointer;">
-                    @foreach(['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'] as $key => $mes)
-                        <option value="{{ $key }}">{{ $mes }}</option>
-                    @endforeach
-                </select>
-                <input type="number" id="jumpYear" class="neobrutalist-input" style="width: 80px; height: 40px; margin:0; padding: 0 0.5rem;" value="{{ date('Y') }}" min="2026">
-                <button onclick="jumpToDate()" class="neobrutalist-btn bg-celeste" style="height: 40px; padding: 0 1rem; font-size: 0.9rem;">Ir</button>
+                <!-- Custom Upward Dropdown -->
+                <div class="custom-dropdown" style="position: relative; min-width: 140px; z-index: 1000;">
+                    <button id="jumpMonthTrigger" class="neobrutalist-input" style="width: 100%; height: 40px; margin:0; padding: 0 0.5rem; cursor: pointer; display: flex; align-items: center; justify-content: space-between; background: white; position: relative; z-index: 1001;">
+                        <span id="jumpMonthText">Enero</span>
+                        <i class="fa-solid fa-chevron-up"></i>
+                    </button>
+                    <!-- bottom: 100% ensures it opens UPWARDS -->
+                    <div id="jumpMonthOptions" style="display: none; position: absolute; bottom: 100%; left: 0; width: 100%; max-height: 250px; overflow-y: auto; background: white; border: 3px solid #000; border-radius: 10px 10px 0 0; box-shadow: 0 -4px 10px rgba(0,0,0,0.1); z-index: 1002;">
+                        @foreach(['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'] as $key => $mes)
+                            <div class="custom-option" data-value="{{ $key }}" style="padding: 0.8rem; border-bottom: 2px solid #eee; cursor: pointer; font-weight: 700; font-size: 0.9rem;">{{ $mes }}</div>
+                        @endforeach
+                    </div>
+                </div>
+                <input type="hidden" id="jumpMonth" value="0">
+                
+                <!-- Year Selector Upward Dropdown -->
+                <div class="custom-dropdown" style="position: relative; min-width: 100px; z-index: 1000;">
+                    <button id="jumpYearTrigger" class="neobrutalist-input" style="width: 100%; height: 40px; margin:0; padding: 0 0.5rem; cursor: pointer; display: flex; align-items: center; justify-content: space-between; background: white; position: relative; z-index: 1001;">
+                        <span id="jumpYearText">2026</span>
+                        <i class="fa-solid fa-chevron-up"></i>
+                    </button>
+                    <div id="jumpYearOptions" style="display: none; position: absolute; bottom: 100%; left: 0; width: 100%; max-height: 250px; overflow-y: auto; background: white; border: 3px solid #000; border-radius: 10px 10px 0 0; box-shadow: 0 -4px 10px rgba(0,0,0,0.1); z-index: 1002;">
+                        @for($y = 2026; $y <= 2030; $y++)
+                            <div class="custom-option-year" data-value="{{ $y }}" style="padding: 0.8rem; border-bottom: 2px solid #eee; cursor: pointer; font-weight: 700; font-size: 0.9rem;">{{ $y }}</div>
+                        @endfor
+                    </div>
+                </div>
+                <!-- 'Ir' button removed as per user request -->
+                <input type="hidden" id="jumpYear" value="2026">
+                
+                <button onclick="resetCalendar()" class="neobrutalist-btn bg-celeste" style="height: 40px; padding: 0 1rem; font-size: 0.9rem;" title="Volver al mes actual">
+                    <i class="fa-solid fa-rotate-left"></i> Volver al actual
+                </button>
             </div>
         </div>
+
+        <style>
+            /* Custom Scrollbar */
+            #jumpMonthOptions::-webkit-scrollbar { width: 8px; }
+            #jumpMonthOptions::-webkit-scrollbar-track { background: #f1f1f1; }
+            #jumpMonthOptions::-webkit-scrollbar-thumb { background: #000; }
+            #jumpMonthOptions::-webkit-scrollbar-thumb:hover { background: #333; }
+            
+            .custom-option:hover { background: var(--color-amarillo); }
+            
+            /* No Spinners for Year Input */
+            #jumpYear::-webkit-outer-spin-button,
+            #jumpYear::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+            #jumpYear { -moz-appearance: textfield; }
+        </style>
         
         <!-- Calendar Grid -->
         <div style="background: white; border: 4px solid #000; box-shadow: 6px 6px 0px #000; padding: 0.5rem; border-radius: 15px;">
@@ -113,12 +385,84 @@
             'telefono' => $appt->user->telefono ?? null
         ];
     });
+    
+    $formattedExternal = $externalEvents->map(function($e) {
+        return [
+            'id' => $e->id,
+            'title' => $e->title,
+            'start_time' => $e->start_time->timezone('America/Argentina/Buenos_Aires')->format('Y-m-d H:i:s'),
+            'end_time' => $e->end_time->timezone('America/Argentina/Buenos_Aires')->format('Y-m-d H:i:s'),
+        ];
+    });
+
+    $formattedRegistrations = $recentRegistrations->map(function($reg) {
+        return [
+            'id' => $reg->id,
+            'nombre' => $reg->nombre,
+            'created_at' => $reg->created_at->format('Y-m-d H:i:s')
+        ];
+    });
 @endphp
 <script>
+    // --- GLOBAL ADMIN FUNCTIONS (Defined safely at top) ---
+    
+    // 1. Confirm Modal Logic
+    let pendingActionFormId = null;
+
+    window.confirmAction = function(formId, message) {
+        console.log('Action requested for:', formId); 
+        
+        const form = document.getElementById(formId);
+        if (!form) {
+            console.error('CRITICAL: Form not found:', formId);
+            alert('Error: No se encuentra el formulario. Recarga la página.');
+            return;
+        }
+
+        pendingActionFormId = formId;
+        const modal = document.getElementById('actionConfirmModal');
+        const textElement = document.getElementById('actionConfirmText');
+        
+        if (modal && textElement) {
+            textElement.innerText = message;
+            modal.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+            
+            // Re-bind confirm button
+            const btn = document.getElementById('actionConfirmBtn');
+            const newBtn = btn.cloneNode(true);
+            btn.parentNode.replaceChild(newBtn, btn);
+            
+            newBtn.addEventListener('click', function() {
+                if (pendingActionFormId) {
+                    const f = document.getElementById(pendingActionFormId);
+                    if(f) {
+                        try {
+                            if(typeof window.saveScrollPosition === 'function') window.saveScrollPosition();
+                        } catch(e) { console.error('Scroll save error:', e); }
+                        f.submit(); 
+                    }
+                }
+                closeActionModal();
+            });
+        } else {
+            // Fallback
+            if(confirm(message)) form.submit();
+        }
+    };
+
+    window.closeActionModal = function() {
+        const modal = document.getElementById('actionConfirmModal');
+        if (modal) modal.style.display = 'none';
+        document.body.style.overflow = 'auto';
+        pendingActionFormId = null;
+    };
+
     // Calendar functionality
     let currentDate = new Date();
     const appointments = @json($calendarAppointments);
-    const registrations = @json($recentRegistrations ?? []);
+    const registrations = @json($formattedRegistrations);
+    const externalEvents = @json($formattedExternal);
 
     function renderCalendar() {
         const year = currentDate.getFullYear();
@@ -132,7 +476,21 @@
         
         // Populate jumper fields
         document.getElementById('jumpMonth').value = month;
+        document.getElementById('jumpMonthText').innerText = monthNames[month];
         document.getElementById('jumpYear').value = year;
+        document.getElementById('jumpYearText').innerText = year;
+        
+        // Navigation Logic: Check Jan 2026
+        const prevBtn = document.getElementById('prevMonth');
+        if (year === 2026 && month === 0) {
+            prevBtn.disabled = true;
+            prevBtn.style.opacity = '0.5';
+            prevBtn.style.cursor = 'not-allowed';
+        } else {
+            prevBtn.disabled = false;
+            prevBtn.style.opacity = '1';
+            prevBtn.style.cursor = 'pointer';
+        }
 
         // Get first day of month and number of days
         const firstDay = new Date(year, month, 1).getDay();
@@ -164,6 +522,8 @@
                 return regDate.getFullYear() === year && regDate.getMonth() === month && regDate.getDate() === day;
             });
 
+            const dayExternal = externalEvents.filter(ev => ev.start_time.startsWith(dateStr));
+
             const dayCell = document.createElement('div');
             const isToday = isCurrentMonth && today.getDate() === day;
             
@@ -192,7 +552,7 @@
                 dayCell.style.boxShadow = '3px 3px 0px #000';
             });
             
-            dayCell.addEventListener('click', () => showDayAppointments(day, month, year, dayAppointments, dayRegs));
+            dayCell.addEventListener('click', () => showDayAppointments(day, month, year, dayAppointments, dayRegs, dayExternal));
             
             // Day number
             const dayNumber = document.createElement('div');
@@ -235,17 +595,26 @@
             // Registration indicators (special dots)
             if (dayRegs.length > 0) {
                 const regCircle = document.createElement('div');
-                regCircle.style.cssText = 'width: 10px; height: 10px; background: #ff85b6; border: 1px solid #000; border-radius: 50%; position: absolute; top: 4px; right: 4px;';
+                regCircle.style.cssText = 'width: 8px; height: 8px; background: #ff85b6; border: 1px solid #000; border-radius: 50%; position: absolute; top: 4px; right: 4px;';
                 regCircle.title = 'Nuevo paciente registrado';
                 dayCell.style.position = 'relative';
                 dayCell.appendChild(regCircle);
+            }
+
+            // Google indicators (special blue dots)
+            if (dayExternal.length > 0) {
+                const googleCircle = document.createElement('div');
+                googleCircle.style.cssText = 'width: 8px; height: 8px; background: #4285F4; border: 1px solid #000; border-radius: 50%; position: absolute; top: 4px; left: 4px;';
+                googleCircle.title = 'Evento de Google';
+                dayCell.style.position = 'relative';
+                dayCell.appendChild(googleCircle);
             }
             
             grid.appendChild(dayCell);
         }
     }
     
-    function showDayAppointments(day, month, year, dayAppointments, dayRegs = []) {
+    function showDayAppointments(day, month, year, dayAppointments, dayRegs = [], dayExternal = []) {
         const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 
                            'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
         const dayNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
@@ -264,12 +633,25 @@
             regsDiv.innerHTML = `<h5 style="margin:0 0 0.5rem 0;"><i class="fa-solid fa-user-plus"></i> Nuevos Pacientes (Registros):</h5>`;
             dayRegs.forEach(reg => {
                 const time = new Date(reg.created_at).toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit'});
-                regsDiv.innerHTML += `<div style="font-size: 0.9rem; font-weight: 700;">- ${reg.nombre} (${time} hs)</div>`;
+            regsDiv.innerHTML += `<div style="font-size: 0.9rem; font-weight: 700;">- ${reg.nombre} (${time} hs)</div>`;
             });
             content.appendChild(regsDiv);
         }
 
-        if (dayAppointments.length === 0 && dayRegs.length === 0) {
+        // Show External Events (Google)
+        if (dayExternal.length > 0) {
+            const extDiv = document.createElement('div');
+            extDiv.style.cssText = 'margin-bottom: 2rem; border: 2px solid #000; background: #e8f0fe; padding: 1rem; border-radius: 10px; box-shadow: 3px 3px 0 #000;';
+            extDiv.innerHTML = `<h5 style="margin:0 0 0.5rem 0; color: #1967d2;"><i class="fa-brands fa-google"></i> Eventos de Google (Bloqueados):</h5>`;
+            dayExternal.forEach(ev => {
+                const start = new Date(ev.start_time).toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit'});
+                const end = new Date(ev.end_time).toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit'});
+                extDiv.innerHTML += `<div style="font-size: 0.9rem; font-weight: 700;">- ${ev.title} (${start} - ${end} hs)</div>`;
+            });
+            content.appendChild(extDiv);
+        }
+
+        if (dayAppointments.length === 0 && dayRegs.length === 0 && dayExternal.length === 0) {
             content.innerHTML = `
                 <div style="text-align: center; padding: 2rem; color: #666;">
                     <i class="fa-solid fa-calendar-xmark" style="font-size: 3rem; margin-bottom: 1rem; color: #ccc;"></i>
@@ -316,19 +698,19 @@
                     
                     <div style="display: flex; gap: 0.5rem; flex-direction: column;">
                         ${appt.estado == 'pendiente' ? `
-                            <form action="/admin/appointments/${appt.id}/confirm" method="POST" style="margin:0;">
+                            <form id="confirm-cal-${appt.id}" action="/admin/appointments/${appt.id}/confirm" method="POST" style="margin:0;">
                                 @csrf
-                                <button type="submit" class="neobrutalist-btn bg-verde" style="width:100%; padding: 5px 10px; font-size: 0.75rem;">Aceptar</button>
+                                <button type="button" class="neobrutalist-btn bg-verde" style="width:100%; padding: 5px 10px; font-size: 0.75rem;" onclick="confirmAction('confirm-cal-${appt.id}', '¿Aceptar este turno?')">Aceptar</button>
                             </form>
-                            <form action="/admin/appointments/${appt.id}/cancel" method="POST" style="margin:0;">
+                            <form id="reject-cal-${appt.id}" action="/admin/appointments/${appt.id}/cancel" method="POST" style="margin:0;">
                                 @csrf
-                                <button type="submit" class="neobrutalist-btn bg-lila" style="width:100%; padding: 5px 10px; font-size: 0.75rem;" onclick="return confirm('¿Rechazar/Cancelar este turno?')">Rechazar</button>
+                                <button type="button" class="neobrutalist-btn bg-lila" style="width:100%; padding: 5px 10px; font-size: 0.75rem;" onclick="confirmAction('reject-cal-${appt.id}', '¿Rechazar/Cancelar este turno?')">Rechazar</button>
                             </form>
                         ` : ''}
                         ${appt.estado == 'confirmado' ? `
-                            <form action="/admin/appointments/${appt.id}/cancel" method="POST" style="margin:0;">
+                            <form id="cancel-cal-${appt.id}" action="/admin/appointments/${appt.id}/cancel" method="POST" style="margin:0;">
                                 @csrf
-                                <button type="submit" class="neobrutalist-btn bg-lila" style="width:100%; padding: 5px 10px; font-size: 0.75rem;" onclick="return confirm('¿Cancelar turno?')">Cancelar</button>
+                                <button type="button" class="neobrutalist-btn bg-lila" style="width:100%; padding: 5px 10px; font-size: 0.75rem;" onclick="confirmAction('cancel-cal-${appt.id}', '¿Cancelar turno?')">Cancelar</button>
                             </form>
                         ` : ''}
                     </div>
@@ -341,6 +723,75 @@
         document.getElementById('selectedDayAppointments').style.display = 'block';
         document.getElementById('selectedDayAppointments').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
+    
+    // Calendar Jump Logic
+    window.jumpToDate = function() {
+        const m = parseInt(document.getElementById('jumpMonth').value);
+        const y = parseInt(document.getElementById('jumpYear').value);
+        currentDate = new Date(y, m, 1);
+        renderCalendar();
+        document.getElementById('selectedDayAppointments').style.display = 'none';
+        
+        // Ensure dropdowns are closed
+        document.getElementById('jumpMonthOptions').style.display = 'none';
+        document.getElementById('jumpYearOptions').style.display = 'none';
+    };
+
+    // Month Dropdown Handlers
+    const monthTrigger = document.getElementById('jumpMonthTrigger');
+    const monthOptions = document.getElementById('jumpMonthOptions');
+    if (monthTrigger) {
+        monthTrigger.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const yearOpts = document.getElementById('jumpYearOptions');
+            if (yearOpts) yearOpts.style.display = 'none';
+            monthOptions.style.display = (monthOptions.style.display === 'block') ? 'none' : 'block';
+        });
+    }
+
+    document.querySelectorAll('.custom-option').forEach(opt => {
+        opt.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const val = opt.getAttribute('data-value');
+            document.getElementById('jumpMonth').value = val;
+            document.getElementById('jumpMonthText').innerText = opt.innerText;
+            monthOptions.style.display = 'none';
+            jumpToDate();
+        });
+    });
+
+    // Year Dropdown Handlers
+    const yearTrigger = document.getElementById('jumpYearTrigger');
+    const yearOptions = document.getElementById('jumpYearOptions');
+    if (yearTrigger) {
+        yearTrigger.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const monthOpts = document.getElementById('jumpMonthOptions');
+            if (monthOpts) monthOpts.style.display = 'none';
+            yearOptions.style.display = (yearOptions.style.display === 'block') ? 'none' : 'block';
+        });
+    }
+
+    document.querySelectorAll('.custom-option-year').forEach(opt => {
+        opt.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const val = opt.getAttribute('data-value');
+            document.getElementById('jumpYear').value = val;
+            document.getElementById('jumpYearText').innerText = opt.innerText;
+            yearOptions.style.display = 'none';
+            jumpToDate();
+        });
+    });
+
+    // Global click listener to close dropdowns correctly
+    document.addEventListener('click', (e) => {
+        if (monthOptions && !monthTrigger.contains(e.target) && !monthOptions.contains(e.target)) {
+            monthOptions.style.display = 'none';
+        }
+        if (yearOptions && !yearTrigger.contains(e.target) && !yearOptions.contains(e.target)) {
+            yearOptions.style.display = 'none';
+        }
+    });
     
     document.getElementById('prevMonth').addEventListener('click', () => {
         currentDate.setMonth(currentDate.getMonth() - 1);
@@ -372,35 +823,35 @@
             <!-- Responsive Container: Horizontal on desktop, Vertical on mobile -->
             <div style="display: flex; gap: 1.5rem; overflow-x: auto; padding-bottom: 1.5rem; padding-top: 0.5rem; flex-wrap: wrap;">
                 @foreach($pendingPayments as $appt)
-                    <div style="min-width: 280px; flex: 1 1 300px; background: white; border: 3px solid #000; padding: 1.2rem; box-shadow: 4px 4px 0px #000; border-radius: 12px; margin-bottom: 1rem;">
-                        <p style="margin-bottom: 0.5rem; font-weight: 700; font-size: 1.1rem; border-bottom: 2px dashed #ccc; padding-bottom: 0.5rem;">
+                    <div style="min-width: 200px; max-width: 240px; flex: 0 0 220px; background: white; border: 3px solid #000; padding: 0.8rem; box-shadow: 4px 4px 0px #000; border-radius: 12px; margin-bottom: 1rem;">
+                        <p style="margin-bottom: 0.4rem; font-weight: 700; font-size: 0.95rem; border-bottom: 2px dashed #ccc; padding-bottom: 0.4rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                             {{ $appt->user->nombre }}
                         </p>
-                        <p style="font-size: 0.9rem; margin-bottom: 0.5rem;">
+                        <p style="font-size: 0.8rem; margin-bottom: 0.5rem;">
                             <i class="fa-regular fa-calendar"></i> {{ $appt->fecha_hora->format('d/m H:i') }} hs
                         </p>
                         
                         <!-- Actions -->
-                        <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: 1rem;">
+                        <div style="display: flex; flex-direction: column; gap: 0.4rem; margin-top: 0.8rem;">
                             @php
                                 $ext = pathinfo($appt->payment->comprobante_ruta, PATHINFO_EXTENSION);
                             @endphp
-                            <button type="button" class="neobrutalist-btn w-full no-select" style="background: var(--color-celeste); font-size: 0.8rem; padding: 8px;" 
+                            <button type="button" class="neobrutalist-btn w-full no-select" style="background: var(--color-celeste); font-size: 0.75rem; padding: 6px;" 
                                     onclick="openProofModal('{{ route('payments.showProof', $appt->payment->id) }}', '{{ $appt->user->nombre }}', '{{ $appt->payment->created_at->format('d/m H:i') }}', '{{ $ext }}')">
                                 <i class="fa-solid fa-image"></i> Ver Comprobante
                             </button>
                             
-                            <div style="display: flex; gap: 0.5rem;">
+                            <div style="display: flex; gap: 0.4rem;">
                                 <form id="verify-payment-{{ $appt->payment->id }}" action="{{ route('admin.payments.verify', $appt->payment->id) }}" method="POST" style="flex:1;">
                                     @csrf
-                                    <button type="button" class="neobrutalist-btn bg-verde w-full no-select" style="padding: 10px; font-size: 0.8rem;" 
+                                    <button type="button" class="neobrutalist-btn bg-verde w-full no-select" style="padding: 8px; font-size: 0.75rem;" 
                                             onclick="confirmAction('verify-payment-{{ $appt->payment->id }}', '¿Confirmás que el pago es válido?')">
                                         <i class="fa-solid fa-check"></i> Validar
                                     </button>
                                 </form>
                                 <form id="reject-payment-{{ $appt->payment->id }}" action="{{ route('admin.payments.reject', $appt->payment->id) }}" method="POST" style="flex:1;">
                                     @csrf
-                                    <button type="button" class="neobrutalist-btn bg-lila w-full no-select" style="padding: 10px; font-size: 0.8rem;" 
+                                    <button type="button" class="neobrutalist-btn bg-lila w-full no-select" style="padding: 8px; font-size: 0.75rem;" 
                                             onclick="confirmAction('reject-payment-{{ $appt->payment->id }}', '¿Rechazar este comprobante?')">
                                         <i class="fa-solid fa-times"></i> Rechazar
                                     </button>
@@ -419,20 +870,24 @@
 
     <!-- Agenda Completa -->
     <div id="turnos" class="neobrutalist-card" style="margin-bottom: 4rem;">
-        <div style="background: white; border: 3px solid #000; padding: 1rem; margin-bottom: 2rem; display: flex; gap: 1rem; flex-wrap: wrap; align-items: center; box-shadow: 4px 4px 0px #000;">
-            <div style="margin-bottom: 2rem; display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
-            <div style="flex: 1; min-width: 250px;">
-                <input type="text" id="turnoSearch" placeholder="Buscar por paciente..." class="neobrutalist-input" style="margin:0;">
-            </div>
-            <div style="flex: 1; min-width: 200px;">
-                <select id="turnoFilter" class="neobrutalist-input" style="margin:0;">
-                    <option value="todos">Todos los estados</option>
-                    <option value="pendiente">Pendientes</option>
-                    <option value="confirmado">Confirmados</option>
-                    <option value="cancelado">Cancelados</option>
-                    <option value="frecuente">Pacientes Frecuentes</option>
-                    <option value="nuevo">Pacientes Nuevos</option>
-                </select>
+        <div style="background: white; border: 3px solid #000; padding: 1.5rem; margin-bottom: 2rem; box-shadow: 6px 6px 0px #000; border-radius: 12px;">
+            <h4 style="margin: 0 0 1rem 0; font-size: 1.1rem; font-weight: 800; text-transform: uppercase; color: #555;">Filtros de Búsqueda</h4>
+            <div style="display: flex; gap: 1.5rem; flex-wrap: wrap;">
+                <div style="flex: 2; min-width: 280px;">
+                    <label style="font-weight: 700; font-size: 0.85rem; display: block; margin-bottom: 0.5rem;">Identificar Paciente</label>
+                    <input type="text" id="turnoSearch" placeholder="Buscar por nombre o apellido..." class="neobrutalist-input w-full" style="margin:0; width: 100%;">
+                </div>
+                <div style="flex: 1; min-width: 200px;">
+                    <label style="font-weight: 700; font-size: 0.85rem; display: block; margin-bottom: 0.5rem;">Filtrar por Estado</label>
+                    <select id="turnoFilter" class="neobrutalist-input w-full" style="margin:0; width: 100%;">
+                        <option value="todos">Mostrar Todo</option>
+                        <option value="pendiente">Solo Pendientes</option>
+                        <option value="confirmado">Solo Confirmados</option>
+                        <option value="cancelado">Solo Cancelados</option>
+                        <option value="frecuente">Pacientes Frecuentes</option>
+                        <option value="nuevo">Pacientes Nuevos</option>
+                    </select>
+                </div>
             </div>
         </div>
         <div style="overflow-x: auto;">
@@ -550,10 +1005,10 @@
                             <td style="padding: 0.8rem; text-align: right;">
                                 <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
                                     <a href="{{ route('resources.download', $res->id) }}" class="neobrutalist-btn bg-celeste" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;"><i class="fa-solid fa-download"></i></a>
-                                    <form action="{{ route('admin.resources.destroy', $res->id) }}" method="POST" style="margin:0;">
+                                    <form id="delete-res-{{ $res->id }}" action="{{ route('admin.resources.destroy', $res->id) }}" method="POST" style="margin:0;">
                                         @csrf
                                         @method('DELETE')
-                                        <button type="submit" class="neobrutalist-btn bg-lila" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;" onclick="return confirm('¿Borrar recurso?')"><i class="fa-solid fa-trash"></i></button>
+                                        <button type="button" class="neobrutalist-btn bg-lila" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;" onclick="confirmAction('delete-res-{{ $res->id }}', '¿Borrar recurso?')"><i class="fa-solid fa-trash"></i></button>
                                     </form>
                                 </div>
                             </td>
@@ -568,6 +1023,8 @@
             </div>
         </div>
     </div>
+
+
 
 
 
@@ -608,6 +1065,72 @@
                             </td>
                         </tr>
                     @endforeach
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Lista de Espera (NEW) -->
+    <div id="waitlist" class="neobrutalist-card" style="background: white; margin-bottom: 4rem;">
+        <div style="margin-bottom: 1.5rem; border-bottom: 3px solid #000; padding-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center;">
+            <h3 style="margin: 0; font-size: 1.5rem;"><i class="fa-solid fa-clock"></i> Lista de Espera (Global)</h3>
+        </div>
+        
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; background: white; border: 3px solid #000; box-shadow: 6px 6px 0px #000;">
+                <thead>
+                    <tr style="background: #000; color: #fff;">
+                        <th style="padding: 0.8rem; text-align: left;">Fecha/Hora</th>
+                        <th style="padding: 0.8rem; text-align: left;">Paciente</th>
+                        <th style="padding: 0.8rem; text-align: left;">Teléfono</th>
+                        <th style="padding: 0.8rem; text-align: left;">Preferencia</th>
+                        <th style="padding: 0.8rem; text-align: right;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($waitlist ?? [] as $entry)
+                        <tr style="border-bottom: 2px solid #000;">
+                            <td style="padding: 0.8rem; font-weight: 700;">
+                                @if($entry->fecha_especifica)
+                                    {{ \Carbon\Carbon::parse($entry->fecha_especifica)->format('d/m') }}
+                                @else
+                                    Global
+                                @endif
+                                @if($entry->hora_inicio)
+                                    - {{ \Carbon\Carbon::parse($entry->hora_inicio)->format('H:i') }} hs
+                                @endif
+                            </td>
+                            <td style="padding: 0.8rem; font-weight: 900;">{{ $entry->name }}</td>
+                            <td style="padding: 0.8rem;">
+                                <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $entry->phone) }}" target="_blank" style="color: #25D366; font-weight: 800; text-decoration: none;">
+                                    <i class="fa-brands fa-whatsapp"></i> {{ $entry->phone }}
+                                </a>
+                            </td>
+                            <td style="padding: 0.8rem;">
+                                <div style="display: flex; flex-direction: column; gap: 0.3rem;">
+                                    <span style="background: var(--color-celeste); padding: 2px 8px; border: 2px solid #000; border-radius: 6px; font-size: 0.75rem; font-weight: 800; width: fit-content; text-transform: uppercase;">
+                                        {{ $entry->modality }}
+                                    </span>
+                                    <div style="font-size: 0.9rem; font-weight: 700; color: #000; background: #fffadc; padding: 0.5rem; border: 1px dashed #000; border-radius: 5px;">
+                                        <i class="fa-solid fa-clock"></i> {{ $entry->availability ?? 'No especificó disponibilidad general' }}
+                                    </div>
+                                </div>
+                            </td>
+                            <td style="padding: 0.8rem; text-align: right;">
+                                <form id="delete-waitlist-{{ $entry->id }}" action="{{ route('admin.waitlist.destroy', $entry->id) }}" method="POST" style="margin:0;">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="button" class="neobrutalist-btn bg-lila" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;" onclick="confirmAction('delete-waitlist-{{ $entry->id }}', '¿Remover de la lista de espera?')">
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="5" style="padding: 2rem; text-align: center; color: #666;">No hay nadie en la lista de espera.</td>
+                        </tr>
+                    @endforelse
                 </tbody>
             </table>
         </div>
@@ -658,9 +1181,15 @@
             <button class="close-modal" onclick="closeProofModal()">&times;</button>
         </div>
         <div class="modal-body">
-            <div class="modal-image-col" style="background: #222; display: flex; align-items: center; justify-content: center; min-height: 300px; flex-direction: column;">
-                <img id="modalImage" src="" alt="Comprobante" style="max-height: 70vh; max-width: 100%; object-fit: contain; border: 5px solid #fff; box-shadow: 10px 10px 0px #000; display: none;">
-                <iframe id="modalPdf" src="" style="width: 100%; height: 70vh; border: 5px solid #fff; box-shadow: 10px 10px 0px #000; display: none;"></iframe>
+            <div class="modal-image-col" style="background: #222; display: flex; align-items: center; justify-content: center; min-height: 200px; flex-direction: column; position: relative;">
+                
+                <!-- Loading Spinner -->
+                <div id="modalLoader" style="color: white; font-size: 2rem; display: none;">
+                    <i class="fa-solid fa-spinner fa-spin"></i>
+                </div>
+
+                <img id="modalImage" src="" alt="Comprobante" style="max-height: 50vh; max-width: 100%; object-fit: contain; border: 5px solid #fff; box-shadow: 10px 10px 0px #000; display: none;">
+                <iframe id="modalPdf" src="" style="width: 100%; height: 50vh; border: 5px solid #fff; box-shadow: 10px 10px 0px #000; display: none;"></iframe>
                 <p id="modalError" style="display: none; color: white; font-weight: bold; font-size: 1.2rem;">Archivo no encontrado / No disponible</p>
             </div>
             <div class="modal-info-col">
@@ -680,8 +1209,20 @@
     </div>
 </div>
 
+<!-- Generic Action Confirmation Modal -->
+<div id="actionConfirmModal" class="confirm-modal-overlay" style="display: none; align-items: center; justify-content: center; background: rgba(0,0,0,0.5); position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 10000;">
+    <div class="neobrutalist-card" style="background: white; max-width: 400px; width: 90%; border: 4px solid #000; box-shadow: 8px 8px 0px #000;">
+        <h3 style="margin-top: 0; border-bottom: 2px solid #000; padding-bottom: 0.5rem; text-align: center;">Confirmar Acción</h3>
+        <p id="actionConfirmText" style="font-weight: 700; margin: 1.5rem 0; font-size: 1.1rem; text-align: center;"></p>
+        <div style="display: flex; justify-content: center; gap: 1rem;">
+            <button class="neobrutalist-btn bg-lila" onclick="closeActionModal()">Cancelar</button>
+            <button id="actionConfirmBtn" class="neobrutalist-btn bg-verde">Confirmar</button>
+        </div>
+    </div>
+</div>
+
 <!-- Manage Patient Modal -->
-<div id="manageModal" class="confirm-modal-overlay">
+<div id="manageModal" class="confirm-modal-overlay" style="display: none;">
     <div class="confirm-modal" style="max-width: 550px; width: 90%;">
         <div class="confirm-modal-title" id="manageTitle">Gestionar Paciente</div>
         <div class="confirm-modal-message" style="text-align: left;">
@@ -775,6 +1316,7 @@
     </div>
 </div>
 
+
 <script>
     let currentPatientId = null;
     let currentPatientName = '';
@@ -834,41 +1376,44 @@
         });
     }
 
+
     window.openProofModal = function(fileSrc, patientName, uploadDate, fileExtension) {
         console.log('Opening proof modal for:', fileSrc, 'Ext:', fileExtension);
         const modalImage = document.getElementById('modalImage');
         const modalPdf = document.getElementById('modalPdf');
         const modalError = document.getElementById('modalError');
+        const modalLoader = document.getElementById('modalLoader');
         
         // Reset state
-        if(modalImage) {
-            modalImage.style.display = 'none';
-            // Do not set src = '' as it can trigger onerror
-            modalImage.onerror = function() {
-                this.style.display = 'none';
-                if(modalError) modalError.style.display = 'block';
-            };
-            modalImage.onload = function() {
-                if(modalError) modalError.style.display = 'none';
-            };
-        }
-        if(modalPdf) {
-            modalPdf.style.display = 'none';
-            modalPdf.src = '';
-        }
+        if(modalImage) modalImage.style.display = 'none';
+        if(modalPdf) modalPdf.style.display = 'none';
         if(modalError) modalError.style.display = 'none';
+        
+        // Show Loader
+        if(modalLoader) modalLoader.style.display = 'block';
 
-        // Detect if it's a PDF using the explicitly passed extension
         const isPdf = fileExtension ? (fileExtension.toLowerCase() === 'pdf') : fileSrc.toLowerCase().includes('.pdf');
         
         if (isPdf) {
             if(modalPdf) {
-                modalPdf.style.display = 'block';
+                modalPdf.onload = function() {
+                    if(modalLoader) modalLoader.style.display = 'none';
+                    this.style.display = 'block';
+                };
                 modalPdf.src = fileSrc;
             }
         } else {
             if(modalImage) {
-                modalImage.style.display = 'block';
+                modalImage.onload = function() {
+                    if(modalLoader) modalLoader.style.display = 'none';
+                    if(modalError) modalError.style.display = 'none';
+                    this.style.display = 'block';
+                };
+                modalImage.onerror = function() {
+                    if(modalLoader) modalLoader.style.display = 'none';
+                    this.style.display = 'none';
+                    if(modalError) modalError.style.display = 'block';
+                };
                 modalImage.src = fileSrc;
             }
         }
@@ -883,11 +1428,13 @@
         const modalImage = document.getElementById('modalImage');
         const modalPdf = document.getElementById('modalPdf');
         const modalError = document.getElementById('modalError');
+        const modalLoader = document.getElementById('modalLoader');
         
         // Clear sources to stop PDF loading
         if(modalImage) modalImage.src = '';
         if(modalPdf) modalPdf.src = '';
         if(modalError) modalError.style.display = 'none';
+        if(modalLoader) modalLoader.style.display = 'none';
         
         document.getElementById('proofModal').classList.remove('active');
         document.body.style.overflow = 'auto'; // Restore scroll
@@ -903,20 +1450,25 @@
         
         renderCalendar();
     }
-    window.confirmAction = function(formId, message) {
-        if (window.showConfirm) {
-            window.showConfirm(message, function() {
-                const form = document.getElementById(formId);
-                if (form) form.submit();
-                else console.error('Form not found:', formId);
-            });
-        } else {
-            // Fallback if modal fails
-            if (confirm(message)) {
-                document.getElementById(formId).submit();
-            }
-        }
+
+    // Reset Calendar Logic
+    window.resetCalendar = function() {
+        currentDate = new Date();
+        renderCalendar();
     }
+    // Scroll Preservation Logic
+    document.addEventListener("DOMContentLoaded", function() {
+        if (localStorage.getItem("adminScrollPos")) {
+            window.scrollTo(0, localStorage.getItem("adminScrollPos"));
+            localStorage.removeItem("adminScrollPos");
+        }
+    });
+
+    window.saveScrollPosition = function() {
+        localStorage.setItem("adminScrollPos", window.scrollY);
+    };
+
+    // Generic Modal Logic moved to top of script
 
     // Unified Filtering, Sorting and Pagination logic
     let currentPage = 1;
@@ -951,8 +1503,7 @@
         const start = (currentPage - 1) * rowsPerPage;
         const end = start + rowsPerPage;
         filteredRows.slice(start, end).forEach(r => {
-            // Check if mobile (stacked) or desktop (table-row)
-            r.style.display = (window.innerWidth <= 768) ? 'block' : 'table-row';
+            r.style.display = '';
         });
 
         // 4. Update UI
@@ -1002,23 +1553,6 @@
     window.addEventListener('resize', applyTableState);
     document.addEventListener('DOMContentLoaded', applyTableState);
 
-    // Date Jumper
-    window.jumpToDate = function() {
-        const month = document.getElementById('jumpMonth').value;
-        const year = document.getElementById('jumpYear').value;
-        currentDate.setMonth(parseInt(month));
-        currentDate.setFullYear(parseInt(year));
-        renderCalendar();
-    }
-
-
-    // Close on click outside
-    document.getElementById('proofModal').addEventListener('click', function(e) {
-        if (e.target === this) closeProofModal();
-    });
-    document.getElementById('manageModal').addEventListener('click', function(e) {
-        if (e.target === this) closeManageModal();
-    });
     // Revert logic
     let pendingRevertId = null;
     window.openRevertModal = function(id, actionName) {
@@ -1077,5 +1611,7 @@
             btn.innerText = 'Confirmar Reverso';
         }
     }
+
+    // Custom dropdowns are managed in the DOMContentLoaded listener above
 </script>
 @endsection

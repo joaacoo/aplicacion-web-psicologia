@@ -2,7 +2,10 @@
 
 @section('title', 'Mi Portal - Lic. Nazarena De Luca')
 
+
+
 @section('content')
+<div id="top"></div>
 <div class="flex gap-4" style="flex-wrap: wrap;">
     
     <!-- Left Column: New Appointment Stepper -->
@@ -29,8 +32,16 @@
             </div>
             <!-- Temporal visual separator -->
             <div style="height: 2px; background: black; margin: 1.5rem 0; opacity: 0.1;"></div>
-            <p style="font-size: 0.9rem; font-style: italic;">
-                <i class="fa-solid fa-circle-info"></i> Recordá conectarte 5 minutos antes si es virtual.
+            @if(strtolower($nextAppointment->modalidad) == 'virtual')
+                <p style="font-size: 0.9rem; font-style: italic; margin-bottom: 0.5rem;">
+                    <i class="fa-solid fa-video"></i> Recordá conectarte 5 minutos antes.
+                </p>
+            @endif
+            
+            <p style="font-size: 0.9rem; font-weight: 700;">
+                <a href="#materiales" style="text-decoration: none; color: inherit; transition: opacity 0.3s;" onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'">
+                    <i class="fa-solid fa-list-check"></i> No te olvides de revisar tus Materiales para la sesión.
+                </a>
             </p>
         </div>
     @endif
@@ -164,12 +175,19 @@
 
     <!-- Right Column: My Appointments -->
     <div style="flex: 2; min-width: 300px;">
-        <div class="neobrutalist-card">
-            <h3 class="no-select" style="background: var(--color-lila); display: inline-block; padding: 0.2rem 0.5rem; border: 3px solid #2D2D2D;">Mis Turnos & Pagos</h3>
+        <div id="mis-turnos" class="neobrutalist-card">
+            <h3 class="no-select" style="background: var(--color-lila); display: inline-block; padding: 0.2rem 0.5rem; border: 3px solid #2D2D2D;">Mis Turnos y Pagos</h3>
             
             @if($appointments->isEmpty())
                 <p class="mt-4">No tenés turnos registrados todavía.</p>
             @else
+                <!-- Waitlist CTA -->
+                <div style="margin-top: 2rem; padding: 1rem; border: 2px dashed #ccc; border-radius: 15px; text-align: center; background: #fafafa;">
+                    <p style="margin-bottom: 0.5rem; font-weight: 700; color: #555;">¿No encontrás un horario conveniente?</p>
+                    <a href="{{ route('waitlist.create') }}" class="neobrutalist-btn bg-amarillo" style="font-size: 0.8rem; padding: 0.5rem 1rem;">
+                        <i class="fa-solid fa-clock"></i> Unirme a Lista de Espera
+                    </a>
+                </div>
                 <div style="overflow-x: auto;">
                     <table style="width: 100%; border-collapse: collapse; margin-top: 1rem;">
                         <thead>
@@ -203,7 +221,10 @@
                                     @if($appt->estado != 'cancelado')
                                         <form action="{{ route('appointments.cancel', $appt->id) }}" method="POST">
                                             @csrf
-                                            <button type="submit" class="neobrutalist-btn bg-lila" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;" onclick="return confirm('¿Seguro querés cancelar?')">Cancelar</button>
+                                            <button type="button" class="neobrutalist-btn bg-lila" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;" 
+                                                onclick="window.showConfirm('¿Seguro querés cancelar este turno?', () => this.closest('form').submit())">
+                                                Cancelar
+                                            </button>
                                         </form>
                                     @else
                                         -
@@ -253,15 +274,9 @@
         @endif
     </div>
 
-    <!-- Gestión de Cuenta / Baja -->
-    <div style="margin-top: 3rem; padding: 2rem; text-align: center; border-top: 2px dashed #ccc;">
-        <form id="delete-account-form" action="{{ route('patient.account.destroy') }}" method="POST" style="display: none;">
-            @csrf
-            @method('DELETE')
-        </form>
-        <p style="color: #666; font-size: 0.9rem; margin-bottom: 0.5rem;">¿Deseas dejar de recibir servicios?</p>
-        <a href="#" onclick="confirmDeleteAccount()" style="color: #d00; font-size: 0.85rem; font-weight: 700; text-decoration: underline;">Quiero darme de baja del sistema</a>
-    </div>
+
+
+
 </div>
     <!-- Custom Alert Modal (Cartel) -->
     <div id="alert-modal-overlay" class="confirm-modal-overlay" style="display: none; align-items: center; justify-content: center; background: rgba(0,0,0,0.7);">
@@ -281,8 +296,14 @@
 
 <script>
     const availabilities = @json($availabilities);
+    const googleSlots = @json($googleAvailableSlots->map(fn($s) => [
+        'date' => is_array($s) ? $s['start_time']->format('Y-m-d') : $s->start_time->format('Y-m-d'), 
+        'time' => is_array($s) ? $s['start_time']->format('H:i') : $s->start_time->format('H:i')
+    ]));
     const occupiedSlots = @json($occupiedSlots);
     const userType = "{{ auth()->user()->tipo_paciente }}";
+    const weekendsBlocked = @json($blockWeekends);
+    const specificBlockedDays = @json($blockedDays ?? []);
     
     let selectedDay = null; // Format YYYY-MM-DD
     let selectedTime = null; // Format HH:mm
@@ -307,20 +328,35 @@
             date.setDate(today.getDate() + i);
             
             const dayOfWeek = date.getDay(); // 0-6
-            // PARA PRUEBAS: Si no hay disponibilidad real, mostramos igual pero con aviso o permitimos todo
+            const dateStr = date.toISOString().split('T')[0];
             const isAvailable = availabilities.some(a => a.dia_semana == dayOfWeek);
             
+            const isWeekendBlocked = weekendsBlocked && (dayOfWeek === 0 || dayOfWeek === 6);
+            const isSpecificBlocked = specificBlockedDays.includes(dateStr);
+            
+            const isBlocked = isWeekendBlocked || isSpecificBlocked;
+
             const dayBtn = document.createElement('div');
             // Quitamos 'disabled' para que el usuario pueda probar el flujo completo
-            dayBtn.className = 'day-btn'; 
+            dayBtn.className = 'day-btn' + (isBlocked ? ' disabled' : ''); 
+            
+            // Add style for blocked
+            if (isBlocked) {
+                dayBtn.style.opacity = '0.3';
+                dayBtn.style.cursor = 'not-allowed';
+                dayBtn.style.background = '#ddd';
+                dayBtn.title = isSpecificBlocked ? 'Día no disponible' : 'Fines de semana no disponibles';
+            }
+
             dayBtn.innerHTML = `
                 <div style="font-size: 0.6rem; opacity: 0.7;">${date.toLocaleDateString('es-AR', { weekday: 'short' }).toUpperCase()}</div>
                 <div style="font-size: 1.1rem;">${date.getDate()}</div>
                 <div style="font-size: 0.6rem;">${date.toLocaleDateString('es-AR', { month: 'short' })}</div>
             `;
             
-            const dateStr = date.toISOString().split('T')[0];
-            dayBtn.onclick = () => selectDay(dateStr, dayBtn);
+            if (!isBlocked) {
+                dayBtn.onclick = () => selectDay(dateStr, dayBtn);
+            }
 
             grid.appendChild(dayBtn);
         }
@@ -375,24 +411,38 @@
         const grid = document.getElementById('times-grid');
         grid.innerHTML = '';
         
-        const date = new Date(dateStr + 'T00:00:00');
+        const date = new Date(dateStr + 'T12:00:00'); // Use noon to avoid TZ issues
         const dayOfWeek = date.getDay();
         
-        let dayAvails = availabilities.filter(a => a.dia_semana == dayOfWeek);
+        // Priority 1: Google Calendar "LIBRE" slots
+        let dayGoogleSlots = googleSlots.filter(s => s.date === dateStr);
         
-        // MOCK PARA PRUEBAS: Si el día no tiene horarios configurados, inventamos unos para que veas el flujo
-        if (dayAvails.length === 0) {
-            dayAvails = [
-                { hora_inicio: '09:00:00' },
-                { hora_inicio: '10:00:00' },
-                { hora_inicio: '11:00:00' },
-                { hora_inicio: '16:00:00' },
-                { hora_inicio: '17:00:00' }
-            ];
+        let slotsToRender = [];
+        
+        if (dayGoogleSlots.length > 0) {
+            slotsToRender = dayGoogleSlots.map(s => ({ hora_inicio: s.time }));
+        } else {
+            // Priority 2: Fallback to base hours if no Google Slots for this specific day
+            slotsToRender = availabilities.filter(a => a.dia_semana == dayOfWeek);
+        }
+        
+        if (slotsToRender.length === 0) {
+            grid.innerHTML = `
+                <div style="grid-column: 1 / -1; text-align: center; padding: 1.5rem; border: 2px dashed #ccc; border-radius: 10px; background: #fdfdfd;">
+                    <p style="font-weight: 700; color: #666; margin-bottom: 1rem;">No hay horarios disponibles para este día.</p>
+                    <button onclick="window.location.href='{{ route('waitlist.create') }}'" class="neobrutalist-btn bg-amarillo" style="font-size: 0.8rem; padding: 0.5rem 1rem; cursor: pointer;">
+                        <i class="fa-solid fa-clock"></i> ¿Querés que te avisemos si se libera un lugar?
+                    </button>
+                </div>
+            `;
+            return;
         }
 
-        dayAvails.forEach(avail => {
-            const timeStr = avail.hora_inicio.substring(0, 5); // HH:mm
+        // Sort slots by time
+        slotsToRender.sort((a,b) => a.hora_inicio.localeCompare(b.hora_inicio));
+
+        slotsToRender.forEach(slot => {
+            const timeStr = slot.hora_inicio.substring(0, 5); // HH:mm
             const fullDateTime = dateStr + ' ' + timeStr + ':00';
             const isOccupied = occupiedSlots.includes(fullDateTime);
             
@@ -421,6 +471,7 @@
                 waitBtn.style.fontSize = '0.6rem';
                 waitBtn.style.background = 'var(--color-amarillo)';
                 waitBtn.innerHTML = '<i class="fa-solid fa-bell"></i> Avisarme';
+                waitBtn.title = 'Unirse a la lista de espera para este horario';
                 waitBtn.onclick = () => joinWaitlist(dateStr, timeStr);
                 pillContainer.appendChild(waitBtn);
             }

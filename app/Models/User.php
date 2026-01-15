@@ -36,6 +36,12 @@ class User extends Authenticatable
     {
         return $this->hasMany(Appointment::class, 'usuario_id');
     }
+
+    // Relación con Documentos
+    public function documents()
+    {
+        return $this->hasMany(Document::class);
+    }
     
     // Alias para compatibilidad con Auth de Laravel que busca 'name' a veces
     public function getNameAttribute() {

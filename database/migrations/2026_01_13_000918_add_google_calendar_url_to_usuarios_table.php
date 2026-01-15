@@ -11,13 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('waitlists', function (Blueprint $table) {
-            $table->id();
-            $table->string('name');
-            $table->string('phone');
-            $table->text('availability');
-            $table->string('modality'); // Presencial, Virtual, Indistinto
-            $table->timestamps();
+        Schema::table('usuarios', function (Blueprint $table) {
+            $table->text('google_calendar_url')->nullable()->after('ical_token');
         });
     }
 
@@ -26,6 +21,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('waitlists');
+        Schema::table('usuarios', function (Blueprint $table) {
+            $table->dropColumn('google_calendar_url');
+        });
     }
 };

@@ -115,7 +115,15 @@ class AuthController extends Controller
 
     public function destroyAccount(Request $request)
     {
+        $request->validate([
+            'password' => 'required',
+        ]);
+
         $user = Auth::user();
+
+        if (!\Illuminate\Support\Facades\Hash::check($request->password, $user->password)) {
+            return back()->withErrors(['password' => 'La contraseña es incorrecta.']);
+        }
         
         Auth::logout();
 

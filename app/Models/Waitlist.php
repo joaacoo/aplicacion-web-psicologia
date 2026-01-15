@@ -11,9 +11,13 @@ class Waitlist extends Model
 
     protected $fillable = [
         'usuario_id',
+        'name',
+        'phone',
+        'availability',
+        'modality',
+        'fecha_especifica',
         'dia_semana',
         'hora_inicio',
-        'fecha_especifica',
     ];
 
     public function user()
