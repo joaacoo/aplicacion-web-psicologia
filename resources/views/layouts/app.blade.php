@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>@yield('title', 'Lic. Nazarena De Luca')</title>
+    <title>Inicio - Lic. Nazarena</title>
     <meta name="csrf-token" content="{{ csrf_token() }}">
     
     <!-- CSS -->
@@ -12,76 +12,337 @@
 </head>
 <body style="background-color: var(--color-celeste);"> <!-- Fondo celeste en body general como en Hero del reference para dar más vida -->
 
-    @if(!request()->routeIs('login') && !request()->routeIs('register') && !request()->routeIs('password.*'))
-    <nav class="navbar-unificada no-select">
-        <div class="navbar-content">
-            <div class="logo-text">
-                <span class="brand-title logo no-select">Lic. <span class="hide-on-mobile">Nazarena</span> De Luca</span>
-            </div>
-            
-            <div class="nav-unificada-links">
-                <!-- Notification Bell (Always Visible) -->
-                @auth
-                    <div class="notification-bell-container no-select" id="notif-bell" title="Notificaciones" style="margin-right: 0.5rem;">
-                        <i class="fa-solid fa-bell"></i>
-                        <span class="notification-badge" id="notif-count" style="display: none;">0</span>
+    @auth
+        @php
+            $isAdmin = auth()->user()->rol == 'admin';
+            $isPatient = auth()->user()->rol == 'paciente';
+        @endphp
+        <form id="logout-form" action="{{ route('logout') }}" method="POST" style="display: none;">
+            @csrf
+        </form>
+    @endauth
+
+    @php
+        $isAuthPage = request()->routeIs('login') || request()->routeIs('register') || request()->routeIs('password.*');
+    @endphp
+
+    @if($isAuthPage)
+        {{-- Auth pages: Minimal, no nav, no extra padding --}}
+        @yield('content')
+    @else
+        @if(isset($isAdmin) && $isAdmin)
+            <!-- Admin Layout Container -->
+            <div class="admin-layout @if(isset($isAdmin) && $isAdmin && isset($_COOKIE['sidebar_collapsed']) && $_COOKIE['sidebar_collapsed'] == 'true') @else sidebar-open @endif" id="admin-layout-container">
+                <aside class="admin-sidebar @if(isset($_COOKIE['sidebar_collapsed']) && $_COOKIE['sidebar_collapsed'] == 'true') collapsed @endif" id="admin-sidebar" style="z-index: 6001;">
+                    <!-- Close button for mobile -->
+                    <button onclick="window.toggleAdminSidebar()" class="sidebar-close-btn" style="position: absolute; top: 1rem; right: 1rem; background: none; border: none; font-size: 1.5rem; cursor: pointer; z-index: 10; display: none; color: #000; padding: 0.5rem;">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                    
+                    <div class="sidebar-logo" style="padding: 1.5rem 0.5rem; margin-bottom: 2rem; border-bottom: 1px solid rgba(0, 0, 0, 0.1); display: flex; align-items: center; justify-content: center; gap: 0.6rem; overflow: hidden; width: 100%; height: 2.5rem;">
+                        <i class="fa-solid fa-brain" style="color: #000; font-size: 1.3rem; flex-shrink: 0; display: flex; align-items: center; height: 100%;"></i>
+                        <span class="sidebar-text sidebar-text-small" style="font-size: 0.95rem !important; font-weight: normal; letter-spacing: -0.2px; white-space: nowrap; flex-shrink: 0; color: rgba(0, 0, 0, 0.5); display: flex; align-items: center; text-align: center; height: 100%;">Espacio Terapéutico</span>
+                    </div>
+                    
+                    <nav class="sidebar-nav">
+                        <a href="{{ route('admin.home') }}" class="sidebar-link bg-lila" style="border: 3px solid #000; box-shadow: 4px 4px 0px #000; transform: scale(1.02); z-index: 10;">
+                            <i class="fa-solid fa-house"></i>
+                            <span class="sidebar-text" style="font-weight: 900;">Inicio</span>
+                        </a>
+                        <a href="{{ route('admin.agenda') }}" class="sidebar-link bg-celeste">
+                            <i class="fa-solid fa-calendar-day"></i>
+                            <span class="sidebar-text">Agenda Hoy</span>
+                        </a>
+                        <a href="{{ route('admin.pacientes') }}" class="sidebar-link bg-amarillo">
+                            <i class="fa-solid fa-users"></i>
+                            <span class="sidebar-text">Pacientes</span>
+                        </a>
+                        <a href="{{ route('admin.pagos') }}" class="sidebar-link bg-verde">
+                            <i class="fa-solid fa-money-bill-wave"></i>
+                            <span class="sidebar-text">Pagos</span>
+                        </a>
+                        <a href="{{ route('admin.turnos') }}" class="sidebar-link bg-rosa">
+                            <i class="fa-solid fa-calendar-check"></i>
+                            <span class="sidebar-text">Gestión Turnos</span>
+                        </a>
+                        <a href="{{ route('admin.documentos') }}" class="sidebar-link bg-lila">
+                            <i class="fa-solid fa-folder-open"></i>
+                            <span class="sidebar-text">Biblioteca</span>
+                        </a>
+                        <a href="{{ route('admin.waitlist') }}" class="sidebar-link bg-celeste">
+                            <i class="fa-solid fa-clock"></i>
+                            <span class="sidebar-text">Lista Espera</span>
+                        </a>
+                        <a href="{{ route('admin.configuracion') }}" class="sidebar-link bg-amarillo">
+                            <i class="fa-solid fa-gear"></i>
+                            <span class="sidebar-text">Disponibilidad</span>
+                        </a>
+                        <a href="{{ route('admin.historial') }}" class="sidebar-link bg-verde">
+                            <i class="fa-solid fa-clock-rotate-left"></i>
+                            <span class="sidebar-text">Historial</span>
+                        </a>
+                    </nav>
+
+                    <div class="sidebar-footer" style="padding: 1.5rem 0.5rem; margin-top: 2rem; border-top: 1px solid rgba(0, 0, 0, 0.1); display: flex; align-items: center; justify-content: center; gap: 0.5rem; overflow: hidden;">
+                        <a href="javascript:void(0)" class="sidebar-link" style="background-color: var(--color-rojo); color: white; width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem;" onclick="window.showConfirm('¿Estás segura de que querés cerrar sesión, Nazarena?', () => document.getElementById('logout-form').submit())">
+                            <i class="fa-solid fa-sign-out-alt" style="line-height: 1;"></i>
+                            <span class="sidebar-text" style="font-size: 0.9rem; line-height: 1;">Cerrar Sesión</span>
+                        </a>
+                    </div>
+                </aside>
+
+                <main class="main-content" style="padding-top: 0 !important;"> 
+                    <!-- Unified Admin Header -->
+                    <div class="admin-unified-header" style="display: flex; justify-content: space-between; align-items: center; margin-top: 0 !important; margin-bottom: 2rem; background: white; padding: 1rem 1.5rem; border-bottom: 3px solid #000; box-shadow: 0 2px 0px rgba(0,0,0,0.05); position: sticky; top: 0; left: 0; width: 100%; z-index: 5999; transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1), transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); opacity: 1; transform: translateY(0); box-sizing: border-box;">
+                        <div style="display: flex; align-items: center; gap: 1rem;">
+                            <button class="neobrutalist-btn" onclick="toggleAdminSidebar()" style="padding: 0.5rem 0.8rem; background: var(--color-lila); position: relative; z-index: 6002;">
+                                <i class="fa-solid fa-bars" id="sidebar-toggle-icon"></i>
+                            </button>
+                            <span class="logo no-select" style="font-size: 1.6rem; font-weight: 500;">Lic. Nazarena</span>
+                        </div>
                         
-                        <div class="notification-dropdown" id="notif-dropdown">
-                            <div class="notification-header" style="padding: 0.8rem 1rem; border-bottom: 2px solid #eee; background: white; border-radius: 12px 12px 0 0;">
-                                <span style="font-size: 0.85rem; font-weight: 800; color: #555;">Notificaciones</span>
-                                <button onclick="markAllRead()" style="background: none; border: none; font-size: 0.7rem; font-weight: 700; cursor: pointer; color: var(--color-dark); text-decoration: underline;">Limpiar</button>
+                        <div style="display: flex; align-items: center; gap: 1.2rem;">
+                            <!-- Notifications Bell -->
+                            <div id="notif-bell" class="notification-bell-container" style="cursor: pointer; position: relative; font-size: 3rem; display: flex; align-items: center;">
+                                <i class="fa-solid fa-bell" style="color: #000;"></i>
+                                <span class="notification-badge" id="notif-count" style="position: absolute; top: -5px; right: -5px; background: #ff4d4d; color: white; border-radius: 50%; width: 24px; height: 24px; font-size: 0.7rem; display: none; align-items: center; justify-content: center; border: 2px solid #fff; font-weight: 800; font-weight: 900;">0</span>
+                                
+                                <!-- Dropdown -->
+                                <div id="notif-dropdown" class="notification-dropdown" onclick="event.stopPropagation()" style="display: none; position: absolute; top: calc(100% + 20px); right: -10px; width: 380px; max-width: 90vw; background: white; border: 1px solid rgba(0,0,0,0.1); border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.12); z-index: 9999; overflow: hidden;">
+                                    <style>
+                                        .notif-scroll::-webkit-scrollbar { width: 6px; }
+                                        .notif-scroll::-webkit-scrollbar-track { background: transparent; }
+                                        .notif-scroll::-webkit-scrollbar-thumb { background: #e0e0e0; border-radius: 3px; }
+                                    </style>
+                                    <style>
+                                        /* Smart Header Styles */
+                                        .admin-unified-header {
+                                            transition: transform 0.3s cubic-bezier(0.165, 0.84, 0.44, 1), opacity 0.3s ease;
+                                        }
+                                        .admin-unified-header.header-hidden {
+                                            transform: translateY(-100%);
+                                            opacity: 0;
+                                            pointer-events: none;
+                                        }
+                                    </style>
+                                    <div class="notification-header" style="padding: 18px 24px; border-bottom: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center; background: white;">
+                                        <span style="font-weight: 700; font-size: 1rem; font-family: 'Inter', sans-serif; letter-spacing: -0.5px; color: #1a1a1a;">Notificaciones</span>
+                                        <button onclick="markAllRead()" style="background: transparent; border: none; color: #666; font-size: 0.8rem; cursor: pointer; font-weight: 500; font-family: 'Inter', sans-serif;" onmouseover="this.style.color='#000'" onmouseout="this.style.color='#666'">
+                                            Marcar leídas
+                                        </button>
+                                    </div>
+                                    <div id="notif-items" class="notif-scroll" style="max-height: 450px; overflow-y: auto; background: #fafafa;">
+                                        <!-- Notifications here -->
+                                    </div>
+                                </div>
                             </div>
-                            <div id="notif-items" style="background: white;"><div class="notification-empty" style="padding: 2rem; text-align: center; color: #999; font-size: 0.85rem;">No hay avisos nuevos.</div></div>
                         </div>
                     </div>
-                @endauth
 
-                @auth
-                    <!-- Mobile Menu Trigger -->
-                    <button class="neobrutalist-btn mobile-only-btn" onclick="toggleMobileMenu()" style="padding: 0.6rem 1rem; background: var(--color-lila); margin-left: 0.5rem; display: none;">
-                        <i class="fa-solid fa-bars" style="font-size: 1.2rem;"></i>
-                    </button>
+                    @if(session('success'))
+                        <div class="alert alert-success">
+                            {{ session('success') }}
+                        </div>
+                    @endif
+                    
 
-                    <!-- Desktop Nav Links (Hidden on Mobile) -->
-                    <div class="admin-nav-links desktop-menu">
-                        @if(auth()->user()->rol != 'paciente')
-                            <a href="#agenda" class="neobrutalist-btn" style="padding: 0.3rem 0.6rem; font-size: 0.7rem; background: var(--color-lila);">Hoy</a>
-                            <a href="#pagos" class="neobrutalist-btn" style="padding: 0.3rem 0.6rem; font-size: 0.7rem; background: var(--color-amarillo);">Pagos</a>
-                            <a href="#turnos" class="neobrutalist-btn" style="padding: 0.3rem 0.6rem; font-size: 0.7rem; background: var(--color-verde);">Turnos</a>
-                            <a href="#pacientes" class="neobrutalist-btn" style="padding: 0.3rem 0.6rem; font-size: 0.7rem; background: var(--color-celeste);">Pacientes</a>
-                        @endif
-                        <form id="logout-form" action="{{ route('logout') }}" method="POST" style="display: none;">
-                            @csrf
-                        </form>
-                        <a href="javascript:void(0)" class="neobrutalist-btn bg-lila no-select" style="margin-left: 0.5rem;" onclick="window.showConfirm('¿Estás segura de que querés cerrar sesión?', () => document.getElementById('logout-form').submit())">Salir</a>
+                    @if(session('error'))
+                        <div class="alert alert-error">
+                            {{ session('error') }}
+                        </div>
+                    @endif
+
+                    <div class="workspace-container" style="width: 100%; max-width: 1400px; min-height: 80vh;">
+                        @yield('content')
                     </div>
-                @endauth
+                </main>
             </div>
-        </div>
-        
-        <!-- Mobile Dropdown Menu -->
-        <div id="mobile-nav-dropdown" class="mobile-nav-dropdown" style="display: none;">
-            @auth
-                @if(auth()->user()->rol != 'paciente')
-                    <a href="#agenda" class="mobile-nav-item" onclick="toggleMobileMenu()"><i class="fa-solid fa-calendar-day"></i> Agenda Hoy</a>
-                    <a href="#pagos" class="mobile-nav-item" onclick="toggleMobileMenu()"><i class="fa-solid fa-money-bill-wave"></i> Pagos</a>
-                    <a href="#turnos" class="mobile-nav-item" onclick="toggleMobileMenu()"><i class="fa-solid fa-calendar-alt"></i> Gestión Turnos</a>
-                    <a href="#pacientes" class="mobile-nav-item" onclick="toggleMobileMenu()"><i class="fa-solid fa-users"></i> Pacientes</a>
-                    <a href="#documentos" class="mobile-nav-item" onclick="toggleMobileMenu()"><i class="fa-solid fa-file-alt"></i> Documentos</a>
-                @else
-                    <a href="#booking" class="mobile-nav-item" onclick="toggleMobileMenu()"><i class="fa-solid fa-calendar-plus"></i> Reservar Turno</a>
-                    <a href="#mis-turnos" class="mobile-nav-item" onclick="toggleMobileMenu()"><i class="fa-solid fa-calendar-check"></i> Mis Turnos</a>
-                    <a href="#materiales" class="mobile-nav-item" onclick="toggleMobileMenu()"><i class="fa-solid fa-folder-open"></i> Mi Biblioteca</a>
+        @else
+            <!-- Standard Top Nav Layout (Patient / Guest) -->
+            <nav class="navbar-unificada no-select">
+                <div class="navbar-content">
+                    <div class="logo-text">
+                        <span class="brand-title logo no-select">Lic. <span class="hide-on-mobile">Nazarena</span> De Luca</span>
+                    </div>
+                    
+                    <div class="nav-unificada-links">
+                        @auth
+                            <!-- Mobile Menu Trigger -->
+                            <button class="neobrutalist-btn mobile-only-btn" onclick="toggleMobileMenu()" style="padding: 0.6rem 1rem; background: var(--color-lila); margin-left: 0.5rem; display: none;">
+                                <i class="fa-solid fa-bars" style="font-size: 1.2rem;"></i>
+                            </button>
+
+                            <!-- Desktop Nav Links -->
+                            <div class="admin-nav-links desktop-menu">
+                                <!-- Notifications Bell for Patients -->
+                                <div id="notif-bell" class="notification-bell-container" style="cursor: pointer; position: relative; font-size: 1.2rem; margin-right: 1rem;">
+                                    <i class="fa-solid fa-bell"></i>
+                                    <span class="notification-badge" id="notif-count" style="display: none; position: absolute; top: -5px; right: -5px; background: #ff4d4d; color: white; border-radius: 50%; width: 18px; height: 18px; font-size: 0.7rem; display: flex; align-items: center; justify-content: center; border: 2px solid #000; font-weight: 800;">0</span>
+                                    
+                                    <!-- Dropdown -->
+                                    <div id="notif-dropdown" class="notification-dropdown" style="display: none;">
+                                        <div class="notification-header" style="padding: 10px 15px; border-bottom: 2px solid #000; display: flex; justify-content: space-between; align-items: center; background: #f8f8f8;">
+                                            <span style="font-weight: 800; font-size: 0.85rem;">Notificaciones</span>
+                                            <button onclick="markAllRead()" style="background: none; border: none; color: #555; font-size: 0.7rem; cursor: pointer; text-decoration: underline;">Limpiar todo</button>
+                                        </div>
+                                        <div id="notif-items" style="max-height: 300px; overflow-y: auto;">
+                                            <!-- Notifications here -->
+                                        </div>
+                                    </div>
+                                </div>
+
+
+
+                            </div>
+                        @endauth
+                </div>
+                
+                <!-- Mobile Dropdown Menu -->
+                <div id="mobile-nav-dropdown" class="mobile-nav-dropdown" style="display: none;">
+                    @auth
+                        @if(!$isPatient)
+                            <a href="#agenda" class="mobile-nav-item" onclick="toggleMobileMenu()"><i class="fa-solid fa-calendar-day"></i> Agenda Hoy</a>
+                            <a href="#pacientes" class="mobile-nav-item" onclick="toggleMobileMenu()"><i class="fa-solid fa-users"></i> Pacientes</a>
+                            <a href="#pagos" class="mobile-nav-item" onclick="toggleMobileMenu()"><i class="fa-solid fa-money-bill-wave"></i> Pagos</a>
+                            <a href="#turnos" class="mobile-nav-item" onclick="toggleMobileMenu()"><i class="fa-solid fa-calendar-alt"></i> Gestión Turnos</a>
+                            <a href="#documentos" class="mobile-nav-item" onclick="toggleMobileMenu()"><i class="fa-solid fa-file-alt"></i> Biblioteca</a>
+                        @else
+                            <a href="#booking" class="mobile-nav-item" onclick="toggleMobileMenu()"><i class="fa-solid fa-calendar-plus"></i> Reservar Turno</a>
+                            <a href="#mis-turnos" class="mobile-nav-item" onclick="toggleMobileMenu()"><i class="fa-solid fa-calendar-check"></i> Mis Turnos</a>
+                            <a href="#materiales" class="mobile-nav-item" onclick="toggleMobileMenu()"><i class="fa-solid fa-folder-open"></i> Mi Biblioteca</a>
+                        @endif
+                        <div style="border-top: 2px solid #eee; margin: 0.5rem 0;"></div>
+                        <a href="javascript:void(0)" class="mobile-nav-item logout" onclick="window.showConfirm('¿Estás segura de que querés cerrar sesión?', () => document.getElementById('logout-form').submit())"><i class="fa-solid fa-sign-out-alt"></i> Cerrar Sesión</a>
+                    @endauth
+                </div>
+            </nav>
+
+            <main class="container mt-16" style="min-height: 80vh; padding-top: 3rem; padding-bottom: 3rem;">
+                @if(session('success'))
+                    <div class="alert alert-success">
+                        {{ session('success') }}
+                    </div>
                 @endif
-                <div style="border-top: 2px solid #eee; margin: 0.5rem 0;"></div>
-                <a href="javascript:void(0)" class="mobile-nav-item logout" onclick="window.showConfirm('¿Estás segura de que querés cerrar sesión?', () => document.getElementById('logout-form').submit())"><i class="fa-solid fa-sign-out-alt"></i> Cerrar Sesión</a>
-            @endauth
-            </div>
-        </div>
-    </nav>
+                @if(session('error'))
+                    <div class="alert alert-error">
+                        {{ session('error') }}
+                    </div>
+                @endif
+
+                @yield('content')
+            </main>
+        @endif
     @endif
 
     @yield('subnavigation')
+
+    @if(auth()->check() && auth()->user()->rol == 'admin' && !request()->routeIs('login') && !request()->routeIs('register'))
+        
+        <!-- BOTÓN FLOTANTE (FAB) -->
+        <!-- BOTÓN FLOTANTE (FAB) -->
+        <style>
+            @keyframes pulse-border {
+                0% { box-shadow: 0 0 0 0 rgba(168, 85, 247, 0.7); }
+                70% { box-shadow: 0 0 0 15px rgba(168, 85, 247, 0); }
+                100% { box-shadow: 0 0 0 0 rgba(168, 85, 247, 0); }
+            }
+        </style>
+        <button onclick="toggleGemini()" id="ai-fab" style="
+            position: fixed;
+            bottom: 1.5rem;
+            right: 1.5rem;
+            width: 60px;
+            height: 60px;
+            background: var(--color-lila);
+            color: #fff;
+            border-radius: 50%;
+            border: none;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            z-index: 10000;
+            transition: transform 0.2s;
+            animation: pulse-border 2s infinite;
+        ">
+            <i class="fa-solid fa-user-tie"></i>
+        </button>
+
+        <!-- PANEL ASISTENTE (Oculto por defecto) -->
+        <div id="ai-panel" style="
+            position: fixed;
+            bottom: 6rem;
+            right: 1.5rem;
+            width: 350px;
+            height: 500px;
+            background: #fff;
+            border: 3px solid #000;
+            box-shadow: 8px 8px 0 rgba(0,0,0,0.2);
+            border-radius: 16px;
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+            z-index: 10001;
+        ">
+            <!-- Header Panel -->
+            <div style="
+                background: var(--color-lila);
+                color: #fff;
+                padding: 1rem;
+                font-weight: 800;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                font-family: 'Syne', sans-serif;
+                font-size: 1.1rem;
+            ">
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="fa-solid fa-robot" style="color: #fff;"></i> Asistente Virtual
+                </div>
+                <button onclick="toggleGemini()" style="background: none; border: none; color: #fff; font-size: 1.2rem; cursor: pointer;">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Messages Area -->
+            <div id="ai-messages" style="flex: 1; padding: 1rem; overflow-y: auto; background: #f8f9fa; display: flex; flex-direction: column; gap: 1rem;">
+                <!-- Welcome Message -->
+                <div style="background: #e9ecef; border: 2px solid #000; padding: 1rem; border-radius: 12px 12px 12px 0; align-self: flex-start; max-width: 90%; line-height: 1.5; font-size: 0.95rem;">
+                    <strong>IA:</strong> Hola Nazarena 👋 Soy tu asistente interno.<br>Podés preguntarme sobre agenda, pagos, o dudas del sistema.
+                </div>
+                <!-- Quick Actions Buttons -->
+                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                    <button onclick="sendQuickMessage('¿Qué turnos tengo hoy?')" style="background: #fff; border: 1px solid #ddd; padding: 0.5rem 1rem; border-radius: 20px; font-size: 0.85rem; font-weight: 500; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.05); transition: all 0.2s; color: #333;" onmouseover="this.style.background='#f0f0f0'" onmouseout="this.style.background='#fff'">¿Qué turnos tengo hoy?</button>
+                    <button onclick="sendQuickMessage('¿Cómo están mis pagos?')" style="background: #fff; border: 1px solid #ddd; padding: 0.5rem 1rem; border-radius: 20px; font-size: 0.85rem; font-weight: 500; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.05); transition: all 0.2s; color: #333;" onmouseover="this.style.background='#f0f0f0'" onmouseout="this.style.background='#fff'">¿Cómo están mis pagos?</button>
+                    <button onclick="sendQuickMessage('Necesito soporte técnico')" style="background: #fff; border: 1px solid #ddd; padding: 0.5rem 1rem; border-radius: 20px; font-size: 0.85rem; font-weight: 500; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.05); transition: all 0.2s; color: #333;" onmouseover="this.style.background='#f0f0f0'" onmouseout="this.style.background='#fff'">Necesito soporte técnico</button>
+                </div>
+            </div>
+
+            <!-- Input Area -->
+            <div style="padding: 1rem; background: #fff; border-top: 2px solid #000; display: flex; align-items: center; gap: 0.5rem;">
+                <textarea id="ai-input" placeholder="Escribí tu consulta..." rows="1" style="flex: 1; padding: 0.8rem; border: 2px solid #000; border-radius: 8px; resize: none; font-family: inherit; font-size: 0.95rem; outline: none;" onkeydown="if(event.key === 'Enter' && !event.shiftKey){ event.preventDefault(); sendGeminiMessage(); }"></textarea>
+                <button onclick="sendGeminiMessage()" style="background: #000; color: #fff; border: none; width: 40px; height: 40px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                    <i class="fa-solid fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+
+        <script>
+            function toggleGemini() {
+                const panel = document.getElementById('ai-panel');
+                if (!panel) return;
+                
+                // Simple Display Toggle
+                if (panel.style.display === 'none' || panel.style.display === '') {
+                    panel.style.display = 'flex';
+                } else {
+                    panel.style.display = 'none';
+                }
+            }
+        </script>
+    @endif
 
     <!-- Post-Login Session Prompt (DISABLED) -->
     @auth
@@ -117,22 +378,6 @@
         --}}
     @endauth
 
-    <main class="{{ request()->routeIs('admin.dashboard') ? '' : 'container' }}" style="min-height: 80vh; padding-top: 3rem; padding-bottom: 3rem; {{ request()->routeIs('admin.dashboard') ? 'width: 100%; max-width: none; padding-left: 1rem; padding-right: 1rem;' : '' }}">
-        @if(!request()->routeIs('login') && !request()->routeIs('register'))
-            @if(session('success'))
-                <div class="alert alert-success">
-                    {{ session('success') }}
-                </div>
-            @endif
-            @if(session('error'))
-                <div class="alert alert-error">
-                    {{ session('error') }}
-                </div>
-            @endif
-        @endif
-
-        @yield('content')
-    </main>
 
     <footer class="footer">
         <div class="container text-center">
@@ -160,12 +405,12 @@
 
     <!-- Custom Confirmation Modal -->
     <div id="confirm-modal-overlay" class="confirm-modal-overlay" style="display: none;">
-        <div class="confirm-modal">
-            <div class="confirm-modal-title">¿Estás seguro?</div>
-            <div id="confirm-modal-message" class="confirm-modal-message"></div>
+        <div class="confirm-modal" style="border-radius: 15px !important; border: 2px solid #000; box-shadow: 6px 6px 0px rgba(0,0,0,0.1);">
+            <div class="confirm-modal-title" style="font-family: 'Syne', sans-serif;">Confirmar acción</div>
+            <div id="confirm-modal-message" class="confirm-modal-message" style="font-family: 'Inter', sans-serif; font-size: 1rem;"></div>
             <div class="confirm-modal-buttons">
-                <button id="confirm-cancel" class="neobrutalist-btn bg-rosa">Cancelar</button>
-                <button id="confirm-ok" class="neobrutalist-btn bg-verde">Confirmar</button>
+                <button id="confirm-cancel" class="neobrutalist-btn bg-rosa" style="border-radius: 8px;">Cancelar</button>
+                <button id="confirm-ok" class="neobrutalist-btn bg-verde" style="border-radius: 8px;">Confirmar</button>
             </div>
         </div>
     </div>
@@ -224,12 +469,12 @@
         const navbar = document.querySelector('.navbar-unificada');
 
         window.addEventListener('scroll', () => {
-            if (window.scrollY > lastScrollY && window.scrollY > 100) {
-                // Scrolling down
-                navbar.classList.add('nav-hidden');
-            } else {
-                // Scrolling up
-                navbar.classList.remove('nav-hidden');
+            if (navbar) {
+                if (window.scrollY > lastScrollY && window.scrollY > 100) {
+                    navbar.classList.add('nav-hidden');
+                } else {
+                    navbar.classList.remove('nav-hidden');
+                }
             }
             lastScrollY = window.scrollY;
         });
@@ -254,46 +499,83 @@
         const items = document.getElementById('notif-items');
         const count = document.getElementById('notif-count');
 
-        if (bell) {
+        if (bell && dropdown) {
             bell.addEventListener('click', (e) => {
                 e.stopPropagation();
-                dropdown.classList.toggle('active');
-                fetchNotifications();
+                // Toggle dropdown visibility
+                if (dropdown.style.display === 'none' || dropdown.style.display === '') {
+                    dropdown.style.display = 'block';
+                    fetchNotifications();
+                } else {
+                    dropdown.style.display = 'none';
+                }
             });
 
-            // Auto fetch initial count
-            setInterval(fetchNotifications, 30000);
-            fetchNotifications();
+            // Only update count automatically, fetch details on click
+            setInterval(() => fetchNotifications(false), 60000); // Check every minute
+            fetchNotifications(false); // Initial count check
         }
 
         document.addEventListener('click', () => {
-            if (dropdown) dropdown.classList.remove('active');
+            if (dropdown) dropdown.style.display = 'none';
         });
 
-        async function fetchNotifications() {
-            const res = await fetch('{{ route("notifications.latest") }}');
-            const data = await res.json();
-            
-            if (data.length > 0) {
-                count.innerText = data.length;
-                count.style.display = 'flex';
-                items.innerHTML = data.map(n => `
-                    <a href="${n.link || '#'}" class="notification-item" onclick="markAsRead(${n.id})" style="border-bottom: 1px solid #f0f0f0; padding: 12px 15px;">
-                        <p style="margin:0; font-size: 0.85rem; font-weight: 500; color: #333;">${n.mensaje}</p>
-                        <small style="color: #bbb; font-size: 0.7rem; font-weight: 400;">${new Date(n.created_at).toLocaleDateString()} ${new Date(n.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</small>
-                    </a>
-                `).join('');
-            } else {
-                count.style.display = 'none';
-                items.innerHTML = '<div class="notification-empty" style="padding: 2rem; text-align: center; color: #999; font-size: 0.85rem;">No hay avisos nuevos.</div>';
-            }
+        let lastNotifCount = 0;
+        async function fetchNotifications(showInDropdown = true) {
+            try {
+                const res = await fetch('{{ route("notifications.latest") }}');
+                const data = await res.json();
+                
+                lastNotifCount = data.length;
+
+                if (data && data.length > 0) {
+                    if (count) {
+                        count.innerText = data.length;
+                        count.style.display = 'flex';
+                    }
+                    
+                    if (items) {
+                        items.innerHTML = data.map(n => `
+                            <div class="notification-item" data-id="${n.id}" style="border-bottom: 1px solid #f0f0f0; padding: 16px 24px; display: block; text-decoration: none; transition: background 0.2s; cursor: pointer; background: white;" onmouseover="this.style.background='#fcfcfc'" onmouseout="this.style.background='white'" onclick="markAsRead(${n.id})">
+                                <div style="display: flex; justify-content: space-between; align-items: start; gap: 12px;">
+                                    <div style="flex: 1;">
+                                        <p style="margin:0; font-size: 0.9rem; font-weight: 500; font-family: 'Inter', sans-serif; color: #1f2937; line-height: 1.5;">${n.mensaje}</p>
+                                        <small style="color: #6b7280; font-size: 0.75rem; font-weight: 400; display: block; margin-top: 6px; font-family: 'Inter', sans-serif;">
+                                            ${new Date(n.created_at).toLocaleDateString()} a las ${new Date(n.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                        </small>
+                                    </div>
+                                    <div style="width: 8px; height: 8px; background: #3b82f6; border-radius: 50%; margin-top: 6px;"></div>
+                                </div>
+                            </div>
+                        `).join('');
+                    }
+                } else {
+                    if (count) count.style.display = 'none';
+                    if (showInDropdown && items) {
+                        items.innerHTML = '<div class="notification-empty" style="padding: 4rem 2rem; text-align: center; color: #a1a1a1; font-family: \'Inter\', sans-serif;"><p style="margin: 0; font-weight: 500; font-size: 0.95rem;">No tienes nuevas notificaciones</p></div>';
+                    }
+                }
+            } catch (e) { console.error("Error fetching notifications", e); }
         }
 
         async function markAsRead(id) {
+            // Opacar la notificación antes de eliminarla
+            const notifElement = document.querySelector(`.notification-item[data-id="${id}"]`);
+            if (notifElement) {
+                notifElement.style.opacity = '0.3';
+                notifElement.style.transform = 'translateX(20px)';
+                notifElement.style.pointerEvents = 'none';
+            }
+            
             await fetch(`/notifications/${id}/read`, {
                 method: 'POST',
                 headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' }
             });
+            
+            // Esperar un momento y luego refrescar
+            setTimeout(() => {
+                fetchNotifications();
+            }, 300);
         }
 
         async function markAllRead() {
@@ -313,6 +595,257 @@
                 drop.style.display = 'none';
             }
         };
+        
+        // Admin Sidebar Toggle Logic
+        window.toggleAdminSidebar = function() {
+            const sidebar = document.getElementById('admin-sidebar');
+            const container = document.getElementById('admin-layout-container');
+            const icon = document.getElementById('sidebar-toggle-icon');
+            
+            if (!sidebar) {
+                console.error("Sidebar element not found!");
+                return;
+            }
+            
+            const isMobile = window.innerWidth <= 1024;
+            
+            if (isMobile) {
+                sidebar.classList.toggle('active');
+                if (container) {
+                    container.classList.toggle('sidebar-open', sidebar.classList.contains('active'));
+                    document.body.style.overflow = sidebar.classList.contains('active') ? 'hidden' : '';
+                }
+            } else {
+                sidebar.classList.toggle('collapsed');
+                if (container) {
+                    container.classList.toggle('sidebar-open', !sidebar.classList.contains('collapsed'));
+                }
+                const isCollapsed = sidebar.classList.contains('collapsed');
+                document.cookie = `sidebar_collapsed=${isCollapsed}; path=/; max-age=${60 * 60 * 24 * 30}`;
+            }
+
+            // Sync icon state
+            if (icon) {
+                const isOpen = (isMobile && sidebar.classList.contains('active')) || 
+                                (!isMobile && !sidebar.classList.contains('collapsed'));
+                icon.className = isOpen ? 'fa-solid fa-xmark' : 'fa-solid fa-bars';
+            }
+        };
+
+        // Forcing direct click attachment for maximum reliability
+        document.addEventListener('DOMContentLoaded', () => {
+            const btn = document.querySelector('.admin-unified-header .neobrutalist-btn');
+            if (btn) {
+                btn.onclick = () => {
+                    window.toggleAdminSidebar();
+                };
+            }
+            
+            // Ensure AI button works
+            // Ensure AI button works
+            const aiBtn = document.querySelector('.ai-btn');
+            if (aiBtn) {
+                // Inline onclick handles this. preventing double toggle.
+            }
+            
+            // Ensure Gemini input and buttons work
+            const geminiInput = document.getElementById('gemini-input');
+            if (geminiInput) {
+                geminiInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        window.sendGeminiMessage();
+                    }
+                });
+            }
+            
+            // Setup send button
+            const sendBtn = document.querySelector('.gemini-chat-input button');
+            if (sendBtn) {
+                sendBtn.onclick = (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    window.sendGeminiMessage();
+                };
+            }
+            
+            // Setup quick action buttons
+            const quickBtns = document.querySelectorAll('.chat-actions button');
+            quickBtns.forEach(btn => {
+                btn.onclick = (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    // Extract the message from onclick attribute or data
+                    const onclickAttr = btn.getAttribute('onclick');
+                    if (onclickAttr && onclickAttr.includes('sendQuickMessage')) {
+                        // Parse the message from the onclick
+                        const match = onclickAttr.match(/sendQuickMessage\('([^']*)'\)/);
+                        if (match && match[1]) {
+                            window.sendGeminiMessage(match[1]);
+                        }
+                    }
+                };
+            });
+        });
+
+        function obtenerIconoClima(temperatura, condicion) {
+            // Basado en la condición del clima
+            if (condicion.includes('nube') || condicion.includes('cloud')) return '☁️';
+            if (condicion.includes('lluvia') || condicion.includes('rain')) return '🌧️';
+            if (condicion.includes('tormenta') || condicion.includes('thunder')) return '⛈️';
+            if (condicion.includes('nieve') || condicion.includes('snow')) return '❄️';
+            if (condicion.includes('niebla') || condicion.includes('fog')) return '🌫️';
+            if (temperatura > 25) return '☀️';
+            if (temperatura > 15) return '🌤️';
+            return '🌙';
+        }
+
+        // Welcome message is now handled server-side in DashboardController to ensure static randomness.
+
+        window.invocarAsistenteIA = function() {
+            window.showConfirm("¡Hola Nazarena! ¿Querés que analice los turnos de hoy para darte un resumen?", function() {
+                alert("Analizando agenda... Hoy tenés pacientes con temas de ansiedad y gestión del tiempo destacados.");
+            });
+        };
+
+        // Initialize dynamic elements
+        document.addEventListener('DOMContentLoaded', () => {
+            // MOVED: mostrarBienvenida(); logic is now server-side
+            // Sync initial sidebar icon state
+            const sidebar = document.getElementById('admin-sidebar');
+            const icon = document.getElementById('sidebar-toggle-icon');
+            if (sidebar && icon) {
+                const isMobile = window.innerWidth <= 1024;
+                const isOpen = (isMobile && sidebar.classList.contains('active')) || 
+                                (!isMobile && !sidebar.classList.contains('collapsed'));
+                icon.className = isOpen ? 'fa-solid fa-xmark' : 'fa-solid fa-bars';
+            }
+
+            // Smart Header Scroll Logic
+            const adminHeader = document.querySelector('.admin-unified-header');
+            let lastScrollY = window.scrollY;
+
+            window.addEventListener('scroll', () => {
+                if (!adminHeader) return;
+                
+                const currentScrollY = window.scrollY;
+                const scrollDown = currentScrollY > lastScrollY;
+                const threshold = 50; // Minimum scroll to trigger
+
+                // Only trigger if scrolled past threshold
+                if (Math.abs(currentScrollY - lastScrollY) < 5) return;
+
+                if (scrollDown && currentScrollY > threshold) {
+                    // Scrolling Down -> Hide
+                    adminHeader.classList.add('header-hidden');
+                } else {
+                    // Scrolling Up -> Show
+                    adminHeader.classList.remove('header-hidden');
+                }
+                
+                lastScrollY = currentScrollY;
+            });
+            
+            // AI Functions
+            window.toggleGemini = function() {
+                const panel = document.getElementById('ai-panel');
+                if(panel) {
+                    panel.style.display = panel.style.display === 'flex' ? 'none' : 'flex';
+                    if(panel.style.display === 'flex') {
+                        setTimeout(() => document.getElementById('ai-input').focus(), 100);
+                    }
+                }
+            }
+
+            window.sendGeminiMessage = async function(msg = null) {
+                const input = document.getElementById('ai-input');
+                const messages = document.getElementById('ai-messages');
+                
+                const messageText = msg || input.value.trim();
+                
+                if (!messageText) return;
+
+                // 1. Mostrar mensaje del usuario
+                const userMsg = document.createElement('div');
+                userMsg.style.marginBottom = '0.5rem';
+                userMsg.style.backgroundColor = 'var(--color-celeste)';
+                userMsg.style.padding = '0.8rem';
+                userMsg.style.border = '2px solid #000';
+                userMsg.style.borderRadius = '12px 12px 0 12px';
+                userMsg.style.alignSelf = 'flex-end';
+                userMsg.style.maxWidth = '85%';
+                userMsg.style.lineHeight = '1.4';
+                userMsg.innerHTML = `<strong>Vos:</strong> ${messageText}`;
+                messages.appendChild(userMsg);
+
+                if (!msg) input.value = '';
+                messages.scrollTop = messages.scrollHeight;
+
+                // 2. Crear burbuja de respuesta vacía (para streaming)
+                const aiMsg = document.createElement('div');
+                aiMsg.style.marginBottom = '0.5rem';
+                aiMsg.style.backgroundColor = '#f0f7ff';
+                aiMsg.style.padding = '0.8rem';
+                aiMsg.style.border = '2px solid #000';
+                aiMsg.style.borderRadius = '12px 12px 12px 0';
+                aiMsg.style.alignSelf = 'flex-start';
+                aiMsg.style.maxWidth = '85%';
+                aiMsg.style.lineHeight = '1.4';
+                aiMsg.innerHTML = `<strong>IA:</strong> `; // Inicio
+                messages.appendChild(aiMsg);
+                messages.scrollTop = messages.scrollHeight;
+
+                let fullResponse = "";
+
+                try {
+                    // 3. Petición al Backend (Stream)
+                    const response = await fetch('{{ route('admin.ai.chat') }}', {
+                        method: 'POST',
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                        },
+                        body: JSON.stringify({ message: messageText })
+                    });
+
+                    if (!response.ok) throw new Error('Error en la conexión con la IA');
+
+                    // 4. Leer el stream
+                    const reader = response.body.getReader();
+                    const decoder = new TextDecoder();
+
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+
+                        const chunk = decoder.decode(value, { stream: true });
+                        // Ollama/PHP might send plain text or multiple JSON objects.
+                        // Assuming the PHP controller echoes raw text chunks for simplicity based on the reviewed code.
+                        // If it receives JSON chunks, we might need to parse.
+                        // The reviewed AIController echoes raw data: echo $data;
+                        
+                        fullResponse += chunk;
+                        aiMsg.innerHTML = `<strong>IA:</strong> ${fullResponse.replace(/\n/g, '<br>')}`;
+                        messages.scrollTop = messages.scrollHeight;
+                    }
+
+                } catch (error) {
+                    aiMsg.innerHTML += `<br><span style="color:red; font-size:0.8rem;">(Error: ${error.message})</span>`;
+                    console.error(error);
+                }
+            }
+
+            // Auto-Sync Holidays (Background)
+            fetch('{{ route("admin.calendar.import-holidays") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                }
+            }).then(res => res.json())
+              .then(d => console.log('Holidays synced:', d))
+              .catch(e => console.error('Sync failed:', e));
+        });
 
         // Show modal if there are password errors (validation redirect)
         {{--
@@ -332,7 +865,7 @@
         $user = auth()->user();
         $isPatient = $user && $user->rol == 'paciente';
         $isGuest = !auth()->check();
-        $isLoginOrRegister = request()->routeIs('login') || request()->routeIs('register');
+        $isLoginOrRegister = request()->routeIs('login') || request()->routeIs('register') || request()->routeIs('password.*');
         
         $showWidget = ($isGuest || $isPatient) && !$isLoginOrRegister;
     @endphp
@@ -378,13 +911,152 @@
             </div>
         </div>
 
-        <!-- Trigger Button -->
-        <button onclick="toggleWhatsApp()" class="whatsapp-btn">
-            <i class="fa-brands fa-whatsapp"></i>
-        </button>
-    </div>
+        <!-- REMOVED OLD OLLAMA CHAT WINDOW -->
+<script>
+            // -----------------------------------------------------
+            // 🧠 3️⃣ STREAMING IA (Frontend)
+            // -----------------------------------------------------
+            window.sendGeminiMessage = async function(msg = null) {
+                const input = document.getElementById('ai-input');
+                const messages = document.getElementById('ai-messages');
+                
+                const messageText = msg || input.value.trim();
+                
+                if (!messageText) return;
+
+                // 1. Mostrar mensaje del usuario
+                const userMsg = document.createElement('div');
+                userMsg.className = 'ai-message user';
+                userMsg.style.marginBottom = '0.5rem';
+                userMsg.style.backgroundColor = 'var(--color-celeste, #b3e5fc)';
+                userMsg.style.padding = '0.8rem';
+                userMsg.style.border = '2px solid #000';
+                userMsg.style.borderRadius = '12px 12px 0 12px';
+                userMsg.style.alignSelf = 'flex-end';
+                userMsg.style.maxWidth = '85%';
+                userMsg.style.lineHeight = '1.4';
+                userMsg.innerHTML = `<strong>Vos:</strong> ${messageText}`;
+                messages.appendChild(userMsg);
+
+                if (!msg) input.value = '';
+                messages.scrollTop = messages.scrollHeight;
+
+                // 2. Crear burbuja de respuesta vacía (para streaming)
+                const aiMsg = document.createElement('div');
+                aiMsg.className = 'ai-message ai';
+                aiMsg.style.marginBottom = '0.5rem';
+                aiMsg.style.backgroundColor = '#f0f7ff';
+                aiMsg.style.padding = '0.8rem';
+                aiMsg.style.border = '2px solid #000';
+                aiMsg.style.borderRadius = '12px 12px 12px 0';
+                aiMsg.style.alignSelf = 'flex-start';
+                aiMsg.style.maxWidth = '85%';
+                aiMsg.style.lineHeight = '1.4';
+                aiMsg.innerHTML = `<strong>IA:</strong> `; // Inicio
+                messages.appendChild(aiMsg);
+                messages.scrollTop = messages.scrollHeight;
+
+                let fullResponse = "";
+
+                try {
+                    // 3. Petición al Backend (Stream)
+                    const response = await fetch('{{ route('admin.ai.chat') }}', {
+                        method: 'POST',
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                        },
+                        body: JSON.stringify({ message: messageText })
+                    });
+
+                    if (!response.ok) throw new Error('Error en la conexión con la IA');
+
+                    // 4. Leer el stream
+                    const reader = response.body.getReader();
+                    const decoder = new TextDecoder();
+
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+
+                        const chunk = decoder.decode(value, { stream: true });
+                        const lines = chunk.split('\n');
+                        for (const line of lines) {
+                            if (!line.trim()) continue;
+                            try {
+                                const json = JSON.parse(line);
+                                if (json.response) {
+                                    fullResponse += json.response;
+                                    aiMsg.innerHTML = `<strong>IA:</strong> ${fullResponse.replace(/\n/g, '<br>')}`;
+                                    messages.scrollTop = messages.scrollHeight;
+                                }
+                            } catch (e) {
+                                // Ignore non-JSON
+                            }
+                        }
+                    }
+
+                } catch (error) {
+                    aiMsg.innerHTML += `<br><span style="color:red; font-size:0.8rem;">(Error: ${error.message})</span>`;
+                    console.error(error);
+                }
+            };
+            
+            // Layout aliases
+            window.sendMessage = () => window.sendGeminiMessage();
+            window.sendQuickMessage = (msg) => window.sendGeminiMessage(msg);
+</script>
+    @endif
 
     <script>
+        // -----------------------------------------------------
+        // 🧠 SMART STICKY HEADER
+        // -----------------------------------------------------
+        document.addEventListener('DOMContentLoaded', () => {
+             const header = document.querySelector('.admin-unified-header');
+             if (!header) return;
+
+             let lastScrollY = window.scrollY;
+             const threshold = 50;
+
+             // Estilos para la animación
+             header.style.transition = 'transform 0.3s ease, opacity 0.3s ease';
+
+             window.addEventListener('scroll', () => {
+                 const currentScrollY = window.scrollY;
+                 if (currentScrollY < 0) return; // Rebote iOS
+                 
+                 const diff = Math.abs(currentScrollY - lastScrollY);
+                 if (diff < 5) return;
+
+                 if (currentScrollY > lastScrollY && currentScrollY > threshold) {
+                     // ⬇️ SCROLL DOWN -> HIDE
+                     header.style.transform = 'translateY(-100%)';
+                     header.style.opacity = '0';
+                     header.style.pointerEvents = 'none';
+                 } else {
+                     // ⬆️ SCROLL UP -> SHOW
+                     header.style.transform = 'translateY(0)';
+                     header.style.opacity = '1';
+                     header.style.pointerEvents = 'auto';
+                 }
+                 lastScrollY = currentScrollY;
+             }, { passive: true });
+        });
+
+
+    </script>
+
+    <script>
+        function toggleMobileMenu() {
+            const dropdown = document.getElementById('mobile-nav-dropdown');
+            if (dropdown) {
+                dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+            }
+        }
+        
+
+        
         function toggleWhatsApp() {
             const box = document.getElementById('whatsapp-chat-box');
             if (!box) return;
@@ -404,6 +1076,6 @@
             }
         }
     </script>
-    @endif
+
 </body>
 </html>

@@ -20,6 +20,8 @@ class User extends Authenticatable
         'password',
         'rol', // admin, paciente
         'tipo_paciente', // nuevo, frecuente
+        'duracion_sesion',
+        'intervalo_sesion',
     ];
 
     protected $hidden = [

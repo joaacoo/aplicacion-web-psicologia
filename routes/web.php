@@ -67,7 +67,16 @@ Route::middleware(['auth'])->group(function () {
 
     // Admin Routes
     Route::middleware(['role:admin'])->group(function () {
-        Route::get('/admin', [DashboardController::class, 'adminDashboard'])->name('admin.dashboard');
+        Route::get('/admin', [DashboardController::class, 'adminHome'])->name('admin.home');
+        Route::get('/admin/dashboard', [DashboardController::class, 'adminHome'])->name('admin.dashboard');
+        Route::get('/admin/agenda', [DashboardController::class, 'adminAgenda'])->name('admin.agenda');
+        Route::get('/admin/pacientes', [DashboardController::class, 'adminPacientes'])->name('admin.pacientes');
+        Route::get('/admin/pagos', [DashboardController::class, 'adminPagos'])->name('admin.pagos');
+        Route::get('/admin/turnos', [DashboardController::class, 'adminTurnos'])->name('admin.turnos');
+        Route::get('/admin/documentos', [DashboardController::class, 'adminDocumentos'])->name('admin.documentos');
+        Route::get('/admin/waitlist', [DashboardController::class, 'adminWaitlist'])->name('admin.waitlist');
+        Route::get('/admin/configuracion', [DashboardController::class, 'adminConfiguracion'])->name('admin.configuracion');
+        Route::get('/admin/historial', [DashboardController::class, 'adminHistorial'])->name('admin.historial');
         Route::get('/admin/appointments', [AppointmentController::class, 'index'])->name('admin.appointments');
         Route::post('/admin/appointments/{id}/confirm', [AppointmentController::class, 'confirm'])->name('admin.appointments.confirm');
         Route::post('/admin/appointments/{id}/cancel', [AppointmentController::class, 'cancel'])->name('admin.appointments.cancel');
@@ -102,6 +111,10 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/admin/calendar/token', [\App\Http\Controllers\CalendarController::class, 'generateToken'])->name('admin.calendar.generateToken');
         Route::post('/admin/calendar/google-url', [\App\Http\Controllers\CalendarController::class, 'updateGoogleUrl'])->name('admin.calendar.google-url');
         Route::post('/admin/calendar/sync', [\App\Http\Controllers\CalendarController::class, 'syncGoogle'])->name('admin.calendar.sync');
+        Route::post('/admin/calendar/toggle-weekends', [\App\Http\Controllers\CalendarController::class, 'toggleWeekends'])->name('admin.calendar.toggle-weekends');
+        
+        // Gemini AI
+        Route::post('/admin/ai/chat', [\App\Http\Controllers\AIController::class, 'chat'])->name('admin.ai.chat');
         
         // Availabilities (Admin)
         Route::post('/admin/availabilities', [\App\Http\Controllers\CalendarController::class, 'storeAvailability'])->name('admin.availabilities.store');
@@ -110,8 +123,8 @@ Route::middleware(['auth'])->group(function () {
         // Blocked Days (Admin)
         Route::post('/admin/blocked-days', [\App\Http\Controllers\CalendarController::class, 'storeBlockedDay'])->name('admin.blocked-days.store');
         Route::delete('/admin/blocked-days/{id}', [\App\Http\Controllers\CalendarController::class, 'destroyBlockedDay'])->name('admin.blocked-days.destroy');
-        Route::post('/admin/calendar/toggle-weekends', [\App\Http\Controllers\CalendarController::class, 'toggleWeekends'])->name('admin.calendar.toggle-weekends');
         Route::post('/admin/calendar/import-holidays', [\App\Http\Controllers\CalendarController::class, 'importHolidays'])->name('admin.calendar.import-holidays');
+        Route::post('/admin/settings', [\App\Http\Controllers\CalendarController::class, 'updateSettings'])->name('admin.settings.update');
     });
 
     // Public iCal Feed (using token)

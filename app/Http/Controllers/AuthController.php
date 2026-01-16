@@ -25,7 +25,10 @@ class AuthController extends Controller
             'password' => ['required'],
         ]);
 
-        if (Auth::attempt($credentials)) {
+        \Log::info("Intento de login para: " . $credentials['email']);
+
+        if (Auth::attempt($credentials, $request->has('remember'))) {
+            \Log::info("Login exitoso para: " . $credentials['email']);
             $request->session()->regenerate();
 
             if (Auth::user()->rol === 'admin') {
@@ -33,6 +36,8 @@ class AuthController extends Controller
             }
             return redirect()->route('patient.dashboard');
         }
+
+        \Log::warning("Login fallido para: " . $credentials['email']);
 
         return back()->withErrors([
             'password' => 'El email o la contraseña no son correctos. Por favor, intentá de nuevo.',

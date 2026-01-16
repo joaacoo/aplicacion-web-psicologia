@@ -3,21 +3,21 @@
 @section('title', 'Ingreso - Tu Espacio Seguro')
 
 @section('content')
-<div class="flex justify-center items-start" style="min-height: 70vh; margin-top: -6rem;">
+<div class="flex justify-center items-center" style="min-height: auto; margin-top: 0.5rem; margin-bottom: 2rem; padding: 0.5rem;">
     <!-- Card matching Register: White background, same width constraints -->
     <div class="neobrutalist-card" style="width: 100%; max-width: 500px; background: white;">
         
         <!-- Removed Icon entirely as requested ("son pacientes") -->
 
         <!-- Title matching Register style: mb-4, text-center -->
-        <h2 class="text-center" style="margin-bottom: 0.5rem; font-size: 2.5rem;">Iniciar Sesión</h2>
-        <p class="text-center" style="margin-bottom: 2rem; color: #555;">Bienvenida/o a tu espacio seguro</p>
+        <h2 class="text-center" style="margin-bottom: 0.2rem; font-size: 2.2rem;">Iniciar Sesión</h2>
+        <p class="text-center" style="margin-bottom: 1.2rem; color: #555; font-size: 0.95rem;">Bienvenida/o a tu espacio seguro</p>
 
-        <form action="{{ route('login') }}" method="POST" class="w-full">
+        <form action="/login" method="POST" class="w-full">
             @csrf
 
-            <div class="text-center mb-8">
-                <img src="{{ asset('img/logo-nuevo.png') }}" alt="Logo Lic. Nazarena De Luca" style="width: 250px; height: auto; margin: 0 auto;">
+            <div class="text-center mb-6">
+                <img src="{{ asset('img/logo-nuevo.png') }}" alt="Logo Lic. Nazarena De Luca" style="width: 100%; max-width: 200px; height: auto; margin: 0 auto;">
             </div>
             
             <div class="mb-4">
@@ -48,10 +48,10 @@
             </div>
         </form>
 
-        <div class="mt-12 text-center flex flex-col gap-5">
-            <a href="{{ route('password.request') }}" style="font-size: 1rem; font-weight: 700; color: #2D2D2D; text-decoration: underline;">Olvidé mi contraseña</a>
+        <div class="mt-8 text-center flex flex-col gap-4">
+            <a href="{{ route('password.request') }}" style="font-size: 0.95rem; font-weight: 700; color: #2D2D2D; text-decoration: underline;">Olvidé mi contraseña</a>
             <div>
-                <span style="font-size: 1rem;">¿No tenés cuenta?</span>
+                <span style="font-size: 0.95rem;">¿No tenés cuenta?</span>
                 <a href="{{ route('register') }}" style="color: #2D2D2D; font-weight: 700; text-decoration: none;">Crear una cuenta</a>
             </div>
         </div>

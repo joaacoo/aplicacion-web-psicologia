@@ -48,10 +48,12 @@ class CalendarController extends Controller
         $ical .= "X-WR-CALNAME:Agenda Lic. Nazarena De Luca\r\n";
         $ical .= "REFRESH-INTERVAL;VALUE=DURATION:PT15M\r\n"; // Suggest 15m refresh
 
+        $sessionDuration = $user->duracion_sesion ?? 45;
+
         foreach ($appointments as $appt) {
             $start = $appt->fecha_hora->format('Ymd\THis');
-            // Sessions duration: 45 min
-            $end = $appt->fecha_hora->copy()->addMinutes(45)->format('Ymd\THis');
+            // Sessions duration: dynamic
+            $end = $appt->fecha_hora->copy()->addMinutes($sessionDuration)->format('Ymd\THis');
             $uid = "appt-{$appt->id}@nazarenadeluca.com";
             
             $statusLabel = ($appt->estado == 'pendiente') ? "[PENDIENTE] " : "";
@@ -198,40 +200,124 @@ class CalendarController extends Controller
         $user->save();
         
         $status = $user->block_weekends ? 'bloqueados' : 'desbloqueados';
+        
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'block_weekends' => $user->block_weekends,
+                'message' => "Fines de semana {$status} correctamente."
+            ]);
+        }
+
         return back()->with('success', "Fines de semana {$status} correctamente.");
     }
 
     /**
      * Import Argentina Holidays 2026.
+     * Sincroniza con los feriados oficiales de Argentina para el año actual.
      */
     public function importHolidays()
     {
+        $year = now()->year;
+        
+        // Calcular carnaval y pascua (feriados móviles basados en calendario eclesiástico)
+        $easter = $this->calculateEaster($year);
+        $carnival1 = $easter->copy()->subDays(48);
+        $carnival2 = $easter->copy()->subDays(47);
+        $goodFriday = $easter->copy()->subDays(2);
+        
+        // Feriados fijos y móviles de Argentina
         $holidays = [
-            ['date' => '2026-01-01', 'reason' => 'Año Nuevo'],
-            ['date' => '2026-02-16', 'reason' => 'Carnaval'],
-            ['date' => '2026-02-17', 'reason' => 'Carnaval'],
-            ['date' => '2026-03-24', 'reason' => 'Día de la Memoria'],
-            ['date' => '2026-04-02', 'reason' => 'Día del Veterano'],
-            ['date' => '2026-04-03', 'reason' => 'Viernes Santo'],
-            ['date' => '2026-05-01', 'reason' => 'Día del Trabajador'],
-            ['date' => '2026-05-25', 'reason' => 'Día de la Revolución de Mayo'],
-            ['date' => '2026-06-17', 'reason' => 'Paso a la Inmortalidad de Güemes'],
-            ['date' => '2026-06-20', 'reason' => 'Paso a la Inmortalidad de Belgrano'],
-            ['date' => '2026-07-09', 'reason' => 'Día de la Independencia'],
-            ['date' => '2026-08-17', 'reason' => 'Paso a la Inmortalidad de San Martín'],
-            ['date' => '2026-10-12', 'reason' => 'Día del Respeto a la Diversidad Cultural'],
-            ['date' => '2026-11-20', 'reason' => 'Día de la Soberanía Nacional'],
-            ['date' => '2026-12-08', 'reason' => 'Inmaculada Concepción'],
-            ['date' => '2026-12-25', 'reason' => 'Navidad'],
+            // Fijos
+            ['date' => $year . '-01-01', 'reason' => 'Año Nuevo'],
+            ['date' => $year . '-03-24', 'reason' => 'Día Nacional de la Memoria por la Verdad y la Justicia'],
+            ['date' => $year . '-04-02', 'reason' => 'Día del Veterano y de los Caídos en la Guerra de Malvinas'],
+            ['date' => $year . '-05-01', 'reason' => 'Día del Trabajador'],
+            ['date' => $year . '-05-25', 'reason' => 'Día de la Revolución de Mayo'],
+            ['date' => $year . '-06-17', 'reason' => 'Paso a la Inmortalidad del General Martín Miguel de Güemes'],
+            ['date' => $year . '-06-20', 'reason' => 'Paso a la Inmortalidad del General Manuel Belgrano'],
+            ['date' => $year . '-07-09', 'reason' => 'Día de la Independencia'],
+            ['date' => $year . '-08-17', 'reason' => 'Paso a la Inmortalidad del General José de San Martín'],
+            ['date' => $year . '-10-12', 'reason' => 'Día del Respeto a la Diversidad Cultural'],
+            ['date' => $year . '-11-20', 'reason' => 'Día de la Soberanía Nacional'],
+            ['date' => $year . '-12-08', 'reason' => 'Inmaculada Concepción de María'],
+            ['date' => $year . '-12-25', 'reason' => 'Navidad'],
+            // Móviles (Carnaval y Viernes Santo)
+            ['date' => $carnival1->format('Y-m-d'), 'reason' => 'Carnaval'],
+            ['date' => $carnival2->format('Y-m-d'), 'reason' => 'Carnaval'],
+            ['date' => $goodFriday->format('Y-m-d'), 'reason' => 'Viernes Santo'],
         ];
 
+        $created = 0;
+        $updated = 0;
+        
         foreach ($holidays as $holiday) {
-            \App\Models\BlockedDay::firstOrCreate(
+            $blockedDay = \App\Models\BlockedDay::updateOrCreate(
                 ['date' => $holiday['date']],
                 ['reason' => $holiday['reason']]
             );
+            
+            if ($blockedDay->wasRecentlyCreated) {
+                $created++;
+            } else {
+                $updated++;
+            }
         }
 
-        return back()->with('success', 'Feriados de Argentina 2026 importados.');
+        $message = "Feriados de Argentina {$year} sincronizados. ";
+        if ($created > 0) $message .= "{$created} nuevos. ";
+        if ($updated > 0) $message .= "{$updated} actualizados.";
+        
+        if (request()->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+                'created' => $created,
+                'updated' => $updated
+            ]);
+        }
+
+        return back()->with('success', $message);
+    }
+    
+    /**
+     * Calculate Easter Sunday for a given year (Algorithm by Gauss)
+     */
+    private function calculateEaster($year)
+    {
+        $a = $year % 19;
+        $b = floor($year / 100);
+        $c = $year % 100;
+        $d = floor($b / 4);
+        $e = $b % 4;
+        $f = floor(($b + 8) / 25);
+        $g = floor(($b - $f + 1) / 3);
+        $h = (19 * $a + $b - $d - $g + 15) % 30;
+        $i = floor($c / 4);
+        $k = $c % 4;
+        $l = (32 + 2 * $e + 2 * $i - $h - $k) % 7;
+        $m = floor(($a + 11 * $h + 22 * $l) / 451);
+        $month = floor(($h + $l - 7 * $m + 114) / 31);
+        $day = (($h + $l - 7 * $m + 114) % 31) + 1;
+        
+        return \Carbon\Carbon::create($year, $month, $day);
+    }
+
+    /**
+     * Update session duration and interval settings.
+     */
+    public function updateSettings(Request $request)
+    {
+        $request->validate([
+            'duracion_sesion' => 'required|integer|min:15|max:180',
+            'intervalo_sesion' => 'required|integer|min:0|max:60',
+        ]);
+
+        $user = auth()->user();
+        $user->duracion_sesion = $request->duracion_sesion;
+        $user->intervalo_sesion = $request->intervalo_sesion;
+        $user->save();
+
+        return back()->with('success', 'Configuración de sesiones actualizada.');
     }
 }

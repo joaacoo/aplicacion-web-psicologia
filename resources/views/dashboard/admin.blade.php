@@ -30,7 +30,12 @@
     <div id="hoy" class="neobrutalist-card" style="background: white; margin-bottom: 2rem;">
         <div style="margin-bottom: 1.5rem; border-bottom: 3px solid #000; padding-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
             <h3 style="margin: 0; font-size: 1.5rem;"><i class="fa-solid fa-clipboard-list"></i> Turnos para hoy</h3>
-            <p style="margin: 0; font-size: 1.1rem; font-weight: 700; color: #555;">({{ \Carbon\Carbon::now()->locale('es')->isoFormat('dddd D [de] MMMM YYYY') }})</p>
+            <div style="display: flex; flex-direction: column; align-items: flex-end;">
+                <p style="margin: 0; font-size: 1.1rem; font-weight: 700; color: #555;">({{ \Carbon\Carbon::now()->locale('es')->isoFormat('dddd D [de] MMMM YYYY') }})</p>
+                <a href="{{ route('admin.turnos') }}" style="font-size: 0.85rem; font-weight: 800; color: #000; text-decoration: none; margin-top: 5px; transition: transform 0.2s;" onmouseover="this.style.transform='translateX(5px)'" onmouseout="this.style.transform='translateX(0)'">
+                    Ver todos los turnos <i class="fa-solid fa-arrow-right"></i>
+                </a>
+            </div>
         </div>
 
         <div style="overflow-x: auto;">
@@ -81,9 +86,14 @@
     </div>
 
     <!-- Configuración de Horarios de Atención -->
-    <div id="disponibilidad" class="neobrutalist-card" style="background: white; margin-bottom: 2rem;">
-        <div style="margin-bottom: 1.5rem; border-bottom: 3px solid #000; padding-bottom: 0.5rem;">
-            <h3 style="margin: 0; font-size: 1.5rem;"><i class="fa-solid fa-clock"></i> Horarios de Atención</h3>
+    <div id="configuracion" class="neobrutalist-card" style="background: white; margin-bottom: 2rem;">
+        <div style="margin-bottom: 1.5rem; border-bottom: 3px solid #000; padding-bottom: 0.5rem; position: relative;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h3 id="disponibilidad" style="margin: 0; font-size: 1.5rem;"><i class="fa-solid fa-clock"></i> Horarios de Atención</h3>
+                <a href="{{ route('admin.configuracion') }}" style="font-size: 0.85rem; font-weight: 800; color: #000; text-decoration: none; transition: transform 0.2s;" onmouseover="this.style.transform='translateX(5px)'" onmouseout="this.style.transform='translateX(0)'">
+                    Configuración avanzada <i class="fa-solid fa-arrow-right"></i>
+                </a>
+            </div>
             <p style="margin: 0.5rem 0 0 0; font-size: 0.9rem; color: #555;">
                 <strong>Modo Google Calendar:</strong> Si creás eventos en tu Google Calendar que digan <strong>"LIBRE"</strong> o <strong>"DISPONIBLE"</strong>, esos serán los únicos que verán los pacientes ese día. 
                 Sino, se usarán estos horarios base como alternativa.
@@ -156,56 +166,109 @@
                 </table>
             </div>
         </div>
-        <!-- Block Specific Day -->
-        <div style="background: #e0f2f1; border: 3px solid #000; padding: 1.5rem; border-radius: 15px; box-shadow: 4px 4px 0px #000; max-width: 400px; margin-top: 2rem; margin-left: auto; margin-right: auto;">
-            <h4 style="margin-top: 0; font-weight: 800; color: #004d40;">Bloquear Día Específico</h4>
-            <p style="font-size: 0.8rem; margin-bottom: 1rem;">Bloqueá una fecha completa (feriados, vacaciones, etc).</p>
+        <!-- División de Bloqueos en 2 Secciones -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 2rem; margin-top: 2rem;">
             
-            <form id="block-day-form" action="{{ route('admin.blocked-days.store') }}" method="POST">
-                @csrf
-                <div style="margin-bottom: 1rem;">
-                    <label style="display:block; font-weight: 800; font-size: 0.85rem; margin-bottom: 0.3rem;">Fecha a bloquear:</label>
-                    <input type="date" name="date" class="neobrutalist-input w-full" style="margin-bottom: 0.5rem;" required min="{{ date('Y-m-d') }}">
-                </div>
-                <div style="margin-bottom: 1rem;">
-                    <label style="display:block; font-weight: 800; font-size: 0.85rem; margin-bottom: 0.3rem;">Motivo (Opcional):</label>
-                    <input type="text" name="reason" placeholder="Ej: Vacaciones / Licencia" class="neobrutalist-input w-full" style="margin-bottom: 0;">
-                </div>
-                <button type="button" class="neobrutalist-btn bg-verde w-full" style="margin-bottom: 0;" onclick="confirmAction('block-day-form', '¿Bloquear esta fecha?')">Bloquear Fecha</button>
-            </form>
-            
-            <div style="border-top: 2px dashed #999; margin: 1rem 0;"></div>
-            
-            <!-- Weekend Toggle -->
-            <form id="toggle-weekends-form" action="{{ route('admin.calendar.toggle-weekends') }}" method="POST">
-                @csrf
-                <button type="button" class="neobrutalist-btn w-full" style="background: {{ $blockWeekends ? '#d32f2f' : '#388e3c' }}; color: white; display: flex; align-items: center; justify-content: center; gap: 0.5rem; font-size: 0.8rem; padding: 6px;" onclick="confirmAction('toggle-weekends-form', '¿Alternar bloqueo de fines de semana?')">
-                    @if($blockWeekends)
-                        <i class="fa-solid fa-lock"></i> Sáb/Dom: BLOQUEADOS
-                    @else
-                        <i class="fa-solid fa-unlock"></i> Sáb/Dom: LIBRES
-                    @endif
-                </button>
-            </form>
+            <!-- SECCIÓN 1: ACCIONES (Bloquear/Desbloquear) -->
+            <div style="background: #e0f2f1; border: 3px solid #000; padding: 1.5rem; border-radius: 15px; box-shadow: 4px 4px 0px #000;">
+                <h4 style="margin-top: 0; font-weight: 800; color: #004d40; font-size: 1.2rem; margin-bottom: 1.5rem;">
+                    <i class="fa-solid fa-user-lock"></i> Gestionar Bloqueos
+                </h4>
+                
+                <!-- Form Bloquear Día -->
+                <form id="block-day-form" action="{{ route('admin.blocked-days.store') }}" method="POST" style="margin-bottom: 2rem;">
+                    @csrf
+                    <div style="margin-bottom: 1rem;">
+                        <label style="display:block; font-weight: 800; font-size: 0.85rem; margin-bottom: 0.3rem;">Fecha a bloquear:</label>
+                        <input type="date" name="date" class="neobrutalist-input w-full" style="margin-bottom: 0.5rem;" required min="{{ date('Y-m-d') }}">
+                    </div>
+                    <div style="margin-bottom: 1rem;">
+                        <label style="display:block; font-weight: 800; font-size: 0.85rem; margin-bottom: 0.3rem;">Motivo (Opcional):</label>
+                        <input type="text" name="reason" placeholder="Ej: Vacaciones / Licencia" class="neobrutalist-input w-full" style="margin-bottom: 0;">
+                    </div>
+                    <button type="button" class="neobrutalist-btn bg-verde w-full" style="margin-bottom: 0;" onclick="confirmAction('block-day-form', '¿Bloquear esta fecha?')">Bloquear Fecha</button>
+                </form>
+                
+                <div style="border-top: 2px dashed #004d40; margin: 1.5rem 0; opacity: 0.3;"></div>
+                
+                <!-- Weekend Toggle -->
+                <form id="toggle-weekends-form" action="{{ route('admin.calendar.toggle-weekends') }}" method="POST">
+                    @csrf
+                    <button type="button" class="neobrutalist-btn w-full" style="background: {{ $blockWeekends ? '#d32f2f' : '#388e3c' }}; color: white; display: flex; align-items: center; justify-content: center; gap: 0.5rem; font-size: 0.9rem; padding: 0.8rem;" onclick="confirmAction('toggle-weekends-form', '¿Alternar bloqueo de fines de semana?')">
+                        @if($blockWeekends)
+                            <i class="fa-solid fa-lock"></i> Sáb/Dom: <strong>BLOQUEADOS</strong>
+                        @else
+                            <i class="fa-solid fa-unlock"></i> Sáb/Dom: <strong>LIBRES</strong>
+                        @endif
+                    </button>
+                    <p style="font-size: 0.75rem; color: #555; margin-top: 0.5rem; text-align: center;">Controla la disponibilidad automática de los fines de semana.</p>
+                </form>
+            </div>
 
-                <!-- List of Blocked Days -->
-                <div style="margin-top: 1.5rem; max-height: 200px; overflow-y: auto; background: white; border: 2px solid #000; padding: 0.5rem; border-radius: 8px;">
-                     @forelse($blockedDays ?? [] as $bd)
-                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed #ccc; padding: 0.5rem; font-size: 0.85rem;">
-                            <div>
-                                <strong>{{ \Carbon\Carbon::parse($bd->date)->format('d/m/Y') }}</strong>
-                                <span style="display:block; font-size: 0.75rem; color: #666;">{{ $bd->reason ?? 'Sin motivo' }}</span>
+            <!-- SECCIÓN 2: VISUALIZACIÓN (Listas) -->
+            <div style="background: white; border: 3px solid #000; padding: 1.5rem; border-radius: 15px; box-shadow: 4px 4px 0px #000; display: flex; flex-col; gap: 2rem;">
+                
+                <!-- Listado Manuales -->
+                <div>
+                    <h5 style="margin: 0 0 1rem 0; font-weight: 800; font-size: 1.1rem; border-bottom: 2px solid #000; padding-bottom: 0.5rem;">
+                        <i class="fa-solid fa-hand-paper"></i> Bloqueos Manuales
+                    </h5>
+                    <div style="max-height: 200px; overflow-y: auto; background: #fafafa; border: 2px solid #000; padding: 0.5rem; border-radius: 8px;">
+                         @forelse($blockedDays->where('reason', '!=', 'Feriado Oficial') as $bd)
+                            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed #ccc; padding: 0.5rem; font-size: 0.85rem;">
+                                <div>
+                                    <strong>{{ \Carbon\Carbon::parse($bd->date)->format('d/m/Y') }}</strong>
+                                    <span style="display:block; font-size: 0.75rem; color: #666;">{{ $bd->reason ?? 'Sin motivo' }}</span>
+                                </div>
+                                <form id="delete-blocked-{{ $bd->id }}" action="{{ route('admin.blocked-days.destroy', $bd->id) }}" method="POST">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="button" class="neobrutalist-btn" style="background: var(--color-rosa); padding: 2px 6px; font-size: 0.7rem;" onclick="confirmAction('delete-blocked-{{ $bd->id }}', '¿Desbloquear este día?')"><i class="fa-solid fa-trash"></i></button>
+                                </form>
                             </div>
-                            <form id="delete-blocked-{{ $bd->id }}" action="{{ route('admin.blocked-days.destroy', $bd->id) }}" method="POST">
-                                @csrf
-                                @method('DELETE')
-                                <button type="button" class="neobrutalist-btn" style="background: var(--color-rosa); padding: 2px 5px; font-size: 0.65rem;" onclick="confirmAction('delete-blocked-{{ $bd->id }}', '¿Desbloquear este día?')"><i class="fa-solid fa-times"></i></button>
-                            </form>
-                        </div>
-                    @empty
-                        <p style="text-align: center; font-size: 0.8rem; color: #777; margin: 0.5rem 0;">No hay días bloqueados.</p>
-                    @endforelse
+                        @empty
+                            <p style="text-align: center; font-size: 0.8rem; color: #777; margin: 0.5rem 0;">No hay bloqueos manuales activos.</p>
+                        @endforelse
+                    </div>
                 </div>
+
+                <!-- Listado Feriados -->
+                <div>
+                    <h5 style="margin: 0 0 1rem 0; font-weight: 800; font-size: 1.1rem; border-bottom: 2px solid #000; padding-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center;">
+                        <span><i class="fa-solid fa-flag"></i> Feriados Oficiales</span>
+                        <span style="font-size: 0.7rem; background: #eee; padding: 2px 6px; border-radius: 4px; border: 1px solid #999;">Auto-Sync ON</span>
+                    </h5>
+                    <!-- Se eliminó el botón manual de Sincronizar -->
+                    
+                    <div style="max-height: 200px; overflow-y: auto; background: #fafafa; border: 2px solid #000; padding: 0.5rem; border-radius: 8px;">
+                        @php
+                            // Filtrar feriados de la lista general de blockedDays si es posible, o asumir que todo lo que no es manual es feriado?
+                            // En CalendarController se guardan como BlockedDay con reason fija.
+                            // Vamos a mostrar los que vengan de la DB que parezcan feriados (o simplemente listarlos todos si no hay distinción clara en el objeto, pero el usuario pidió secciones separadas).
+                            // Una heurística simple: si la razón es larga o coincide con fechas patrias. O simplemente mostrar todos.
+                            // El usuario pidió "dos secciones", asumo que quiere distinguir los que él puso vs los automáticos.
+                            // Como no hay campo 'type', usaremos la lógica inversa: Mostrar todo lo que NO mostramos arriba? O simplemente una lista general?
+                            // El user snippet mostraba "Feriados Argentina" en una col y Manuales en otra.
+                            // Asumiré que los manuales son los ingresados por form. Los feriados vienen del controller.
+                            // Para no complicar con lógica de backend no disponible, mostraré una lista general con iconos distintos si es posible, 
+                            // O mejor: Listar los 'futuros' bloqueados.
+                        @endphp
+                         @forelse($blockedDays as $bd)
+                            @if(in_array($bd->reason, ['Año Nuevo', 'Carnaval', 'Viernes Santo', 'Navidad']) || str_contains($bd->reason, 'Día') || str_contains($bd->reason, 'Paso a la Inmortalidad'))
+                            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed #ccc; padding: 0.5rem; font-size: 0.85rem;">
+                                <div>
+                                    <strong>{{ \Carbon\Carbon::parse($bd->date)->format('d/m/Y') }}</strong>
+                                    <span style="display:block; font-size: 0.75rem; color: #666;">{{ $bd->reason }}</span>
+                                </div>
+                                <span style="font-size: 1.5rem; color: var(--color-verde);"><i class="fa-solid fa-circle-check"></i></span>
+                            </div>
+                            @endif
+                        @empty
+                            <p style="text-align: center; font-size: 0.8rem; color: #777; margin: 0.5rem 0;">No hay feriados sincronizados.</p>
+                        @endforelse
+                    </div>
+                </div>
+
             </div>
         </div>
     </div>
@@ -214,6 +277,9 @@
     <div id="agenda" class="neobrutalist-card" style="background: white; margin-bottom: 2rem;">
         <div style="margin-bottom: 1.5rem; border-bottom: 3px solid #000; padding-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center;">
             <h3 style="margin: 0; font-size: 1.5rem;"><i class="fa-solid fa-calendar-days"></i> Agenda Mensual</h3>
+            <a href="{{ route('admin.agenda') }}" style="font-size: 0.85rem; font-weight: 800; color: #000; text-decoration: none; transition: transform 0.2s;" onmouseover="this.style.transform='translateX(5px)'" onmouseout="this.style.transform='translateX(0)'">
+                Ver agenda completa <i class="fa-solid fa-arrow-right"></i>
+            </a>
         </div>
 
         <!-- Google Calendar Sync (NEW) -->
@@ -946,7 +1012,7 @@
     </div>
 
     <!-- Gestión de Materiales (Biblioteca) -->
-    <div id="materiales" class="neobrutalist-card" style="background: white; margin-bottom: 2rem;">
+    <div id="documentos" class="neobrutalist-card" style="background: white; margin-bottom: 2rem;">
         <div style="margin-bottom: 1.5rem; border-bottom: 3px solid #000; padding-bottom: 0.5rem;">
             <h3 style="margin: 0; font-size: 1.5rem;"><i class="fa-solid fa-folder-open"></i> Biblioteca de Materiales</h3>
         </div>
@@ -1276,6 +1342,27 @@
                         <button type="submit" name="tipo_paciente" value="frecuente" id="btnTypeFrecuente" class="neobrutalist-btn flex-1" style="font-size: 1rem; padding: 15px; background: white;">FRECUENTE</button>
                     </div>
                 </form>
+
+                <!-- Configuración de Sesiones -->
+                <div class="neobrutalist-card" style="margin-top: 1.5rem; background: var(--color-celeste);">
+                    <h4 style="margin-bottom: 1rem;"><i class="fa-solid fa-clock"></i> Configuración de Sesiones</h4>
+                    <form action="{{ route('admin.settings.update') }}" method="POST">
+                        @csrf
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                            <div>
+                                <label style="font-size: 0.75rem; font-weight: 800; display: block; margin-bottom: 0.3rem;">DURACIÓN (MIN)</label>
+                                <input type="number" name="duracion_sesion" value="{{ auth()->user()->duracion_sesion ?? 45 }}" class="neobrutalist-input" style="padding: 5px; font-size: 0.9rem;" required>
+                            </div>
+                            <div>
+                                <label style="font-size: 0.75rem; font-weight: 800; display: block; margin-bottom: 0.3rem;">INTERVALO (MIN)</label>
+                                <input type="number" name="intervalo_sesion" value="{{ auth()->user()->intervalo_sesion ?? 15 }}" class="neobrutalist-input" style="padding: 5px; font-size: 0.9rem;" required>
+                            </div>
+                        </div>
+                        <button type="submit" class="neobrutalist-btn bg-amarillo w-full" style="padding: 5px; font-size: 0.8rem;">
+                            Guardar Configuración
+                        </button>
+                    </form>
+                </div>
 
                 <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 2px dashed #000;">
                     <form id="manage-reminder-form" method="POST">
@@ -1613,5 +1700,29 @@
     }
 
     // Custom dropdowns are managed in the DOMContentLoaded listener above
+    
+    // Scroll to section based on route
+    document.addEventListener('DOMContentLoaded', function() {
+        const path = window.location.pathname;
+        let targetId = null;
+        
+        if (path.includes('/agenda')) targetId = 'agenda';
+        else if (path.includes('/pacientes')) targetId = 'pacientes';
+        else if (path.includes('/pagos')) targetId = 'pagos';
+        else if (path.includes('/turnos')) targetId = 'turnos';
+        else if (path.includes('/documentos')) targetId = 'documentos';
+        else if (path.includes('/waitlist')) targetId = 'waitlist';
+        else if (path.includes('/configuracion')) targetId = 'configuracion';
+        else if (path.includes('/historial')) targetId = 'historial';
+        
+        if (targetId) {
+            setTimeout(() => {
+                const element = document.getElementById(targetId);
+                if (element) {
+                    element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            }, 300);
+        }
+    });
 </script>
 @endsection

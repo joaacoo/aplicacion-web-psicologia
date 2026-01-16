@@ -3,12 +3,12 @@
 @section('title', 'Registro - Lic. Nazarena De Luca')
 
 @section('content')
-<div class="flex justify-center items-start" style="min-height: 70vh; margin-top: -6rem;">
+<div class="flex justify-center items-center" style="min-height: auto; margin-top: 0.5rem; margin-bottom: 2rem; padding: 0.5rem;">
     <div class="neobrutalist-card" style="width: 100%; max-width: 500px; background: white;">
         
-        <h2 class="text-center" style="margin-bottom: 2rem;">Crear Cuenta</h2>
+        <h2 class="text-center" style="margin-bottom: 1.2rem; font-size: 2.2rem;">Crear Cuenta</h2>
 
-        <form action="{{ route('register') }}" method="POST" class="w-full">
+        <form action="/register" method="POST" class="w-full">
             @csrf
             
             <div class="mb-4">
@@ -41,8 +41,8 @@
             </button>
         </form>
 
-        <div class="mt-8 text-center">
-            <span style="font-size: 0.9rem;">¿Ya tenés cuenta?</span>
+        <div class="mt-6 text-center">
+            <span style="font-size: 0.95rem;">¿Ya tenés cuenta?</span>
             <a href="{{ route('login') }}" style="color: #2D2D2D; font-weight: 700; text-decoration: none;">Ingresá acá</a>
         </div>
     </div>

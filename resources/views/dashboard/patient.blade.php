@@ -181,13 +181,6 @@
             @if($appointments->isEmpty())
                 <p class="mt-4">No tenés turnos registrados todavía.</p>
             @else
-                <!-- Waitlist CTA -->
-                <div style="margin-top: 2rem; padding: 1rem; border: 2px dashed #ccc; border-radius: 15px; text-align: center; background: #fafafa;">
-                    <p style="margin-bottom: 0.5rem; font-weight: 700; color: #555;">¿No encontrás un horario conveniente?</p>
-                    <a href="{{ route('waitlist.create') }}" class="neobrutalist-btn bg-amarillo" style="font-size: 0.8rem; padding: 0.5rem 1rem;">
-                        <i class="fa-solid fa-clock"></i> Unirme a Lista de Espera
-                    </a>
-                </div>
                 <div style="overflow-x: auto;">
                     <table style="width: 100%; border-collapse: collapse; margin-top: 1rem;">
                         <thead>
@@ -329,12 +322,28 @@
             
             const dayOfWeek = date.getDay(); // 0-6
             const dateStr = date.toISOString().split('T')[0];
-            const isAvailable = availabilities.some(a => a.dia_semana == dayOfWeek);
+            // Priority: Google Slots override blocks
+            const hasGoogleSlots = googleSlots.some(s => s.date === dateStr);
+            const isBaseAvailable = availabilities.some(a => a.dia_semana == dayOfWeek);
             
             const isWeekendBlocked = weekendsBlocked && (dayOfWeek === 0 || dayOfWeek === 6);
             const isSpecificBlocked = specificBlockedDays.includes(dateStr);
             
-            const isBlocked = isWeekendBlocked || isSpecificBlocked;
+            // Logic: 
+            // 1. If hasGoogleSlots is true, it's AVAILABLE (overrides all blocks).
+            // 2. If NO Google Slots, we check standard blocks and base availability.
+            let isBlocked = false;
+
+            if (hasGoogleSlots) {
+                isBlocked = false; // Explicit availability overrides everything
+            } else {
+                // Formatting fallback to standard availability
+                if (!isBaseAvailable) {
+                    isBlocked = true; // No basic slots
+                } else if (isWeekendBlocked || isSpecificBlocked) {
+                    isBlocked = true; // Blocked by rule
+                }
+            }
 
             const dayBtn = document.createElement('div');
             // Quitamos 'disabled' para que el usuario pueda probar el flujo completo
@@ -427,14 +436,13 @@
         }
         
         if (slotsToRender.length === 0) {
-            grid.innerHTML = `
-                <div style="grid-column: 1 / -1; text-align: center; padding: 1.5rem; border: 2px dashed #ccc; border-radius: 10px; background: #fdfdfd;">
-                    <p style="font-weight: 700; color: #666; margin-bottom: 1rem;">No hay horarios disponibles para este día.</p>
-                    <button onclick="window.location.href='{{ route('waitlist.create') }}'" class="neobrutalist-btn bg-amarillo" style="font-size: 0.8rem; padding: 0.5rem 1rem; cursor: pointer;">
-                        <i class="fa-solid fa-clock"></i> ¿Querés que te avisemos si se libera un lugar?
-                    </button>
-                </div>
-            `;
+            // Show booking form instead of waitlist banner when no times available
+            grid.innerHTML = '';
+            const bookingForm = document.getElementById('booking');
+            if (bookingForm && bookingForm.style.display !== 'none') {
+                // Scroll to booking form
+                bookingForm.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
             return;
         }
 
