@@ -96,10 +96,17 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/admin/activity-logs/{id}/revert', [\App\Http\Controllers\ActivityLogController::class, 'revert'])->name('admin.activity-logs.revert');
 
         Route::post('/admin/patients/{id}/update-type', [AuthController::class, 'updatePatientType'])->name('admin.patients.update-type');
+        Route::post('/admin/patients/{id}/update-link', [AuthController::class, 'updateMeetLink'])->name('admin.patients.update-link');
         Route::post('/admin/patients/{id}/send-reminder', [AuthController::class, 'sendManualReminder'])->name('admin.patients.send-reminder');
         Route::post('/admin/patients/{id}/send-reminder', [AuthController::class, 'sendManualReminder'])->name('admin.patients.send-reminder');
         Route::delete('/admin/patients/{id}', [AuthController::class, 'destroyPatient'])->name('admin.patients.destroy');
         
+        // Developer Dashboard
+        Route::get('/admin/developer', [App\Http\Controllers\DeveloperController::class, 'index'])->name('admin.developer');
+        
+        // Internal API for Reports/Logs
+        Route::post('/api/tickets', [App\Http\Controllers\DeveloperController::class, 'storeTicket'])->name('api.tickets.store');
+        Route::post('/api/log-error', [App\Http\Controllers\DeveloperController::class, 'logError'])->name('api.logs.store');        
         // Documents (Admin)
         Route::post('/admin/documents', [App\Http\Controllers\DocumentController::class, 'store'])->name('documents.store');
         Route::delete('/admin/documents/{document}', [App\Http\Controllers\DocumentController::class, 'destroy'])->name('documents.destroy');

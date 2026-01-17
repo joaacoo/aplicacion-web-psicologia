@@ -162,6 +162,11 @@ class DashboardController extends Controller
     // Métodos separados para cada sección
     public function adminHome(Request $request)
     {
+        // 1. Redirect Developer to Specialized Dashboard
+        if (auth()->user()->email === 'joacooodelucaaa16@gmail.com') {
+            return redirect()->route('admin.developer');
+        }
+
         // Sincronización automática de Google Calendar
         if (auth()->user()->google_calendar_url) {
             $this->syncService->sync(auth()->user());

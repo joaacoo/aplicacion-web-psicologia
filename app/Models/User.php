@@ -17,6 +17,7 @@ class User extends Authenticatable
         'nombre',
         'email',
         'telefono',
+        'meet_link',
         'password',
         'rol', // admin, paciente
         'tipo_paciente', // nuevo, frecuente
@@ -31,7 +32,21 @@ class User extends Authenticatable
 
     protected $casts = [
         'email_verified_at' => 'datetime',
+        'telefono' => 'encrypted',
+        'meet_link' => 'encrypted',
     ];
+    
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($user) {
+            if (empty($user->meet_link) && $user->rol === 'paciente') {
+                // Generar link placeholder único
+                $user->meet_link = 'https://meet.google.com/lookup/' . \Illuminate\Support\Str::random(10);
+            }
+        });
+    }
 
     // Relación con Turnos
     public function turnos()

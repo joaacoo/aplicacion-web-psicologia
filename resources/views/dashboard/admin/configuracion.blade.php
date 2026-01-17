@@ -132,7 +132,7 @@
                     @csrf
                     <button type="button" id="btn-toggle-weekends" class="neobrutalist-btn w-full" 
                             style="background: {{ $blockWeekends ? '#d32f2f' : '#388e3c' }}; color: white; display: flex; align-items: center; justify-content: center; gap: 0.5rem; font-size: 0.9rem; padding: 0.8rem;" 
-                            onclick="toggleWeekendsAJAX()">
+                            onclick="window.showConfirm('¿Estás segura de cambiar la disponibilidad de los fines de semana?', toggleWeekendsAJAX)">
                         @if($blockWeekends)
                             <i class="fa-solid fa-lock"></i> Sáb/Dom: <strong>BLOQUEADOS</strong>
                         @else

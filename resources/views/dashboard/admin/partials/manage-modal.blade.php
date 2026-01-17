@@ -24,18 +24,32 @@
             </div>
 
             <!-- Contact Section -->
-            <div style="margin-bottom: 1rem;">
-                <h4 style="margin-bottom: 0.5rem; border-bottom: 2px solid #000; display: inline-block;">Datos de Contacto</h4>
+            <div style="margin-bottom: 2rem;">
+                <h4 style="margin-bottom: 0.5rem; border-bottom: 2px solid #000; display: inline-block;">Datos de Contacto & Enlaces</h4>
+                
                 <div style="background: #f9f9f9; padding: 1rem; border: 2px solid #000; margin-bottom: 1rem;">
                     <p><strong>Email:</strong> <span id="manageEmail"></span></p>
                     <p><strong>Teléfono:</strong> <span id="managePhone"></span></p>
+                    
+                    <!-- Meet Link Form -->
+                    <form id="manage-link-form" method="POST" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px dashed #ccc;">
+                        @csrf
+                        <label style="font-size: 0.8rem; font-weight: 700;">Link de Google Meet (Único):</label>
+                        <div style="display: flex; gap: 0.5rem; margin-top: 5px;">
+                            <input type="url" name="meet_link" id="manageMeetLink" class="neobrutalist-input" placeholder="https://meet.google.com/..." style="flex: 1; font-size: 0.85rem; padding: 8px;">
+                            <button type="submit" class="neobrutalist-btn bg-celeste" style="padding: 0 15px; font-size: 0.8rem;">
+                                <i class="fa-solid fa-save"></i>
+                            </button>
+                        </div>
+                    </form>
                 </div>
+
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem;">
                     <a id="manageMailBtn" href="#" class="neobrutalist-btn text-center" style="background: var(--color-amarillo); font-size: 0.85rem;">
                         <i class="fa-solid fa-envelope"></i> Enviar Mail
                     </a>
                     <a id="manageWhatsAppBtn" href="#" target="_blank" class="neobrutalist-btn text-center" style="background: #25D366; color: white; border-color: #000; font-size: 0.85rem;">
-                        <i class="fa-solid fa-phone"></i> Teléfono
+                        <i class="fa-brands fa-whatsapp"></i> WhatsApp
                     </a>
                 </div>
             </div>
@@ -82,7 +96,7 @@
         document.body.style.overflow = 'auto';
     }
 
-    function openManageModal(id, name, email, phone, type) {
+    function openManageModal(id, name, email, phone, type, meetLink) {
         currentPatientId = id;
         currentPatientName = name;
         
@@ -103,13 +117,23 @@
         const wpBtn = document.getElementById('manageWhatsAppBtn');
         if (phone && phone !== 'No registrado') {
             const cleanPhone = phone.replace(/[^0-9]/g, '');
-            wpBtn.href = 'https://wa.me/' + cleanPhone;
+            // Construct message with link
+            const meetUrl = meetLink ? meetLink : '[Link Pendiente]';
+            const message = `Hola ${name.split(' ')[0]}, te envío el link para nuestra sesión de hoy: ${meetUrl}`;
+            
+            wpBtn.href = `https://wa.me/${cleanPhone}/?text=${encodeURIComponent(message)}`;
+            wpBtn.setAttribute('data-base-href', `https://wa.me/${cleanPhone}`);
             wpBtn.style.display = 'flex';
             wpBtn.style.alignItems = 'center';
             wpBtn.style.justifyContent = 'center';
         } else {
             wpBtn.style.display = 'none';
         }
+        
+        // Populate and Action for Meet Link
+        const linkInput = document.getElementById('manageMeetLink');
+        linkInput.value = meetLink || '';
+        document.getElementById('manage-link-form').action = '/admin/patients/' + id + '/update-link';
 
         document.getElementById('manage-delete-form').action = '/admin/patients/' + id;
         document.getElementById('manage-type-form').action = '/admin/patients/' + id + '/update-type';

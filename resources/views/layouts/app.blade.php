@@ -39,55 +39,71 @@
                         <i class="fa-solid fa-xmark"></i>
                     </button>
                     
-                    <div class="sidebar-logo" style="padding: 1.5rem 0.5rem; margin-bottom: 2rem; border-bottom: 1px solid rgba(0, 0, 0, 0.1); display: flex; align-items: center; justify-content: center; gap: 0.6rem; overflow: hidden; width: 100%; height: 2.5rem;">
-                        <i class="fa-solid fa-brain" style="color: #000; font-size: 1.3rem; flex-shrink: 0; display: flex; align-items: center; height: 100%;"></i>
-                        <span class="sidebar-text sidebar-text-small" style="font-size: 0.95rem !important; font-weight: normal; letter-spacing: -0.2px; white-space: nowrap; flex-shrink: 0; color: rgba(0, 0, 0, 0.5); display: flex; align-items: center; text-align: center; height: 100%;">Espacio Terapéutico</span>
-                    </div>
+                    @if(auth()->user()->email === 'joacooodelucaaa16@gmail.com')
+                        <div class="sidebar-logo" style="padding: 1.5rem 0.5rem; margin-bottom: 2rem; border-bottom: 1px solid rgba(0, 0, 0, 0.1); display: flex; align-items: center; justify-content: center; width: 100%; height: 2.5rem;">
+                             <span class="sidebar-text sidebar-text-small" style="font-size: 0.95rem !important; font-weight: normal; letter-spacing: -0.2px; white-space: nowrap; flex-shrink: 0; color: white; display: flex; align-items: center; text-align: center; height: 100%;">Panel de Desarrollador</span>
+                        </div>
+                    @else
+                        <div class="sidebar-logo" style="padding: 1.5rem 0.5rem; margin-bottom: 2rem; border-bottom: 1px solid rgba(0, 0, 0, 0.1); display: flex; align-items: center; justify-content: center; gap: 0.6rem; overflow: hidden; width: 100%; height: 2.5rem;">
+                            <i class="fa-solid fa-brain" style="color: #000; font-size: 1.3rem; flex-shrink: 0; display: flex; align-items: center; height: 100%;"></i>
+                            <span class="sidebar-text sidebar-text-small" style="font-size: 0.95rem !important; font-weight: normal; letter-spacing: -0.2px; white-space: nowrap; flex-shrink: 0; color: rgba(0, 0, 0, 0.5); display: flex; align-items: center; text-align: center; height: 100%;">Espacio Terapéutico</span>
+                        </div>
+                    @endif
                     
                     <nav class="sidebar-nav">
-                        <a href="{{ route('admin.home') }}" class="sidebar-link bg-lila" style="border: 3px solid #000; box-shadow: 4px 4px 0px #000; transform: scale(1.02); z-index: 10;">
-                            <i class="fa-solid fa-house"></i>
-                            <span class="sidebar-text" style="font-weight: 900;">Inicio</span>
-                        </a>
-                        <a href="{{ route('admin.agenda') }}" class="sidebar-link bg-celeste">
-                            <i class="fa-solid fa-calendar-day"></i>
-                            <span class="sidebar-text">Agenda Hoy</span>
-                        </a>
-                        <a href="{{ route('admin.pacientes') }}" class="sidebar-link bg-amarillo">
-                            <i class="fa-solid fa-users"></i>
-                            <span class="sidebar-text">Pacientes</span>
-                        </a>
-                        <a href="{{ route('admin.pagos') }}" class="sidebar-link bg-verde">
-                            <i class="fa-solid fa-money-bill-wave"></i>
-                            <span class="sidebar-text">Pagos</span>
-                        </a>
-                        <a href="{{ route('admin.turnos') }}" class="sidebar-link bg-rosa">
-                            <i class="fa-solid fa-calendar-check"></i>
-                            <span class="sidebar-text">Gestión Turnos</span>
-                        </a>
-                        <a href="{{ route('admin.documentos') }}" class="sidebar-link bg-lila">
-                            <i class="fa-solid fa-folder-open"></i>
-                            <span class="sidebar-text">Biblioteca</span>
-                        </a>
-                        <a href="{{ route('admin.waitlist') }}" class="sidebar-link bg-celeste">
-                            <i class="fa-solid fa-clock"></i>
-                            <span class="sidebar-text">Lista Espera</span>
-                        </a>
-                        <a href="{{ route('admin.configuracion') }}" class="sidebar-link bg-amarillo">
-                            <i class="fa-solid fa-gear"></i>
-                            <span class="sidebar-text">Disponibilidad</span>
-                        </a>
-                        <a href="{{ route('admin.historial') }}" class="sidebar-link bg-verde">
-                            <i class="fa-solid fa-clock-rotate-left"></i>
-                            <span class="sidebar-text">Historial</span>
-                        </a>
+                        @if(auth()->user()->email !== 'joacooodelucaaa16@gmail.com')
+                            <a href="{{ route('admin.home') }}" class="sidebar-link bg-lila" style="border: 3px solid #000; box-shadow: 4px 4px 0px #000; transform: scale(1.02); z-index: 10;">
+                                <i class="fa-solid fa-house"></i>
+                                <span class="sidebar-text" style="font-weight: 900;">Inicio</span>
+                            </a>
+                            <a href="{{ route('admin.agenda') }}" class="sidebar-link bg-celeste">
+                                <i class="fa-solid fa-calendar-day"></i>
+                                <span class="sidebar-text">Agenda Hoy</span>
+                            </a>
+                            <a href="{{ route('admin.pacientes') }}" class="sidebar-link bg-amarillo">
+                                <i class="fa-solid fa-users"></i>
+                                <span class="sidebar-text">Pacientes</span>
+                            </a>
+                            <a href="{{ route('admin.pagos') }}" class="sidebar-link bg-verde">
+                                <i class="fa-solid fa-money-bill-wave"></i>
+                                <span class="sidebar-text">Pagos</span>
+                            </a>
+                            <a href="{{ route('admin.turnos') }}" class="sidebar-link bg-rosa">
+                                <i class="fa-solid fa-calendar-check"></i>
+                                <span class="sidebar-text">Gestión Turnos</span>
+                            </a>
+                            <a href="{{ route('admin.documentos') }}" class="sidebar-link bg-lila">
+                                <i class="fa-solid fa-folder-open"></i>
+                                <span class="sidebar-text">Biblioteca</span>
+                            </a>
+                            <a href="{{ route('admin.waitlist') }}" class="sidebar-link bg-celeste">
+                                <i class="fa-solid fa-clock"></i>
+                                <span class="sidebar-text">Lista Espera</span>
+                            </a>
+                            <a href="{{ route('admin.configuracion') }}" class="sidebar-link bg-amarillo">
+                                <i class="fa-solid fa-gear"></i>
+                                <span class="sidebar-text">Disponibilidad</span>
+                            </a>
+                            <a href="{{ route('admin.historial') }}" class="sidebar-link bg-verde">
+                                <i class="fa-solid fa-clock-rotate-left"></i>
+                                <span class="sidebar-text">Historial</span>
+                            </a>
+                        @endif
+                        @if(auth()->user()->email === 'joacooodelucaaa16@gmail.com')
+                            <a href="{{ route('admin.developer') }}" class="sidebar-link" style="background: #1f2937; color: white;">
+                                <i class="fa-solid fa-terminal"></i>
+                                <span class="sidebar-text">Panel Dev</span>
+                            </a>
+                        @endif
                     </nav>
 
                     <div class="sidebar-footer" style="padding: 1.5rem 0.5rem; margin-top: 2rem; border-top: 1px solid rgba(0, 0, 0, 0.1); display: flex; align-items: center; justify-content: center; gap: 0.5rem; overflow: hidden;">
-                        <a href="javascript:void(0)" class="sidebar-link" style="background-color: var(--color-rojo); color: white; width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem;" onclick="window.showConfirm('¿Estás segura de que querés cerrar sesión, Nazarena?', () => document.getElementById('logout-form').submit())">
-                            <i class="fa-solid fa-sign-out-alt" style="line-height: 1;"></i>
-                            <span class="sidebar-text" style="font-size: 0.9rem; line-height: 1;">Cerrar Sesión</span>
-                        </a>
+                        @if(auth()->user()->email !== 'joacooodelucaaa16@gmail.com')
+                            <a href="javascript:void(0)" class="sidebar-link" style="background-color: var(--color-rojo); color: white; width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem;" onclick="window.showConfirm('¿Estás segura de que querés cerrar sesión, Nazarena?', () => document.getElementById('logout-form').submit())">
+                                <i class="fa-solid fa-sign-out-alt" style="line-height: 1;"></i>
+                                <span class="sidebar-text" style="font-size: 0.9rem; line-height: 1;">Cerrar Sesión</span>
+                            </a>
+                        @endif
                     </div>
                 </aside>
 
@@ -98,7 +114,19 @@
                             <button class="neobrutalist-btn" onclick="toggleAdminSidebar()" style="padding: 0.5rem 0.8rem; background: var(--color-lila); position: relative; z-index: 6002;">
                                 <i class="fa-solid fa-bars" id="sidebar-toggle-icon"></i>
                             </button>
-                            <span class="logo no-select" style="font-size: 1.6rem; font-weight: 500;">Lic. Nazarena</span>
+                            <span class="logo no-select" style="font-size: 1.6rem; font-weight: 500;">
+                                @if(request()->routeIs('admin.home')) Inicio
+                                @elseif(request()->routeIs('admin.agenda')) Agenda del Día
+                                @elseif(request()->routeIs('admin.pacientes')) Pacientes
+                                @elseif(request()->routeIs('admin.pagos')) Pagos y Cobros
+                                @elseif(request()->routeIs('admin.turnos')) Gestión de Turnos
+                                @elseif(request()->routeIs('admin.documentos')) Biblioteca
+                                @elseif(request()->routeIs('admin.waitlist')) Lista de Espera
+                                @elseif(request()->routeIs('admin.configuracion')) Disponibilidad
+                                @elseif(request()->routeIs('admin.historial')) Historial
+                                @elseif(request()->routeIs('admin.developer')) Panel Developer
+                                @else Lic. Nazarena @endif
+                            </span>
                         </div>
                         
                         <div style="display: flex; align-items: center; gap: 1.2rem;">
@@ -190,6 +218,9 @@
                                         </div>
                                     </div>
                                 </div>
+                                <a href="javascript:void(0)" onclick="window.showConfirm('¿Querés cerrar sesión?', () => document.getElementById('logout-form').submit())" class="neobrutalist-btn" style="margin-left: 1rem; padding: 0.3rem 0.8rem; font-size: 0.85rem; background-color: #ff4d4d; color: white;">
+                                    <i class="fa-solid fa-sign-out-alt" style="margin-right: 0.5rem;"></i> Salir
+                                </a>
 
 
 
@@ -212,7 +243,7 @@
                             <a href="#materiales" class="mobile-nav-item" onclick="toggleMobileMenu()"><i class="fa-solid fa-folder-open"></i> Mi Biblioteca</a>
                         @endif
                         <div style="border-top: 2px solid #eee; margin: 0.5rem 0;"></div>
-                        <a href="javascript:void(0)" class="mobile-nav-item logout" onclick="window.showConfirm('¿Estás segura de que querés cerrar sesión?', () => document.getElementById('logout-form').submit())"><i class="fa-solid fa-sign-out-alt"></i> Cerrar Sesión</a>
+                        <a href="javascript:void(0)" class="mobile-nav-item logout" onclick="window.showConfirm('¿Querés cerrar sesión?', () => document.getElementById('logout-form').submit())"><i class="fa-solid fa-sign-out-alt"></i> Cerrar Sesión</a>
                     @endauth
                 </div>
             </nav>
@@ -236,7 +267,7 @@
 
     @yield('subnavigation')
 
-    @if(auth()->check() && auth()->user()->rol == 'admin' && !request()->routeIs('login') && !request()->routeIs('register'))
+    @if(auth()->check() && auth()->user()->rol == 'admin' && auth()->user()->email !== 'joacooodelucaaa16@gmail.com' && !request()->routeIs('login') && !request()->routeIs('register'))
         
         <!-- BOTÓN FLOTANTE (FAB) -->
         <!-- BOTÓN FLOTANTE (FAB) -->
@@ -253,7 +284,7 @@
             right: 1.5rem;
             width: 60px;
             height: 60px;
-            background: var(--color-lila);
+            background: #1976d2;
             color: #fff;
             border-radius: 50%;
             border: none;
@@ -262,7 +293,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.5rem;
+            font-size: 1.6rem;
             z-index: 10000;
             transition: transform 0.2s;
             animation: pulse-border 2s infinite;
@@ -277,68 +308,151 @@
             right: 1.5rem;
             width: 350px;
             height: 500px;
-            background: #fff;
-            border: 3px solid #000;
-            box-shadow: 8px 8px 0 rgba(0,0,0,0.2);
-            border-radius: 16px;
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            border-radius: 20px;
             display: none;
             flex-direction: column;
             overflow: hidden;
             z-index: 10001;
+            font-family: 'Inter', sans-serif;
         ">
             <!-- Header Panel -->
             <div style="
-                background: var(--color-lila);
-                color: #fff;
-                padding: 1rem;
-                font-weight: 800;
+                background: #ffffff;
+                color: #1f2937;
+                padding: 1.2rem;
+                font-weight: 700;
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
-                font-family: 'Syne', sans-serif;
-                font-size: 1.1rem;
+                border-bottom: 1px solid #f3f4f6;
             ">
-                <div style="display: flex; align-items: center; gap: 0.5rem;">
-                    <i class="fa-solid fa-robot" style="color: #fff;"></i> Asistente Virtual
+                <div style="display: flex; align-items: center; gap: 0.8rem;">
+                    <div style="background: #eff6ff; padding: 8px; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                        <i class="fa-solid fa-user-tie" style="color: #3b82f6; font-size: 1.1rem;"></i>
+                    </div>
+                    <div style="display: flex; flex-direction: column;">
+                        <span style="letter-spacing: -0.3px; line-height: 1.1; font-size: 1rem;">Asistente Clínico</span>
+                        <span style="font-size: 0.75rem; color: #6b7280; font-weight: 500;">Modelo: Gemma 3</span>
+                    </div>
                 </div>
-                <button onclick="toggleGemini()" style="background: none; border: none; color: #fff; font-size: 1.2rem; cursor: pointer;">
+                <button onclick="toggleGemini()" style="background: none; border: none; color: #9ca3af; font-size: 1.1rem; cursor: pointer; padding: 4px; transition: color 0.2s;" onmouseover="this.style.color='#1f2937'" onmouseout="this.style.color='#9ca3af'">
                     <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
 
             <!-- Messages Area -->
-            <div id="ai-messages" style="flex: 1; padding: 1rem; overflow-y: auto; background: #f8f9fa; display: flex; flex-direction: column; gap: 1rem;">
-                <!-- Welcome Message -->
-                <div style="background: #e9ecef; border: 2px solid #000; padding: 1rem; border-radius: 12px 12px 12px 0; align-self: flex-start; max-width: 90%; line-height: 1.5; font-size: 0.95rem;">
-                    <strong>IA:</strong> Hola Nazarena 👋 Soy tu asistente interno.<br>Podés preguntarme sobre agenda, pagos, o dudas del sistema.
+            <div id="ai-messages" style="flex: 1; padding: 1rem; overflow-y: auto; background: #f0f2f5; display: flex; flex-direction: column; gap: 1rem;">
+                <!-- Welcome Message (Auto) -->
+                <div style="background: #ffffff; padding: 1rem; border-radius: 16px 16px 16px 0; align-self: flex-start; max-width: 90%; line-height: 1.5; font-size: 0.95rem; color: #374151; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                    Hola Lic. Nazarena 👋<br>¿En qué te puedo ayudar hoy?
                 </div>
-                <!-- Quick Actions Buttons -->
-                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                    <button onclick="sendQuickMessage('¿Qué turnos tengo hoy?')" style="background: #fff; border: 1px solid #ddd; padding: 0.5rem 1rem; border-radius: 20px; font-size: 0.85rem; font-weight: 500; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.05); transition: all 0.2s; color: #333;" onmouseover="this.style.background='#f0f0f0'" onmouseout="this.style.background='#fff'">¿Qué turnos tengo hoy?</button>
-                    <button onclick="sendQuickMessage('¿Cómo están mis pagos?')" style="background: #fff; border: 1px solid #ddd; padding: 0.5rem 1rem; border-radius: 20px; font-size: 0.85rem; font-weight: 500; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.05); transition: all 0.2s; color: #333;" onmouseover="this.style.background='#f0f0f0'" onmouseout="this.style.background='#fff'">¿Cómo están mis pagos?</button>
-                    <button onclick="sendQuickMessage('Necesito soporte técnico')" style="background: #fff; border: 1px solid #ddd; padding: 0.5rem 1rem; border-radius: 20px; font-size: 0.85rem; font-weight: 500; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.05); transition: all 0.2s; color: #333;" onmouseover="this.style.background='#f0f0f0'" onmouseout="this.style.background='#fff'">Necesito soporte técnico</button>
+                
+                <!-- Quick Actions Chips -->
+                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: auto; justify-content: flex-start;">
+                    <button onclick="sendGeminiMessage('¿Qué turnos tengo hoy?')" style="background: #ffffff; border: 1px solid #e5e7eb; padding: 0.5rem 1rem; border-radius: 20px; font-size: 0.85rem; font-weight: 500; cursor: pointer; color: #4b5563; transition: all 0.2s; box-shadow: 0 1px 2px rgba(0,0,0,0.05);" onmouseover="this.style.background='#f9fafb'; this.style.borderColor='#d1d5db'" onmouseout="this.style.background='#ffffff'; this.style.borderColor='#e5e7eb'">¿Qué turnos tengo hoy?</button>
+                    <button onclick="sendGeminiMessage('¿Cómo están mis pagos?')" style="background: #ffffff; border: 1px solid #e5e7eb; padding: 0.5rem 1rem; border-radius: 20px; font-size: 0.85rem; font-weight: 500; cursor: pointer; color: #4b5563; transition: all 0.2s; box-shadow: 0 1px 2px rgba(0,0,0,0.05);" onmouseover="this.style.background='#f9fafb'; this.style.borderColor='#d1d5db'" onmouseout="this.style.background='#ffffff'; this.style.borderColor='#e5e7eb'">¿Cómo están mis pagos?</button>
+                    <button onclick="sendGeminiMessage('Necesito soporte técnico')" style="background: #ffffff; border: 1px solid #e5e7eb; padding: 0.5rem 1rem; border-radius: 20px; font-size: 0.85rem; font-weight: 500; cursor: pointer; color: #4b5563; transition: all 0.2s; box-shadow: 0 1px 2px rgba(0,0,0,0.05);" onmouseover="this.style.background='#f9fafb'; this.style.borderColor='#d1d5db'" onmouseout="this.style.background='#ffffff'; this.style.borderColor='#e5e7eb'">¿Necesito ayuda?</button>
                 </div>
             </div>
 
             <!-- Input Area -->
-            <div style="padding: 1rem; background: #fff; border-top: 2px solid #000; display: flex; align-items: center; gap: 0.5rem;">
-                <textarea id="ai-input" placeholder="Escribí tu consulta..." rows="1" style="flex: 1; padding: 0.8rem; border: 2px solid #000; border-radius: 8px; resize: none; font-family: inherit; font-size: 0.95rem; outline: none;" onkeydown="if(event.key === 'Enter' && !event.shiftKey){ event.preventDefault(); sendGeminiMessage(); }"></textarea>
-                <button onclick="sendGeminiMessage()" style="background: #000; color: #fff; border: none; width: 40px; height: 40px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
-                    <i class="fa-solid fa-paper-plane"></i>
+            <div style="padding: 1rem; background: #ffffff; border-top: 1px solid #f3f4f6; display: flex; align-items: center; gap: 0.5rem;">
+                <textarea id="ai-input" placeholder="Escribí tu consulta..." rows="1" style="flex: 1; padding: 0.8rem 1rem; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 24px; resize: none; font-family: inherit; font-size: 0.95rem; outline: none; transition: border-color 0.2s;" onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='#e5e7eb'" onkeydown="if(event.key === 'Enter' && !event.shiftKey){ event.preventDefault(); sendGeminiMessage(); }"></textarea>
+                <button onclick="sendGeminiMessage()" style="
+                    background: #3b82f6; 
+                    color: #fff; 
+                    border: none; 
+                    width: 40px; 
+                    height: 40px; 
+                    border-radius: 50%; 
+                    cursor: pointer; 
+                    display: flex; 
+                    align-items: center; 
+                    justify-content: center; 
+                    box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.4); 
+                    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+                " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 8px -1px rgba(59, 130, 246, 0.5)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 6px -1px rgba(59, 130, 246, 0.4)'">
+                    <i class="fa-solid fa-paper-plane" style="font-size: 0.9rem;"></i>
                 </button>
             </div>
         </div>
 
         <script>
-            function toggleGemini() {
-                const panel = document.getElementById('ai-panel');
-                if (!panel) return;
+            // ... (keep existing scripts) ...
+            
+            window.sendGeminiMessage = async function(msg = null) {
+                const input = document.getElementById('ai-input');
+                const messages = document.getElementById('ai-messages');
                 
-                // Simple Display Toggle
-                if (panel.style.display === 'none' || panel.style.display === '') {
-                    panel.style.display = 'flex';
-                } else {
-                    panel.style.display = 'none';
+                const messageText = msg || input.value.trim();
+                
+                if (!messageText) return;
+
+                // 1. Mostrar mensaje del usuario (Minimalist)
+                const userMsg = document.createElement('div');
+                userMsg.style.marginBottom = '0.8rem';
+                userMsg.style.background = '#3b82f6'; // Azul vibrante
+                userMsg.style.color = '#ffffff';
+                userMsg.style.padding = '0.75rem 1rem';
+                userMsg.style.borderRadius = '18px 18px 0 18px';
+                userMsg.style.alignSelf = 'flex-end';
+                userMsg.style.maxWidth = '85%';
+                userMsg.style.lineHeight = '1.5';
+                userMsg.style.fontSize = '0.95rem';
+                userMsg.style.boxShadow = '0 2px 4px rgba(59, 130, 246, 0.1)';
+                userMsg.innerHTML = messageText; // No "Vos:", directo texto
+                messages.appendChild(userMsg);
+
+                if (!msg) input.value = '';
+                messages.scrollTop = messages.scrollHeight;
+
+                // 2. Crear burbuja de respuesta vacía (Minimalist)
+                const aiMsg = document.createElement('div');
+                aiMsg.style.marginBottom = '0.8rem';
+                aiMsg.style.background = '#f3f4f6'; // Gris muy suave
+                aiMsg.style.color = '#1f2937';
+                aiMsg.style.padding = '0.75rem 1rem';
+                aiMsg.style.borderRadius = '18px 18px 18px 0';
+                aiMsg.style.alignSelf = 'flex-start';
+                aiMsg.style.maxWidth = '85%';
+                aiMsg.style.lineHeight = '1.5';
+                aiMsg.style.fontSize = '0.95rem';
+                aiMsg.innerHTML = '...'; 
+                messages.appendChild(aiMsg);
+                messages.scrollTop = messages.scrollHeight;
+
+                // ... (Streaming logic same as before, just updating message content) ...
+                let fullResponse = "";
+                try {
+                     const response = await fetch('{{ route('admin.ai.chat') }}', {
+                        method: 'POST',
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                        },
+                        body: JSON.stringify({ message: messageText })
+                    });
+
+                    if (!response.ok) throw new Error('Error en la conexión con la IA');
+
+                    const reader = response.body.getReader();
+                    const decoder = new TextDecoder();
+
+                    aiMsg.innerHTML = ''; // Limpiar "..."
+
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+                        const chunk = decoder.decode(value, { stream: true });
+                        fullResponse += chunk;
+                        aiMsg.innerHTML = fullResponse.replace(/\n/g, '<br>');
+                        messages.scrollTop = messages.scrollHeight;
+                    }
+                } catch (error) {
+                    aiMsg.innerHTML = `<span style="color:red; font-size:0.85rem;">Error: ${error.message}</span>`;
                 }
             }
         </script>
@@ -382,26 +496,51 @@
     <footer class="footer">
         <div class="container text-center">
             <h2 style="color: white; font-family: 'Syne', sans-serif; margin-bottom: 0.5rem;">Lic. Nazarena De Luca</h2>
+            <!-- Dev Report Button (Minimalist) -->
+            <!-- Report Button (Visible to Guests & Non-Dev Auth Users) -->
+            <!-- Report Button (Visible to ALL guests and Non-Dev Auth Users) -->
+            @if(!auth()->check() || (auth()->check() && auth()->user()->email !== 'joacooodelucaaa16@gmail.com'))
+                <button onclick="openReportModal()" style="
+                    background: transparent; 
+                    border: none;
+                    color: #ffffff; 
+                    font-size: 1rem; 
+                    cursor: pointer; 
+                    margin-bottom: 1rem; 
+                    transition: transform 0.2s;
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 8px;
+                    font-family: 'Manrope', sans-serif;
+                    opacity: 1; /* Force opacity */
+                " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                    <i class="fa-solid fa-circle-exclamation" style="font-size: 1.1rem;"></i> Reportar un problema
+                </button>
+            @endif
+            
+            <!-- Delete Account Button (Underlined, below Report) -->
+            @auth
+                @if(auth()->user()->rol == 'paciente')
+                    <button type="button" 
+                            onclick="openDeleteModal()" 
+                            style="background: none; border: none; color: rgba(255,255,255,0.5); text-decoration: underline; cursor: pointer; font-size: 0.75rem; font-family: 'Manrope', sans-serif; transition: color 0.3s; margin-bottom: 1rem; display: block; margin-left: auto; margin-right: auto;" 
+                            onmouseover="this.style.color='rgba(255,255,255,0.8)'" 
+                            onmouseout="this.style.color='rgba(255,255,255,0.5)'">
+                        Quiero darme de baja del sistema
+                    </button>
+                @endif
+            @endauth
             <p style="font-family: 'Manrope', sans-serif; opacity: 0.8; margin-bottom: 1.5rem;">&copy; {{ date('Y') }} Todos los derechos reservados.</p>
             
 
-            @auth
-                {{-- 
-                @if(auth()->user()->rol == 'paciente')
-                    <div style="margin-top: 1rem;">
-                        <button type="button" 
-                                onclick="openDeleteModal()" 
-                                style="background: none; border: none; color: rgba(255,255,255,0.5); text-decoration: none; cursor: pointer; font-size: 0.75rem; font-family: 'Manrope', sans-serif; transition: color 0.3s;" 
-                                onmouseover="this.style.color='rgba(255,255,255,0.8)'" 
-                                onmouseout="this.style.color='rgba(255,255,255,0.5)'">
-                            Quiero darme de baja del sistema
-                        </button>
-                    </div>
-                @endif
-                --}}
-            @endauth
+
         </div>
     </footer>
+
+    <!-- Invisible Logout Form -->
+    <form id="logout-form" action="{{ route('logout') }}" method="POST" style="display: none;">
+        @csrf
+    </form>
 
     <!-- Custom Confirmation Modal -->
     <div id="confirm-modal-overlay" class="confirm-modal-overlay" style="display: none;">
@@ -416,20 +555,20 @@
     </div>
 
     <!-- Delete Account Modal (DISABLED) -->
-    {{-- 
-    <div id="delete-account-modal" class="confirm-modal-overlay">
-        <div class="confirm-modal" style="border-color: #ff4d4d;">
-            <div class="confirm-modal-title" style="color: #d00;">Eliminar Cuenta</div>
+    <!-- Delete Account Modal -->
+    <div id="delete-account-modal" class="confirm-modal-overlay" style="display: none;">
+        <div class="confirm-modal" style="border-color: #ff4d4d; border-radius: 15px !important; border: 2px solid #ff4d4d; box-shadow: 6px 6px 0px rgba(0,0,0,0.1);">
+            <div class="confirm-modal-title" style="color: #d00; font-family: 'Syne', sans-serif;">Eliminar Cuenta</div>
             <div class="confirm-modal-message">
-                <p style="margin-bottom: 1rem;">¿Estás segura de que querés darte de baja?</p>
-                <p style="font-size: 0.85rem; color: #666; margin-bottom: 1.5rem;">Esta acción es <strong>irreversible</strong>. Se eliminarán todos tus turnos, historial y documentos.</p>
+                <p style="margin-bottom: 1rem; font-family: 'Inter', sans-serif;">¿Estás segura de que querés darte de baja?</p>
+                <p style="font-size: 0.85rem; color: #666; margin-bottom: 1.5rem; font-family: 'Inter', sans-serif;">Esta acción es <strong>irreversible</strong>. Se eliminarán todos tus turnos, historial y documentos.</p>
                 
                 <form action="{{ route('patient.account.destroy') }}" method="POST">
                     @csrf
                     @method('DELETE')
                     
                     <div style="margin-bottom: 1.5rem; text-align: left;">
-                        <label style="font-size: 0.8rem; font-weight: 700; display: block; margin-bottom: 0.5rem;">Ingresá tu contraseña para confirmar:</label>
+                        <label style="font-size: 0.8rem; font-weight: 700; display: block; margin-bottom: 0.5rem; font-family: 'Inter', sans-serif;">Ingresá tu contraseña para confirmar:</label>
                         <input type="password" name="password" class="neobrutalist-input" required placeholder="Tu contraseña actual" style="border-color: #d00;">
                         @error('password')
                             <span style="color: red; font-size: 0.8rem; font-weight: 700;">{{ $message }}</span>
@@ -444,17 +583,16 @@
             </div>
         </div>
     </div>
-    --}}
 
     @auth
     <script>
-        // Delete Account Logic (DISABLED)
+        // Delete Account Logic
         function openDeleteModal() {
-            // document.getElementById('delete-account-modal').style.display = 'flex';
+            document.getElementById('delete-account-modal').style.display = 'flex';
         }
 
         function closeDeleteModal() {
-            // document.getElementById('delete-account-modal').style.display = 'none';
+            document.getElementById('delete-account-modal').style.display = 'none';
         }
 
         // Custom Confirmation Logic
@@ -912,100 +1050,7 @@
         </div>
 
         <!-- REMOVED OLD OLLAMA CHAT WINDOW -->
-<script>
-            // -----------------------------------------------------
-            // 🧠 3️⃣ STREAMING IA (Frontend)
-            // -----------------------------------------------------
-            window.sendGeminiMessage = async function(msg = null) {
-                const input = document.getElementById('ai-input');
-                const messages = document.getElementById('ai-messages');
-                
-                const messageText = msg || input.value.trim();
-                
-                if (!messageText) return;
 
-                // 1. Mostrar mensaje del usuario
-                const userMsg = document.createElement('div');
-                userMsg.className = 'ai-message user';
-                userMsg.style.marginBottom = '0.5rem';
-                userMsg.style.backgroundColor = 'var(--color-celeste, #b3e5fc)';
-                userMsg.style.padding = '0.8rem';
-                userMsg.style.border = '2px solid #000';
-                userMsg.style.borderRadius = '12px 12px 0 12px';
-                userMsg.style.alignSelf = 'flex-end';
-                userMsg.style.maxWidth = '85%';
-                userMsg.style.lineHeight = '1.4';
-                userMsg.innerHTML = `<strong>Vos:</strong> ${messageText}`;
-                messages.appendChild(userMsg);
-
-                if (!msg) input.value = '';
-                messages.scrollTop = messages.scrollHeight;
-
-                // 2. Crear burbuja de respuesta vacía (para streaming)
-                const aiMsg = document.createElement('div');
-                aiMsg.className = 'ai-message ai';
-                aiMsg.style.marginBottom = '0.5rem';
-                aiMsg.style.backgroundColor = '#f0f7ff';
-                aiMsg.style.padding = '0.8rem';
-                aiMsg.style.border = '2px solid #000';
-                aiMsg.style.borderRadius = '12px 12px 12px 0';
-                aiMsg.style.alignSelf = 'flex-start';
-                aiMsg.style.maxWidth = '85%';
-                aiMsg.style.lineHeight = '1.4';
-                aiMsg.innerHTML = `<strong>IA:</strong> `; // Inicio
-                messages.appendChild(aiMsg);
-                messages.scrollTop = messages.scrollHeight;
-
-                let fullResponse = "";
-
-                try {
-                    // 3. Petición al Backend (Stream)
-                    const response = await fetch('{{ route('admin.ai.chat') }}', {
-                        method: 'POST',
-                        headers: { 
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                        },
-                        body: JSON.stringify({ message: messageText })
-                    });
-
-                    if (!response.ok) throw new Error('Error en la conexión con la IA');
-
-                    // 4. Leer el stream
-                    const reader = response.body.getReader();
-                    const decoder = new TextDecoder();
-
-                    while (true) {
-                        const { done, value } = await reader.read();
-                        if (done) break;
-
-                        const chunk = decoder.decode(value, { stream: true });
-                        const lines = chunk.split('\n');
-                        for (const line of lines) {
-                            if (!line.trim()) continue;
-                            try {
-                                const json = JSON.parse(line);
-                                if (json.response) {
-                                    fullResponse += json.response;
-                                    aiMsg.innerHTML = `<strong>IA:</strong> ${fullResponse.replace(/\n/g, '<br>')}`;
-                                    messages.scrollTop = messages.scrollHeight;
-                                }
-                            } catch (e) {
-                                // Ignore non-JSON
-                            }
-                        }
-                    }
-
-                } catch (error) {
-                    aiMsg.innerHTML += `<br><span style="color:red; font-size:0.8rem;">(Error: ${error.message})</span>`;
-                    console.error(error);
-                }
-            };
-            
-            // Layout aliases
-            window.sendMessage = () => window.sendGeminiMessage();
-            window.sendQuickMessage = (msg) => window.sendGeminiMessage(msg);
-</script>
     @endif
 
     <script>
@@ -1077,5 +1122,91 @@
         }
     </script>
 
+    <!-- Report Problem Modal -->
+    <div id="report-modal-overlay" class="confirm-modal-overlay" style="display: none; z-index: 12000;">
+        <div class="confirm-modal" style="width: 500px; max-width: 90%; border-radius: 16px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);">
+            <div class="confirm-modal-title" style="display: flex; justify-content: space-between; align-items: center;">
+                <span><i class="fa-solid fa-bug" style="color: #ef4444; margin-right: 8px;"></i> Reportar Problema</span>
+                <button onclick="document.getElementById('report-modal-overlay').style.display = 'none'" style="background:none; border:none; cursor:pointer;"><i class="fa-solid fa-times"></i></button>
+            </div>
+            <div style="margin: 1rem 0;">
+                <p style="font-size: 0.9rem; color: #666; margin-bottom: 1rem;">Describí brevemente qué pasó. Adjuntaremos datos técnicos automáticamente.</p>
+                <textarea id="report-desc" class="neobrutalist-input" rows="4" placeholder="Ej: No puedo guardar el turno cuando..." style="width: 100%;"></textarea>
+                <div id="report-status" style="margin-top: 5px; font-size: 0.8rem; color: #666;"></div>
+            </div>
+            <div class="confirm-modal-buttons">
+                <button class="neobrutalist-btn bg-rosa" onclick="document.getElementById('report-modal-overlay').style.display = 'none'">Cancelar</button>
+                <button class="neobrutalist-btn bg-celeste" onclick="submitReport()">Enviar Reporte</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 1. Error Capture
+        window.onerror = function(message, source, lineno, colno, error) {
+            fetch('{{ route('api.logs.store') }}', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({
+                    message: message,
+                    stack: error ? error.stack : null,
+                    url: window.location.href,
+                    component: 'Global'
+                })
+            });
+        };
+
+        // 2. Report Modal Logic
+        function openReportModal() {
+            document.getElementById('report-modal-overlay').style.display = 'flex';
+            document.getElementById('report-desc').focus();
+        }
+
+        async function submitReport() {
+            const desc = document.getElementById('report-desc').value;
+            const statusBtn = document.getElementById('report-status');
+            
+            if(!desc.trim()) {
+                alert('Por favor describí el problema.');
+                return;
+            }
+
+            statusBtn.innerText = 'Enviando...';
+
+            try {
+                const res = await fetch('{{ route('api.tickets.store') }}', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify({
+                        description: desc,
+                        metadata: {
+                            url: window.location.href,
+                            userAgent: navigator.userAgent,
+                            screen: `${window.screen.width}x${window.screen.height}`
+                        }
+                    })
+                });
+
+                if(res.ok) {
+                    alert('¡Reporte enviado! Gracias por avisarnos.');
+                    document.getElementById('report-modal-overlay').style.display = 'none';
+                    document.getElementById('report-desc').value = '';
+                    statusBtn.innerText = '';
+                } else {
+                    throw new Error('Error al enviar');
+                }
+            } catch (e) {
+                alert('Hubo un error enviando el reporte. Intentalo de nuevo.');
+                statusBtn.innerText = 'Error.';
+                console.error(e);
+            }
+        }
+    </script>
 </body>
 </html>

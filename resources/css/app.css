@@ -654,7 +654,7 @@ body.has-sub-nav {
     max-height: 80vh;
     background: white;
     border: 3px solid #000;
-    box-shadow: 8px 8px 0px rgba(0,0,0,0.1);
+    box-shadow: 8px 8px 0px rgba(0, 0, 0, 0.1);
     border-radius: 15px;
     display: none;
     flex-direction: column;
@@ -685,7 +685,7 @@ body.has-sub-nav {
     color: #fff;
     font-weight: 800;
     font-family: 'Inter', 'Manrope', sans-serif;
-    box-shadow: 0 2px 0px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 0px rgba(0, 0, 0, 0.1);
 }
 
 .gemini-chat-messages {
@@ -720,7 +720,7 @@ body.has-sub-nav {
     border: 2px solid #000;
     max-width: 85%;
     font-size: 0.9rem;
-    box-shadow: 4px 4px 0px rgba(0,0,0,0.1);
+    box-shadow: 4px 4px 0px rgba(0, 0, 0, 0.1);
     line-height: 1.5;
     border-radius: 12px;
     word-wrap: break-word;
@@ -773,7 +773,7 @@ body.has-sub-nav {
     display: flex;
     gap: 0.75rem;
     background: white;
-    box-shadow: 0 -2px 0px rgba(0,0,0,0.05);
+    box-shadow: 0 -2px 0px rgba(0, 0, 0, 0.05);
 }
 
 .gemini-chat-input input {
@@ -828,7 +828,7 @@ body.has-sub-nav {
 }
 
 .mt-8 {
-    margin-top: 2rem;
+    margin-top: 0.3rem;
 }
 
 .mt-12 {
@@ -1829,6 +1829,7 @@ body.has-sub-nav {
 
     /* Make filter buttons stack on small screens */
     @media (max-width: 600px) {
+
         .neobrutalist-input,
         .neobrutalist-btn {
             width: 100% !important;

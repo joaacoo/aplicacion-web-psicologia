@@ -51,6 +51,29 @@
             </div>
         </div>
 
+        <!-- Google Private Link Input (Below header) -->
+        <div style="background: #fff; border: 2px solid #000; border-radius: 12px; padding: 1rem; margin-bottom: 2rem; display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
+             <i class="fa-solid fa-link" style="color: #666;"></i>
+             <span style="font-weight: 700; font-size: 0.9rem;">Link Privado (ICS):</span>
+             
+             <form action="{{ route('admin.calendar.google-url') }}" method="POST" style="margin: 0; display: flex; align-items: center; flex: 1; gap: 0.5rem;">
+                @csrf
+                <div style="position: relative; display: flex; align-items: center; flex: 1;">
+                    <input type="password" name="google_calendar_url" class="neobrutalist-input" 
+                           value="{{ auth()->user()->google_calendar_url }}" 
+                           placeholder="Pegar link privado (ICS)..." 
+                           style="padding: 0.5rem 0.8rem; width: 100%; font-size: 0.9rem; height: 42px; margin: 0; border: 2px solid #000; border-right: none;"
+                           autocomplete="off">
+                    <button type="submit" class="neobrutalist-btn bg-amarillo" style="height: 42px; padding: 0 1.5rem; font-size: 0.9rem; border-left: none;">
+                        <i class="fa-solid fa-save"></i> Guardar
+                    </button>
+                </div>
+            </form>
+            <a href="https://support.google.com/calendar/answer/37648?hl=es#zippy=%2Cobtener-la-direcci%C3%B3n-secreta-en-formato-ical" target="_blank" style="font-size: 0.8rem; color: #555; text-decoration: underline; display: flex; align-items: center; gap: 4px;" title="Ver cómo obtener el link secreto">
+                <i class="fa-regular fa-circle-question"></i> ¿Cómo obtener mi link?
+            </a>
+        </div>
+
         <!-- Calendar Grid -->
         <div class="calendar-grid">
             <!-- Days Header -->

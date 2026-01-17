@@ -29,44 +29,33 @@ class AIController extends Controller
         $contexto = $this->getContext($mensajeUsuario);
 
         // 3. Prepare Master Prompt
-        // 3. Prepare Master Prompt
-        $promptBase = "Sos un Asistente Virtual Interno de Soporte UX / Sistema integrado dentro de un Dashboard Profesional de Gestión para Psicóloga.
+        $promptBase = "Sos Gemma, la Asistente Virtual Administrativa de la Lic. Nazarena De Luca.
+Tu función es gestionar tareas administrativas del consultorio.
+NO tenés acceso ni debés hablar sobre historiales clínicos o diagnósticos médicos.
 
-Este sistema es administrativo y operativo, no clínico.
+MODELO MENTAL:
+- Sos eficiente, cálida y profesional.
+- Tu prioridad es facilitar la gestión del consultorio.
+- Usás formato Markdown para resaltar datos importantes (negrita).
+- Proporcionás links directos para acciones concretas.
 
-👉 NO sos terapeuta.
-👉 NO das diagnósticos clínicos.
-👉 NO reemplazás a la profesional.
+FORMATO DE RESPUESTA:
+- Usá enlaces explícitos en este formato: `[Texto del botón](#ancla)`.
+  - Links disponibles:
+    - Turnos: `[Ver Turnos](#turnos)`
+    - Agendar: `[Agendar Turno](#agenda)`
+    - Pacientes: `[Ver Pacientes](#pacientes)`
+    - Pagos: `[Ver Pagos](#pagos)`
+    - Documentos: `[Biblioteca](#documentos)`
+- Si listás tareas, usá una lista numerada.
 
-Tu función es explicar cómo funciona el sistema, ayudar a entender comportamientos de la interfaz, guiar a la psicóloga en el uso correcto del dashboard, aclarar estados, botones y flujos, y responder preguntas operativas y administrativas.
-
-🧭 ESTRUCTURA DE LA INTERFAZ:
-- Header Global (Navbar Superior): Se oculta al bajar y reaparece al subir (Smart Sticky Header). Maximiza el espacio.
-- Page Header (Encabezado de Sección): Visible dentro del contenido. Indica en qué sección estás (ej. Disponibilidad y Horarios).
-
-🔴 AGENDA Y TURNOS:
-Estados: Libre, Reservado, Confirmado, Cancelado.
-Si sábados y domingos figuran como LIBRES, los pacientes pueden reservar.
-
-🔵 PAGOS:
-Estados: Aprobado, Rechazado, Pendiente.
-Un pago rechazado no confirma el turno. No inventar datos bancarios.
-
-🟣 SOPORTE INTERNO:
-Si hay errores visuales (botones que no cambian), sugerí recargar o revisar el historial.
-No prometas soluciones técnicas imposibles.
-
-⚡ COMPORTAMIENTO CONVERSACIONAL:
-Respondés en tiempo real, estilo ChatGPT.
-Continuidad de contexto.
-Español neutro / Argentina.
-Empático, profesional, ordenado y claro.
-
-Información Actual del Sistema:
+CONTEXTO ACTUAL DEL SISTEMA:
 {{CONTEXTO_DEL_SISTEMA}}
 
-Consulta del usuario:
-{{MENSAJE_DEL_USUARIO}}";
+CONSULTA DEL USUARIO:
+{{MENSAJE_DEL_USUARIO}}
+
+Instrucción final: Respondé de forma concisa (máx 3 parrafor). Si te piden agendar, da el link. Si te piden revisar pagos, da el resumen y el link.";
 
         $prompt = str_replace(
             ['{{CONTEXTO_DEL_SISTEMA}}', '{{MENSAJE_DEL_USUARIO}}'],
@@ -84,16 +73,23 @@ Consulta del usuario:
                 CURLOPT_POST => true,
                 CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
                 CURLOPT_POSTFIELDS => json_encode([
-                    'model' => 'llama3.2:1b', // Ensure this model exists in your Ollama
+                    'model' => 'gemma3:1b', // Updated to Gemma 3 model
                     'prompt' => $prompt,
-                    'stream' => true // Enable streaming
+                    'stream' => true
                 ]),
                 CURLOPT_WRITEFUNCTION => function ($curl, $data) {
-                    // Ollama sends chunks. We can echo them directly or process them.
-                    // For simplicity, we echo directly. Frontend handles JSON parsing if needed.
-                    echo $data;
-                    ob_flush();
-                    flush();
+                    $lines = explode("\n", trim($data));
+
+                    foreach ($lines as $line) {
+                        $json = json_decode($line, true);
+
+                        if (isset($json['response'])) {
+                            echo $json['response'];
+                            ob_flush();
+                            flush();
+                        }
+                    }
+
                     return strlen($data);
                 }
             ]);
@@ -115,19 +111,41 @@ Consulta del usuario:
         $context = "Fecha actual: $todayStr.\n\n";
         
         // Detectar intenciones
-        $needsAgenda = preg_match('/agenda|turno|sesi[oó]n|hoy|d[ií]a|mañana|pr[oó]xim|calendario/', $messageLower);
-        $needsPagos = preg_match('/pago|cobro|dinero|pendiente|verificado|rechazado|comprobante/', $messageLower);
-        $needsPacientes = preg_match('/paciente|cliente|usuario|total|cuántos|cuántas/', $messageLower);
-        
-        // Default to Agenda if unknown
-        if (!$needsAgenda && !$needsPagos && !$needsPacientes) {
-            $needsAgenda = true;
+        $needsAgenda = preg_match('/turno|agenda|sesi[oó]n|hoy|mañana|pr[oó]xim|calendario|hora|horario|agendar|cita/', $messageLower);
+        $needsPagos = preg_match('/pago|cobro|dinero|comprobante|pendiente|verificado|rechazado/', $messageLower);
+        $needsPacientes = preg_match('/paciente|clientes|usuarios|cuántos|total|nuevos|activos|link|whatsapp/', $messageLower);
+        $needsTareas = preg_match('/tarea|pendiente|hacer|recordator|debe/', $messageLower);
+
+        if (!$needsAgenda && !$needsPagos && !$needsPacientes && !$needsTareas) {
+            $needsAgenda = true; // Default
+            $needsTareas = true;
         }
         
-        // 1. Agenda
+        // 1. Tareas Pendientes (Nuevo)
+        if ($needsTareas || $needsPagos) {
+            $pagosPendientesCount = Payment::where('estado', 'pendiente')->count();
+            $turnosSinConfirmar = Appointment::where('estado', 'pendiente')
+                ->where('fecha_hora', '>=', now())
+                ->count();
+            
+            $context .= "TAREAS PENDIENTES:\n";
+            if ($pagosPendientesCount > 0) {
+                $context .= "1. Revisar $pagosPendientesCount comprobantes de pago pendientes.\n";
+            }
+            if ($turnosSinConfirmar > 0) {
+                $context .= "2. Confirmar $turnosSinConfirmar solicitudes de turnos.\n";
+            }
+            if ($pagosPendientesCount == 0 && $turnosSinConfirmar == 0) {
+                $context .= "- No tenés tareas administrativas urgentes.\n";
+            }
+            $context .= "\n";
+        }
+
+        // 2. Agenda
         if ($needsAgenda) {
             $appointmentsToday = Appointment::with('user')
                 ->whereDate('fecha_hora', now())
+                ->where('estado', '!=', 'cancelado')
                 ->orderBy('fecha_hora', 'asc')
                 ->get();
                 
@@ -139,47 +157,35 @@ Consulta del usuario:
                 
             $context .= "AGENDA:\n";
             if ($appointmentsToday->isEmpty()) {
-                $context .= "- Hoy no hay turnos agendados.\n";
+                $context .= "- Hoy no tienes turnos confirmados.\n";
             } else {
                 $context .= "- Turnos de HOY:\n";
                 foreach ($appointmentsToday as $appt) {
                     $time = $appt->fecha_hora->format('H:i');
-                    $client = $appt->user ? $appt->user->nombre . ' ' . $appt->user->apellido : 'Usuario eliminado';
+                    $client = $appt->user ? $appt->user->nombre : 'Usuario eliminado';
                     $estado = $appt->estado;
                     $context .= "  * $time hs: $client ($estado)\n";
                 }
             }
             
             if (!$appointmentsTomorrow->isEmpty()) {
-                $context .= "- Turnos de MAÑANA:\n";
+                $context .= "\n- Turnos de MAÑANA:\n";
                 foreach ($appointmentsTomorrow as $appt) {
                     $time = $appt->fecha_hora->format('H:i');
-                    $client = $appt->user ? $appt->user->nombre . ' ' . $appt->user->apellido : 'Usuario eliminado';
+                    $client = $appt->user ? $appt->user->nombre : 'Usuario eliminado';
                     $context .= "  * $time hs: $client\n";
                 }
             }
-        }
+        }   
         
-        // 2. Pagos
+        // 3. Pagos
         if ($needsPagos) {
-            $pagosPendientes = Payment::where('estado', 'pendiente')->count();
             $pagosVerificados = Payment::where('estado', 'verificado')
                 ->whereMonth('created_at', now()->month)
                 ->count();
                 
-            $context .= "\nPAGOS:\n";
-            $context .= "- Pendientes de verificar: $pagosPendientes\n";
-            $context .= "- Verificados este mes: $pagosVerificados\n";
-        }
-        
-        // 3. Pacientes
-        if ($needsPacientes) {
-            $totalPacientes = User::where('rol', 'paciente')->count();
-            $nuevosPacientes = User::where('rol', 'paciente')->where('tipo_paciente', 'nuevo')->count();
-            
-            $context .= "\nPACIENTES:\n";
-            $context .= "- Total activos: $totalPacientes\n";
-            $context .= "- Nuevos (ingreso reciente): $nuevosPacientes\n";
+            $context .= "\nESTADÍSTICAS PAGOS (Mes Actual):\n";
+            $context .= "- Verificados: $pagosVerificados\n";
         }
 
         return $context;

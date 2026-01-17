@@ -33,8 +33,8 @@
                             <td data-label="Turnos" style="padding: 0.8rem; text-align: center;">{{ $patient->turnos_count ?? $patient->turnos()->count() }}</td>
                             <td style="padding: 0.8rem; text-align: right;">
                                 <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
-                                    <button class="neobrutalist-btn no-select bg-amarillo" style="padding: 0.2rem 0.6rem; font-size: 0.7rem;" 
-                                            onclick="openManageModal('{{ $patient->id }}', '{{ $patient->nombre }}', '{{ $patient->email }}', '{{ $patient->telefono ?? 'No registrado' }}', '{{ $patient->tipo_paciente }}')">
+                            <button class="neobrutalist-btn no-select bg-amarillo" style="padding: 0.2rem 0.6rem; font-size: 0.7rem;" 
+                                    onclick="openManageModal('{{ $patient->id }}', '{{ $patient->nombre }}', '{{ $patient->email }}', '{{ $patient->telefono ?? 'No registrado' }}', '{{ $patient->tipo_paciente }}', '{{ $patient->meet_link }}')">
                                         Gestionar
                                     </button>
                                 </div>

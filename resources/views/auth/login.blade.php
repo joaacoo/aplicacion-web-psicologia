@@ -49,7 +49,7 @@
         </form>
 
         <div class="mt-8 text-center flex flex-col gap-4">
-            <a href="{{ route('password.request') }}" style="font-size: 0.95rem; font-weight: 700; color: #2D2D2D; text-decoration: underline;">Olvidé mi contraseña</a>
+            <a href="{{ route('password.request') }}" style="font-size: 0.95rem; font-weight: 700; color: #2D2D2D; text-decoration: underline; margin-top: 1em; display: inline-block;">Olvidé mi contraseña</a>
             <div>
                 <span style="font-size: 0.95rem;">¿No tenés cuenta?</span>
                 <a href="{{ route('register') }}" style="color: #2D2D2D; font-weight: 700; text-decoration: none;">Crear una cuenta</a>

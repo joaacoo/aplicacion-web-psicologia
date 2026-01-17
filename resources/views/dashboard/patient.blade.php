@@ -200,6 +200,13 @@
                                             color: {{ $appt->estado == 'confirmado' ? 'green' : ($appt->estado == 'cancelado' ? 'red' : 'orange') }}">
                                             {{ ucfirst($appt->estado) }}
                                         </span>
+                                        @if($appt->estado == 'confirmado' && \Carbon\Carbon::parse($appt->fecha_hora)->isToday())
+                                            <div style="margin-top: 5px;">
+                                                <a href="{{ auth()->user()->meet_link }}" target="_blank" class="neobrutalist-btn bg-celeste" style="padding: 3px 8px; font-size: 0.7rem; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">
+                                                    <i class="fa-solid fa-video"></i> Entrar al Meet
+                                                </a>
+                                            </div>
+                                        @endif
                                     </td>
                                     <td style="padding: 0.5rem;">
                                 @if($appt->payment)

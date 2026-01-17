@@ -162,6 +162,21 @@ class AuthController extends Controller
         return back()->with('success', 'Paciente ' . $user->nombre . ' actualizado a ' . ucfirst($request->tipo_paciente) . ' correctamente.');
     }
 
+    public function updateMeetLink(Request $request, $id)
+    {
+        $user = User::findOrFail($id);
+        
+        $request->validate([
+            'meet_link' => 'nullable|url'
+        ]);
+
+        $user->update([
+            'meet_link' => $request->meet_link
+        ]);
+
+        return back()->with('success', 'Link de Meet actualizado correctamente para ' . $user->nombre);
+    }
+
     public function sendManualReminder(Request $request, $id)
     {
         $user = User::findOrFail($id);
