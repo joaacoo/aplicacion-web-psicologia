@@ -1517,7 +1517,8 @@ body.has-sub-nav {
     /* Static sidebar as per Master Prompt */
 }
 
-.admin-sidebar.collapsed {
+.admin-sidebar.collapsed,
+.admin-sidebar.closed {
     transform: translateX(-100%);
 }
 

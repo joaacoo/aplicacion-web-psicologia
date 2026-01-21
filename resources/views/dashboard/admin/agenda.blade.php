@@ -1,13 +1,12 @@
 @extends('layouts.app')
 
 @section('title', 'Agenda Mensual - Admin')
+@section('header_title', 'Agenda Mensual')
 
 @section('content')
 <div style="padding: 2rem; max-width: 1400px; margin: 0 auto; margin-bottom: 40px;"> <!-- Added margin-bottom to prevent cut-off -->
     <!-- Header: Compact -->
-    <div style="margin-bottom: 1.5rem; border-bottom: 3px solid #000; padding-bottom: 0.5rem;">
-        <h1 style="font-size: 1.8rem; font-weight: 900; font-family: 'Syne', sans-serif; margin: 0; text-transform: uppercase;">Agenda Mensual</h1>
-    </div>
+
 
     @if(session('status'))
         <div class="alert alert-success" style="margin-bottom: 1.5rem;">
@@ -17,34 +16,51 @@
 
     <!-- Calendar Controls with Filters Inside -->
     <div style="background: white; border: 3px solid #000; border-radius: 12px; box-shadow: 8px 8px 0px rgba(0,0,0,0.1); padding: 1.5rem; margin-bottom: 2rem; overflow: hidden;"> 
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; gap: 1rem;">
             <div style="display: flex; align-items: center; gap: 1rem;">
+                <div style="display: flex; gap: 5px;">
+                    @php
+                        $isJan2026 = $currentDate->year == 2026 && $currentDate->month == 1;
+                        $prevRoute = $isJan2026 ? '#' : route('admin.agenda', ['month' => $currentDate->copy()->subMonth()->month, 'year' => $currentDate->copy()->subMonth()->year]);
+                        $prevStyle = 'padding: 0.5rem; background: white; border: 2px solid #000; box-shadow: 2px 2px 0px #000; cursor: pointer; text-decoration: none; color: #000;';
+                        if ($isJan2026) {
+                            $prevStyle .= ' opacity: 0.5; cursor: not-allowed; pointer-events: none;';
+                        }
+                    @endphp
+                    <a href="{{ $prevRoute }}" class="neobrutalist-btn" style="{{ $prevStyle }}">
+                        <i class="fa-solid fa-chevron-left"></i>
+                    </a>
+                    <a href="{{ route('admin.agenda', ['month' => $currentDate->copy()->addMonth()->month, 'year' => $currentDate->copy()->addMonth()->year]) }}" class="neobrutalist-btn" style="padding: 0.5rem; background: white; border: 2px solid #000; box-shadow: 2px 2px 0px #000; cursor: pointer; text-decoration: none; color: #000;">
+                        <i class="fa-solid fa-chevron-right"></i>
+                    </a>
+                </div>
+
                 <h2 style="font-size: 1.5rem; font-weight: 700; font-family: 'Inter', sans-serif; text-transform: capitalize; margin: 0;">
                     {{ $currentDate->locale('es')->isoFormat('MMMM YYYY') }}
                 </h2>
             </div>
             
-            <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; justify-content: flex-end;">
-                 <!-- Google Calendar Sync Button -->
+            <div style="display: flex; gap: 1rem; align-items: center; justify-content: flex-end; white-space: nowrap;">
+                 <a href="{{ route('admin.agenda') }}" class="neobrutalist-btn" style="background: #f0f0f0; border: 2px solid #000; color: #000; font-size: 0.8rem; padding: 0 0.8rem; height: 38px; display: flex; align-items: center; text-decoration: none; font-weight: 700;">Mes Actual</a>
+
                  <form action="{{ route('admin.calendar.sync') }}" method="POST" style="margin: 0; display: flex; align-items: center; height: 42px;">
                     @csrf
                     <button type="submit" class="neobrutalist-btn" style="background: white; border: 2px solid #ea4335; color: #ea4335; font-size: 0.9rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.5rem 1rem; height: 42px; box-shadow: 2px 2px 0px rgba(0,0,0,0.1);">
-                        <i class="fa-brands fa-google"></i> <span class="d-none d-md-inline" style="display: inline-block;">Sincronizar</span>
+                        <i class="fa-brands fa-google"></i> <span class="d-none d-md-inline">Sincronizar</span>
                     </button>
                 </form>
 
-                 <!-- Month/Year Filter -->
                  <form action="{{ route('admin.agenda') }}" method="GET" style="display: flex; gap: 0.5rem; margin: 0; align-items: center; height: 42px;">
-                    <select name="month" class="neobrutalist-input" style="padding: 0.5rem 0.8rem; width: auto; font-size: 0.9rem; height: 42px; margin: 0; border: 2px solid #000;" onchange="this.form.submit()">
+                    <select name="month" class="neobrutalist-input" style="padding: 0.5rem 0.8rem; border: 2px solid #000; height: 42px; min-width: 140px;" onchange="this.form.submit()">
                         @foreach(range(1, 12) as $m)
-                            <option value="{{ $m }}" {{ request('month', now()->month) == $m ? 'selected' : '' }}>
+                            <option value="{{ $m }}" {{ request('month', $currentDate->month) == $m ? 'selected' : '' }}>
                                 {{ \Carbon\Carbon::create(null, $m)->locale('es')->isoFormat('MMMM') }}
                             </option>
                         @endforeach
                     </select>
-                    <select name="year" class="neobrutalist-input" style="padding: 0.5rem 0.8rem; width: auto; font-size: 0.9rem; height: 42px; margin: 0; border: 2px solid #000;" onchange="this.form.submit()">
-                        @for($y = 2026; $y <= 2030; $y++)
-                            <option value="{{ $y }}" {{ request('year', now()->year) == $y ? 'selected' : '' }}>{{ $y }}</option>
+                    <select name="year" class="neobrutalist-input" style="padding: 0.5rem 0.8rem; border: 2px solid #000; height: 42px;" onchange="this.form.submit()">
+                        @for($y = 2025; $y <= 2030; $y++)
+                            <option value="{{ $y }}" {{ request('year', $currentDate->year) == $y ? 'selected' : '' }}>{{ $y }}</option>
                         @endfor
                     </select>
                  </form>
@@ -64,7 +80,7 @@
                            placeholder="Pegar link privado (ICS)..." 
                            style="padding: 0.5rem 0.8rem; width: 100%; font-size: 0.9rem; height: 42px; margin: 0; border: 2px solid #000; border-right: none;"
                            autocomplete="off">
-                    <button type="submit" class="neobrutalist-btn bg-amarillo" style="height: 42px; padding: 0 1.5rem; font-size: 0.9rem; border-left: none;">
+                    <button type="submit" class="neobrutalist-btn bg-amarillo" style="height: 38px; padding: 0 0.5rem; font-size: 0.8rem; border-left: none; display: flex; align-items: center; gap: 5px;">
                         <i class="fa-solid fa-save"></i> Guardar
                     </button>
                 </div>
@@ -110,10 +126,19 @@
                     $dayExternalEvents = $externalEvents->filter(function($evt) use ($day) {
                         return $evt->start_time->startOfDay()->lte($day) && $evt->end_time->endOfDay()->gte($day);
                     });
+                    $dayBlocked = $blockedDays->firstWhere('date', $dayStr);
+                    $esFeriado = $dayBlocked !== null;
+                    $nombreFeriado = $dayBlocked ? $dayBlocked->reason : '';
                 @endphp
 
-                <div class="calendar-day {{ $isCurrentMonth ? '' : 'other-month' }} {{ $isToday ? 'today' : '' }}" onclick="showDayDetails('{{ $dayStr }}', '{{ $dayDisplay }}')">
+                <div class="calendar-day {{ $isCurrentMonth ? '' : 'other-month' }} {{ $isToday ? 'today' : '' }}" onclick="showDayDetails('{{ $dayStr }}', '{{ $dayDisplay }}')" style="{{ $esFeriado ? 'background: #fff5f5;' : '' }}">
                     <div class="day-number">{{ $day->day }}</div>
+                    
+                    @if($esFeriado)
+                        <div style="font-size: 0.65rem; background: #ff4d4d; color: white; padding: 2px 4px; border-radius: 4px; margin-bottom: 4px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                            <i class="fa-solid fa-umbrella-beach"></i> {{ $nombreFeriado }}
+                        </div>
+                    @endif
                     
                     <div class="events-container">
                         <!-- Internal Appointments -->

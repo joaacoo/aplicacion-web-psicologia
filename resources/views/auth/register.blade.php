@@ -13,7 +13,7 @@
             
             <div class="mb-4">
                 <label for="name" style="font-weight: 700;">Nombre Completo</label>
-                <input type="text" name="name" id="name" class="neobrutalist-input" required placeholder="Juan Perez" value="{{ old('name') }}">
+                <input type="text" name="name" id="name" class="neobrutalist-input" required placeholder="Nazarena De Luca" value="{{ old('name') }}">
             </div>
 
             <div class="mb-4">
@@ -41,7 +41,7 @@
             </button>
         </form>
 
-        <div class="mt-6 text-center">
+        <div class="mt-8 text-center" style="margin-top: 2rem;">
             <span style="font-size: 0.95rem;">¿Ya tenés cuenta?</span>
             <a href="{{ route('login') }}" style="color: #2D2D2D; font-weight: 700; text-decoration: none;">Ingresá acá</a>
         </div>

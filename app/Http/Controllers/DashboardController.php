@@ -117,7 +117,7 @@ class DashboardController extends Controller
 
         $patients = \App\Models\User::where('rol', 'paciente')
             ->orderBy('nombre', 'asc')
-            ->with(['documents']) // Eager load documents
+            ->with(['documents', 'paciente']) // Eager load documents and paciente info
             ->get();
 
         // Historial de Acciones y Recursos
@@ -184,23 +184,10 @@ class DashboardController extends Controller
             ->orderBy('fecha_hora', 'asc')
             ->first();
 
-        // Contar turnos pendientes
-        $pendingCount = Appointment::where('estado', 'pendiente')
-            ->orWhere('estado', null)
-            ->count();
-
-        // Contar turnos próximos (esta semana)
-        $upcomingCount = Appointment::where('fecha_hora', '>=', now())
-            ->where('fecha_hora', '<=', now()->addWeek())
-            ->count();
-
-        // Total de pacientes
-        $totalPatients = \App\Models\User::where('rol', 'patient')->count();
-
-        // Welcome Message Logic (Server-Side for static randomness)
+        // Bienvenido logic
         $hour = now()->hour;
         if ($hour < 12) {
-            $greeting = "¡Buen día ☀️"; // Default Icon
+            $greeting = "¡Buen día ☀️"; 
         } elseif ($hour < 20) {
             $greeting = "¡Buenas tardes 🌤️";
         } else {
@@ -228,13 +215,48 @@ class DashboardController extends Controller
         
         $randomPhrase = $frases[array_rand($frases)];
         $welcomeMessage = "$greeting, Nazarena. $randomPhrase";
+        
+        // Prevent emoji from wrapping alone by adding non-breaking space
+        $welcomeMessage = preg_replace('/ (\p{So})/u', "\u{00A0}$1", $welcomeMessage);
+
+
+        // --- Nuevas Métricas Financieras ---
+        
+        // 1. Ingresos del Mes (Confirmados/Completados/Asistidos)
+        $monthlyIncome = Appointment::whereYear('fecha_hora', now()->year)
+            ->whereMonth('fecha_hora', now()->month)
+            ->whereIn('estado', ['confirmado', 'asistido', 'completado'])
+            ->sum('monto_final');
+
+        // 2. Pagos Pendientes (Históricos Confirmados pero 'pendientes de cobro' conceptualmente, 
+        //    usando lógica de FinanceController: fecha < now y estado confirmado)
+        $pendingIncome = Appointment::where('fecha_hora', '<', now())
+            ->where('estado', 'confirmado')
+            ->sum('monto_final');
+
+        // 3. Pacientes Nuevos (Registrados este mes)
+        $newPatientsCount = \App\Models\User::where('rol', 'paciente')
+            ->whereYear('created_at', now()->year)
+            ->whereMonth('created_at', now()->month)
+            ->count();
+
+        // 4. Sesiones Facturadas y Promedio
+        $sessionsThisMonth = Appointment::whereYear('fecha_hora', now()->year)
+            ->whereMonth('fecha_hora', now()->month)
+            ->whereIn('estado', ['confirmado', 'asistido', 'completado'])
+            ->get();
+            
+        $sessionsCount = $sessionsThisMonth->count();
+        $averageSessionPrice = $sessionsCount > 0 ? $sessionsThisMonth->avg('monto_final') : 0;
 
         return view('dashboard.admin.home', [
             'todayAppointments' => $todayAppointments,
             'nextAdminAppointment' => $nextAdminAppointment,
-            'pendingCount' => $pendingCount,
-            'upcomingCount' => $upcomingCount,
-            'totalPatients' => $totalPatients,
+            'monthlyIncome' => $monthlyIncome,
+            'pendingIncome' => $pendingIncome,
+            'newPatientsCount' => $newPatientsCount,
+            'sessionsCount' => $sessionsCount,
+            'averageSessionPrice' => $averageSessionPrice,
             'isAdmin' => true,
             'welcomeMessage' => $welcomeMessage,
         ]);
@@ -290,13 +312,20 @@ class DashboardController extends Controller
             ->where('created_at', '>=', now()->subMonths(3))
             ->get(['id', 'nombre', 'created_at']);
 
+        // Feriados/Bloqueos
+        $blockedDays = \App\Models\BlockedDay::whereYear('date', $year)
+            ->whereMonth('date', $month)
+            ->get();
+
         return view('dashboard.admin.agenda', compact(
             'todayAppointments', 
             'nextAdminAppointment', 
             'appointments', 
             'externalEvents', 
             'recentRegistrations',
-            'currentDate' // Para la navegación en la vista
+            'recentRegistrations',
+            'currentDate', // Para la navegación en la vista
+            'blockedDays' // Pass blocked days/holidays
         ));
     }
 
@@ -307,7 +336,9 @@ class DashboardController extends Controller
             ->with(['documents'])
             ->get();
 
-        return view('dashboard.admin.pacientes', compact('patients'));
+        $basePrice = \App\Models\Setting::get('precio_base_sesion', 25000);
+
+        return view('dashboard.admin.pacientes', compact('patients', 'basePrice'));
     }
 
     public function adminPagos()
@@ -347,37 +378,48 @@ class DashboardController extends Controller
 
     public function adminConfiguracion()
     {
-        // Auto-sync Argentina Holidays for current year
-        $this->ensureHolidaysAreSynced(now()->year);
+        $adminUser = auth()->user();
+        $pro = $adminUser->profesional; // Can be null, handle defaults
 
-        $availabilities = \App\Models\Availability::orderBy('dia_semana')->orderBy('hora_inicio')->get();
-        $blockedDays = \App\Models\BlockedDay::where('date', '>=', now()->toDateString())->orderBy('date')->get();
+        $sessionDuration = $pro->duracion_sesion ?? 45;
+        $sessionInterval = $pro->intervalo_sesion ?? 15;
+
+        // Generate availability slots (logic remains same, just ensuring we use proper vars if used for view)
+        // ... (Skipping logic details if not dependent on DB cols directly here, but passed to view)
+        
+        $availabilities = \App\Models\Availability::orderBy('dia_semana')
+            ->orderBy('hora_inicio')
+            ->get()
+            ->groupBy('dia_semana');
+
+        $blockedDays = \App\Models\BlockedDay::where('date', '>=', \Carbon\Carbon::today())
+            ->orderBy('date')
+            ->get();
         $blockWeekends = auth()->user()->block_weekends;
 
         // Separar feriados oficiales de bloqueos manuales
         $year = now()->year;
         $officialHolidayReasons = [
-            'Año Nuevo', 'Carnaval', 'Día Nacional de la Memoria por la Verdad y la Justicia',
-            'Día del Veterano y de los Caídos en la Guerra de Malvinas', 'Viernes Santo',
-            'Día del Trabajador', 'Día de la Revolución de Mayo',
-            'Paso a la Inmortalidad del General Martín Miguel de Güemes',
-            'Paso a la Inmortalidad del General Manuel Belgrano', 'Día de la Independencia',
-            'Paso a la Inmortalidad del General José de San Martín',
-            'Día del Respeto a la Diversidad Cultural', 'Día de la Soberanía Nacional',
-            'Inmaculada Concepción de María', 'Navidad',
-            // Variaciones posibles
-            'Día de la Memoria', 'Día del Veterano', 'Paso a la Inmortalidad de Güemes',
-            'Paso a la Inmortalidad de Belgrano', 'Paso a la Inmortalidad de San Martín',
-            'Inmaculada Concepción'
+            'Año Nuevo', 'Carnaval', 'Día Nacional de la Memoria',
+            'Día del Veterano', 'Malvinas', 'Viernes Santo',
+            'Día del Trabajador', 'Revolución de Mayo',
+            'Paso a la Inmortalidad', 'Güemes', 'Belgrano', 'San Martín',
+            'Independencia', 'Diversidad Cultural', 'Soberanía Nacional',
+            'Inmaculada Concepción', 'Navidad',
+            'Feriado', 'Puente turístico', 'no laborable', 'Turístico'
         ];
         
         $holidays = $blockedDays->filter(function($bd) use ($officialHolidayReasons) {
-            return in_array($bd->reason, $officialHolidayReasons);
+            $reason = mb_strtolower(trim($bd->reason));
+            foreach ($officialHolidayReasons as $official) {
+                if (str_contains($reason, mb_strtolower($official))) {
+                    return true;
+                }
+            }
+            return false;
         });
         
-        $manualBlocks = $blockedDays->filter(function($bd) use ($officialHolidayReasons) {
-            return !in_array($bd->reason, $officialHolidayReasons);
-        });
+        $manualBlocks = $blockedDays->diff($holidays);
 
         // Sincronización automática de Google Calendar
         if (auth()->user()->google_calendar_url) {
@@ -386,9 +428,11 @@ class DashboardController extends Controller
 
         $externalEvents = ExternalEvent::orderBy('start_time', 'asc')->get();
 
+        $basePrice = \App\Models\Setting::get('precio_base_sesion', 25000);
+
         return view('dashboard.admin.configuracion', compact(
             'availabilities', 'blockedDays', 'holidays', 'manualBlocks', 
-            'blockWeekends', 'externalEvents'
+            'blockWeekends', 'externalEvents', 'basePrice'
         ));
     }
 
@@ -399,58 +443,49 @@ class DashboardController extends Controller
         return view('dashboard.admin.historial', compact('activityLogs'));
     }
     /**
-     * Helper to auto-sync holidays without redirecting.
+     * Helper to auto-sync holidays using ArgentinaDatos API.
      */
     private function ensureHolidaysAreSynced($year)
     {
-        // Calculate dynamic holidays (Easter based)
-        $a = $year % 19;
-        $b = floor($year / 100);
-        $c = $year % 100;
-        $d = floor($b / 4);
-        $e = $b % 4;
-        $f = floor(($b + 8) / 25);
-        $g = floor(($b - $f + 1) / 3);
-        $h = (19 * $a + $b - $d - $g + 15) % 30;
-        $i = floor($c / 4);
-        $k = $c % 4;
-        $l = (32 + 2 * $e + 2 * $i - $h - $k) % 7;
-        $m = floor(($a + 11 * $h + 22 * $l) / 451);
-        $month = floor(($h + $l - 7 * $m + 114) / 31);
-        $day = (($h + $l - 7 * $m + 114) % 31) + 1;
+        // Cache key to avoid hitting the API on every request if already synced sufficiently
+        // But for this requirement, we'll check if we have data for this year roughly.
+        // Or just Try/Catch the API call.
         
-        $easter = \Carbon\Carbon::create($year, $month, $day);
-        $carnival1 = $easter->copy()->subDays(48);
-        $carnival2 = $easter->copy()->subDays(47);
-        $goodFriday = $easter->copy()->subDays(2);
+        // We only want to sync if we haven't synced recently or if it's a manual trigger. 
+        // For simplicity: We will rely on `firstOrCreate` to avoid duplicates, but fetching every time is slow.
+        // Let's use a simple cache or check count.
         
-        // List of holidays
-        $holidays = [
-            // Fijos
-            ['date' => $year . '-01-01', 'reason' => 'Año Nuevo'],
-            ['date' => $year . '-03-24', 'reason' => 'Día Nacional de la Memoria por la Verdad y la Justicia'],
-            ['date' => $year . '-04-02', 'reason' => 'Día del Veterano y de los Caídos en la Guerra de Malvinas'],
-            ['date' => $year . '-05-01', 'reason' => 'Día del Trabajador'],
-            ['date' => $year . '-05-25', 'reason' => 'Día de la Revolución de Mayo'],
-            ['date' => $year . '-06-17', 'reason' => 'Paso a la Inmortalidad del General Martín Miguel de Güemes'],
-            ['date' => $year . '-06-20', 'reason' => 'Paso a la Inmortalidad del General Manuel Belgrano'],
-            ['date' => $year . '-07-09', 'reason' => 'Día de la Independencia'],
-            ['date' => $year . '-08-17', 'reason' => 'Paso a la Inmortalidad del General José de San Martín'],
-            ['date' => $year . '-10-12', 'reason' => 'Día del Respeto a la Diversidad Cultural'],
-            ['date' => $year . '-11-20', 'reason' => 'Día de la Soberanía Nacional'],
-            ['date' => $year . '-12-08', 'reason' => 'Inmaculada Concepción de María'],
-            ['date' => $year . '-12-25', 'reason' => 'Navidad'],
-            // Móviles
-            ['date' => $carnival1->format('Y-m-d'), 'reason' => 'Carnaval'],
-            ['date' => $carnival2->format('Y-m-d'), 'reason' => 'Carnaval'],
-            ['date' => $goodFriday->format('Y-m-d'), 'reason' => 'Viernes Santo'],
-        ];
+        $count = \App\Models\BlockedDay::whereYear('date', $year)->count();
+        if ($count > 10) { 
+             // Assuming > 10 holidays means we are likely synced. 
+             // To force sync, user could clear data or we can add a 'force' param.
+             // But the user complained about updates (dynamic changes), so maybe we should fetch.
+             // Let's use Laravel Cache to limit API calls to once per day per year.
+             if (\Illuminate\Support\Facades\Cache::has("holidays_synced_$year")) {
+                 return;
+             }
+        }
 
-        foreach ($holidays as $holiday) {
-            \App\Models\BlockedDay::firstOrCreate(
-                ['date' => $holiday['date']],
-                ['reason' => $holiday['reason']]
-            );
+        try {
+            $response = \Illuminate\Support\Facades\Http::timeout(5)->get("https://api.argentinadatos.com/v1/feriados/{$year}");
+
+            if ($response->successful()) {
+                $holidays = $response->json();
+
+                foreach ($holidays as $holiday) {
+                    // API returns: {"fecha": "2026-01-01", "tipo": "inamovible", "nombre": "Año Nuevo"}
+                    \App\Models\BlockedDay::firstOrCreate(
+                        ['date' => $holiday['fecha']],
+                        ['reason' => $holiday['nombre']]
+                    );
+                }
+                
+                // Cache success for 12 hours
+                \Illuminate\Support\Facades\Cache::put("holidays_synced_$year", true, now()->addHours(12));
+            }
+        } catch (\Exception $e) {
+            \Log::error("Error syncing holidays: " . $e->getMessage());
+            // Fail silently so dashboard still loads
         }
     }
 }

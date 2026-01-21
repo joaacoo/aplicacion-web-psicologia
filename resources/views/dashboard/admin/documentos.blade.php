@@ -1,6 +1,7 @@
 @extends('layouts.app')
 
-@section('title', 'Biblioteca - Lic. Nazarena De Luca')
+@section('title', 'Documentos - Admin')
+@section('header_title', 'Biblioteca de Archivos')
 
 @section('content')
 <div class="flex flex-col gap-8">

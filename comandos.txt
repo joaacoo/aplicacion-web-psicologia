@@ -1,5 +1,0 @@
-php artisan serve
-
-npm run dev 
-
-En dos terminales distintas para poder ejecutar el programa.

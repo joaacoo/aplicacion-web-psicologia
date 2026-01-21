@@ -20,28 +20,21 @@ class AuthController extends Controller
 
     public function login(Request $request)
     {
-        $credentials = $request->validate([
-            'email' => ['required', 'email'],
-            'password' => ['required'],
-        ]);
+        $credentials = $request->only('email', 'password');
 
-        \Log::info("Intento de login para: " . $credentials['email']);
-
-        if (Auth::attempt($credentials, $request->has('remember'))) {
-            \Log::info("Login exitoso para: " . $credentials['email']);
+        if (Auth::attempt($credentials)) {
             $request->session()->regenerate();
-
+            
+            // Redirección inteligente por rol
             if (Auth::user()->rol === 'admin') {
                 return redirect()->route('admin.dashboard');
             }
             return redirect()->route('patient.dashboard');
         }
 
-        \Log::warning("Login fallido para: " . $credentials['email']);
-
         return back()->withErrors([
-            'password' => 'El email o la contraseña no son correctos. Por favor, intentá de nuevo.',
-        ])->onlyInput('email');
+            'email' => 'Las credenciales no coinciden con nuestros registros.',
+        ]);
     }
 
     public function showRegister()
@@ -55,15 +48,31 @@ class AuthController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:usuarios', // Tabla usuarios
             'telefono' => 'required|string|max:20',
-            'password' => 'required|string|min:8|confirmed',
+            'password' => [
+                'required',
+                'confirmed',
+                Password::min(12)
+                    ->letters()
+                    ->mixedCase()
+                    ->numbers()
+                    ->symbols()
+                    ->uncompromised(),
+            ],
         ]);
 
         $user = User::create([
             'nombre' => ucwords(strtolower($request->name)),
             'email' => $request->email,
-            'telefono' => $request->telefono,
+            // 'telefono' => $request->telefono, // Moved to Paciente
             'password' => Hash::make($request->password),
             'rol' => 'paciente', // Default role in Spanish
+        ]);
+
+        // Create associated Patient record
+        $user->paciente()->create([
+            'tipo_paciente' => 'nuevo',
+            'honorario_pactado' => 0,
+            'telefono' => $request->telefono
         ]);
 
         Auth::login($user);
@@ -155,9 +164,11 @@ class AuthController extends Controller
             'tipo_paciente' => 'required|in:nuevo,frecuente'
         ]);
 
-        $user->update([
-            'tipo_paciente' => $request->tipo_paciente
-        ]);
+        // Update Paciente relationship
+        $user->paciente()->updateOrCreate(
+            ['user_id' => $user->id],
+            ['tipo_paciente' => $request->tipo_paciente]
+        );
 
         return back()->with('success', 'Paciente ' . $user->nombre . ' actualizado a ' . ucfirst($request->tipo_paciente) . ' correctamente.');
     }

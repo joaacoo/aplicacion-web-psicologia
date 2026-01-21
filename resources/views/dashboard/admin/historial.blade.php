@@ -1,6 +1,7 @@
 @extends('layouts.app')
 
 @section('title', 'Historial - Lic. Nazarena De Luca')
+@section('header_title', 'Historial de Acciones')
 
 @section('content')
 <div class="flex flex-col gap-8">

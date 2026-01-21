@@ -11,7 +11,8 @@ return new class extends Migration
         if (!Schema::hasTable('tickets')) {
             Schema::create('tickets', function (Blueprint $table) {
                 $table->id();
-                $table->foreignId('user_id')->constrained('usuarios')->onDelete('cascade');
+                $table->unsignedBigInteger('user_id')->nullable()->index();
+                // $table->foreign('user_id')->references('id')->on('usuarios')->onDelete('cascade');
                 $table->string('subject');
                 $table->text('description');
                 $table->string('status')->default('nuevo');
@@ -27,7 +28,7 @@ return new class extends Migration
                 $table->string('level')->default('info');
                 $table->text('message');
                 $table->json('context')->nullable();
-                $table->foreignId('user_id')->nullable()->constrained('usuarios')->onDelete('set null');
+                $table->unsignedBigInteger('user_id')->nullable()->index();
                 $table->string('url')->nullable();
                 $table->string('ip')->nullable();
                 $table->timestamps();

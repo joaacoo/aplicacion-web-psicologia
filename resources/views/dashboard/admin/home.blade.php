@@ -1,6 +1,7 @@
 @extends('layouts.app')
 
 @section('title', 'Inicio - Lic. Nazarena')
+@section('header_title', 'Inicio')
 
 @section('content')
 <div style="padding: 2rem; max-width: 1400px; margin: 0 auto; margin-bottom: 40px;">
@@ -24,62 +25,71 @@
         </style>
     </div>
     
-    <!-- Quick Stats Grid -->
+    <!-- Finance Stats Grid -->
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 2rem; margin-bottom: 3rem;">
         
-        <!-- Today Appointments Card -->
-        <a href="{{ route('admin.agenda') }}" style="text-decoration: none; color: inherit; display: block; background: var(--color-celeste); border: 3px solid #000; border-radius: 12px; padding: 2rem; box-shadow: 8px 8px 0px rgba(0,0,0,0.1); transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translate(-2px,-2px)'; this.style.boxShadow='10px 10px 0px rgba(0,0,0,0.1)'" onmouseout="this.style.transform='none'; this.style.boxShadow='8px 8px 0px rgba(0,0,0,0.1)'">
+        <!-- Ingresos del Mes Card -->
+        <a href="{{ route('admin.finanzas') }}" style="text-decoration: none; color: inherit; display: block; background: var(--color-verde); border: 3px solid #000; border-radius: 12px; padding: 2rem; box-shadow: 8px 8px 0px rgba(0,0,0,0.1); transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translate(-2px,-2px)'; this.style.boxShadow='10px 10px 0px rgba(0,0,0,0.1)'" onmouseout="this.style.transform='none'; this.style.boxShadow='8px 8px 0px rgba(0,0,0,0.1)'">
             <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1.5rem;">
                 <div>
-                    <p style="margin: 0; color: #666; font-size: 0.9rem; font-weight: 600; text-transform: uppercase;">Turnos Hoy</p>
-                    <h2 style="margin: 0.5rem 0 0 0; font-size: 2.5rem; font-weight: 900; color: #000; font-family: 'Inter', 'Manrope', monospace; letter-spacing: -2px;">{{ count($todayAppointments ?? []) }}</h2>
+                    <p style="margin: 0; color: #666; font-size: 0.9rem; font-weight: 600; text-transform: uppercase;">Ingresos Mes</p>
+                    <h2 style="margin: 0.5rem 0 0 0; font-size: 2rem; font-weight: 900; color: #000; font-family: 'Inter', 'Manrope', monospace; letter-spacing: -1px;">${{ number_format($monthlyIncome, 0, ',', '.') }}</h2>
                 </div>
-                <i class="fa-solid fa-calendar-day" style="font-size: 2rem; color: #000; opacity: 0.3;"></i>
+                <div style="background: white; width: 50px; height: 50px; border-radius: 50%; border: 2px solid #000; display: flex; align-items: center; justify-content: center;">
+                    <i class="fa-solid fa-money-bill-wave" style="font-size: 1.2rem; color: #000;"></i>
+                </div>
             </div>
             <div style="color: #000; font-weight: 700; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 0.5rem;">
-                Ver agenda <i class="fa-solid fa-arrow-right"></i>
+                Ver finanzas <i class="fa-solid fa-arrow-right"></i>
             </div>
         </a>
 
-        <!-- Pending Appointments Card -->
-        <a href="{{ route('admin.turnos') }}" style="text-decoration: none; color: inherit; display: block; background: var(--color-rosa); border: 3px solid #000; border-radius: 12px; padding: 2rem; box-shadow: 8px 8px 0px rgba(0,0,0,0.1); transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translate(-2px,-2px)'; this.style.boxShadow='10px 10px 0px rgba(0,0,0,0.1)'" onmouseout="this.style.transform='none'; this.style.boxShadow='8px 8px 0px rgba(0,0,0,0.1)'">
+        <!-- Pagos Pendientes Card -->
+        <a href="{{ route('admin.finanzas') }}" style="text-decoration: none; color: inherit; display: block; background: var(--color-rosa); border: 3px solid #000; border-radius: 12px; padding: 2rem; box-shadow: 8px 8px 0px rgba(0,0,0,0.1); transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translate(-2px,-2px)'; this.style.boxShadow='10px 10px 0px rgba(0,0,0,0.1)'" onmouseout="this.style.transform='none'; this.style.boxShadow='8px 8px 0px rgba(0,0,0,0.1)'">
             <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1.5rem;">
                 <div>
-                    <p style="margin: 0; color: #666; font-size: 0.9rem; font-weight: 600; text-transform: uppercase;">Pendientes</p>
-                    <h2 style="margin: 0.5rem 0 0 0; font-size: 2.5rem; font-weight: 900; color: #000; font-family: 'Inter', 'Manrope', monospace; letter-spacing: -2px;">{{ $pendingCount ?? 0 }}</h2>
+                    <p style="margin: 0; color: #666; font-size: 0.9rem; font-weight: 600; text-transform: uppercase;">Por Cobrar</p>
+                    <h2 style="margin: 0.5rem 0 0 0; font-size: 2rem; font-weight: 900; color: #000; font-family: 'Inter', 'Manrope', monospace; letter-spacing: -1px;">${{ number_format($pendingIncome, 0, ',', '.') }}</h2>
                 </div>
-                <i class="fa-solid fa-hourglass-end" style="font-size: 2rem; color: #000; opacity: 0.3;"></i>
+                <div style="background: white; width: 50px; height: 50px; border-radius: 50%; border: 2px solid #000; display: flex; align-items: center; justify-content: center;">
+                    <i class="fa-solid fa-hand-holding-dollar" style="font-size: 1.4rem; color: #000;"></i>
+                </div>
             </div>
             <div style="color: #000; font-weight: 700; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 0.5rem;">
-                Ver pendientes <i class="fa-solid fa-arrow-right"></i>
+                Gestionar cobros <i class="fa-solid fa-arrow-right"></i>
             </div>
         </a>
 
-        <!-- Upcoming Sessions Card -->
-        <a href="{{ route('admin.agenda') }}" style="text-decoration: none; color: inherit; display: block; background: var(--color-amarillo); border: 3px solid #000; border-radius: 12px; padding: 2rem; box-shadow: 8px 8px 0px rgba(0,0,0,0.1); transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translate(-2px,-2px)'; this.style.boxShadow='10px 10px 0px rgba(0,0,0,0.1)'" onmouseout="this.style.transform='none'; this.style.boxShadow='8px 8px 0px rgba(0,0,0,0.1)'">
+        <!-- Pacientes Nuevos Card -->
+        <a href="{{ route('admin.pacientes') }}" style="text-decoration: none; color: inherit; display: block; background: var(--color-amarillo); border: 3px solid #000; border-radius: 12px; padding: 2rem; box-shadow: 8px 8px 0px rgba(0,0,0,0.1); transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translate(-2px,-2px)'; this.style.boxShadow='10px 10px 0px rgba(0,0,0,0.1)'" onmouseout="this.style.transform='none'; this.style.boxShadow='8px 8px 0px rgba(0,0,0,0.1)'">
             <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1.5rem;">
                 <div>
-                    <p style="margin: 0; color: #666; font-size: 0.9rem; font-weight: 600; text-transform: uppercase;">Próximas</p>
-                    <h2 style="margin: 0.5rem 0 0 0; font-size: 2.5rem; font-weight: 900; color: #000; font-family: 'Inter', 'Manrope', monospace; letter-spacing: -2px;">{{ $upcomingCount ?? 0 }}</h2>
+                    <p style="margin: 0; color: #666; font-size: 0.9rem; font-weight: 600; text-transform: uppercase;">Pacientes Nuevos</p>
+                    <h2 style="margin: 0.5rem 0 0 0; font-size: 2.5rem; font-weight: 900; color: #000; font-family: 'Inter', 'Manrope', monospace; letter-spacing: -2px;">{{ $newPatientsCount }}</h2>
                 </div>
-                <i class="fa-solid fa-clock" style="font-size: 2rem; color: #000; opacity: 0.3;"></i>
-            </div>
-            <div style="color: #000; font-weight: 700; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 0.5rem;">
-                Ver agenda <i class="fa-solid fa-arrow-right"></i>
-            </div>
-        </a>
-
-        <!-- Total Patients Card -->
-        <a href="{{ route('admin.pacientes') }}" style="text-decoration: none; color: inherit; display: block; background: var(--color-verde); border: 3px solid #000; border-radius: 12px; padding: 2rem; box-shadow: 8px 8px 0px rgba(0,0,0,0.1); transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translate(-2px,-2px)'; this.style.boxShadow='10px 10px 0px rgba(0,0,0,0.1)'" onmouseout="this.style.transform='none'; this.style.boxShadow='8px 8px 0px rgba(0,0,0,0.1)'">
-            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1.5rem;">
-                <div>
-                    <p style="margin: 0; color: #666; font-size: 0.9rem; font-weight: 600; text-transform: uppercase;">Pacientes</p>
-                    <h2 style="margin: 0.5rem 0 0 0; font-size: 2.5rem; font-weight: 900; color: #000; font-family: 'Inter', 'Manrope', monospace; letter-spacing: -2px;">{{ $totalPatients ?? 0 }}</h2>
+                <div style="background: white; width: 50px; height: 50px; border-radius: 50%; border: 2px solid #000; display: flex; align-items: center; justify-content: center;">
+                    <i class="fa-solid fa-user-plus" style="font-size: 1.2rem; color: #000;"></i>
                 </div>
-                <i class="fa-solid fa-users" style="font-size: 2rem; color: #000; opacity: 0.3;"></i>
             </div>
             <div style="color: #000; font-weight: 700; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 0.5rem;">
                 Ver pacientes <i class="fa-solid fa-arrow-right"></i>
+            </div>
+        </a>
+
+        <!-- Sesiones Facturadas Card -->
+        <a href="{{ route('admin.agenda') }}" style="text-decoration: none; color: inherit; display: block; background: var(--color-celeste); border: 3px solid #000; border-radius: 12px; padding: 2rem; box-shadow: 8px 8px 0px rgba(0,0,0,0.1); transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translate(-2px,-2px)'; this.style.boxShadow='10px 10px 0px rgba(0,0,0,0.1)'" onmouseout="this.style.transform='none'; this.style.boxShadow='8px 8px 0px rgba(0,0,0,0.1)'">
+            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1.5rem;">
+                <div>
+                    <p style="margin: 0; color: #666; font-size: 0.9rem; font-weight: 600; text-transform: uppercase;">Sesiones</p>
+                    <h2 style="margin: 0.5rem 0 0 0; font-size: 2.5rem; font-weight: 900; color: #000; font-family: 'Inter', 'Manrope', monospace; letter-spacing: -2px;">{{ $sessionsCount }}</h2>
+
+                </div>
+                <div style="background: white; width: 50px; height: 50px; border-radius: 50%; border: 2px solid #000; display: flex; align-items: center; justify-content: center;">
+                    <i class="fa-solid fa-chart-line" style="font-size: 1.2rem; color: #000;"></i>
+                </div>
+            </div>
+            <div style="color: #000; font-weight: 700; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 0.5rem;">
+                Ver agenda <i class="fa-solid fa-arrow-right"></i>
             </div>
         </a>
     </div>

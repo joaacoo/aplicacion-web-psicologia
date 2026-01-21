@@ -22,7 +22,17 @@ class Appointment extends Model
         'vence_en',
         'notificado_recordatorio_en',
         'notificado_ultimatum_en',
+        'debe_pagarse',
     ];
+
+    /**
+     * Determina si el turno genera deuda.
+     * Es deuda si está confirmado (y no pagado) O si está cancelado pero se cobra igual.
+     */
+    public function generaDeuda(): bool
+    {
+        return $this->estado === 'confirmado' || ($this->estado === 'cancelado' && $this->debe_pagarse);
+    }
 
     protected $casts = [
         'fecha_hora' => 'datetime',

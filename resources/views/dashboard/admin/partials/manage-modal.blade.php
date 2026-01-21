@@ -68,7 +68,39 @@
                     </div>
                 </form>
 
+            </div>
 
+             <!-- Honorarios Section (NEW) -->
+             <div style="margin-bottom: 2rem; padding: 1.5rem; border: 3px solid #000; background: #fff; box-shadow: 6px 6px 0px #000; border-radius: 15px;">
+                <h3 style="margin-bottom: 0.5rem; font-size: 1.2rem;"><i class="fa-solid fa-money-bill-wave"></i> Honorarios del Paciente</h3>
+                
+                <form id="manage-honorario-form" method="POST">
+                    @csrf
+                    
+                    <div style="background: #f0f0f0; padding: 1rem; border-radius: 8px; border: 1px dashed #999; margin-bottom: 1rem;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+                            <label style="font-weight: 700; font-size: 0.9rem;">Precio Base (Estándar):</label>
+                            <span style="font-weight: 900; font-size: 1.1rem;">${{ number_format($basePrice ?? 0, 0, ',', '.') }}</span>
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 1rem;">
+                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                            <input type="checkbox" name="use_custom_price" id="chkCustomPrice" onchange="toggleCustomPrice()" value="1" style="width: 1.2rem; height: 1.2rem; accent-color: #000;">
+                            <span style="font-weight: 700; font-size: 0.95rem;">Usar precio personalizado</span>
+                        </label>
+                    </div>
+
+                    <div id="customPriceContainer" style="display: none; margin-bottom: 1rem;">
+                        <label style="font-size: 0.8rem; font-weight: 700;">Precio por sesión ($):</label>
+                        <input type="number" name="honorario_pactado" id="inputCustomPrice" class="neobrutalist-input w-full" placeholder="Ej: 18000">
+                    </div>
+
+                    <button type="submit" class="neobrutalist-btn w-full" style="background: var(--color-verde); font-size: 0.9rem; padding: 12px;">
+                        <i class="fa-solid fa-save"></i> Guardar Honorarios
+                    </button>
+                </form>
+            </div>
 
                 <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 2px dashed #000;">
                     <form id="manage-reminder-form" method="POST">
@@ -79,13 +111,11 @@
                     </form>
                 </div>
             </div>
-
-        </div>
-        <div class="confirm-modal-buttons" style="margin-top: 2rem;">
-            <button onclick="closeManageModal()" class="neobrutalist-btn w-full" style="background: white;">Cerrar</button>
+            <div class="confirm-modal-buttons" style="margin-top: 2rem;">
+                <button onclick="closeManageModal()" class="neobrutalist-btn w-full" style="background: white;">Cerrar</button>
+            </div>
         </div>
     </div>
-</div>
 
 <script>
     let currentPatientId = null;
@@ -96,7 +126,7 @@
         document.body.style.overflow = 'auto';
     }
 
-    function openManageModal(id, name, email, phone, type, meetLink) {
+    function openManageModal(id, name, email, phone, type, meetLink, customPrice) {
         currentPatientId = id;
         currentPatientName = name;
         
@@ -135,12 +165,53 @@
         linkInput.value = meetLink || '';
         document.getElementById('manage-link-form').action = '/admin/patients/' + id + '/update-link';
 
+        // Pricing Logic
+        const chk = document.getElementById('chkCustomPrice');
+        const inputPrice = document.getElementById('inputCustomPrice');
+        const formPrice = document.getElementById('manage-honorario-form');
+        
+        formPrice.action = '/admin/patients/' + id + '/update-honorario';
+        
+        // customPrice comes as string or decimal. 0 or null means default?
+        // Wait, if 0 was default in old system, but new system uses null.
+        // I need to check what backend returns. 
+        // If it's a number > 0, we assume custom. If null or 0 (and we migrated logic), it's default.
+        // Assuming user passes raw value.
+        
+        // Coerce to number
+        const priceVal = parseFloat(customPrice);
+        
+        if (customPrice && priceVal > 0) {
+            chk.checked = true;
+            inputPrice.value = priceVal;
+            document.getElementById('customPriceContainer').style.display = 'block';
+        } else {
+            chk.checked = false;
+            inputPrice.value = '';
+            document.getElementById('customPriceContainer').style.display = 'none';
+        }
+
         document.getElementById('manage-delete-form').action = '/admin/patients/' + id;
         document.getElementById('manage-type-form').action = '/admin/patients/' + id + '/update-type';
         document.getElementById('manage-reminder-form').action = '/admin/patients/' + id + '/send-reminder';
         
         document.getElementById('manageModal').style.display = 'flex';
         document.body.style.overflow = 'hidden';
+    }
+
+    function toggleCustomPrice() {
+        const chk = document.getElementById('chkCustomPrice');
+        const container = document.getElementById('customPriceContainer');
+        const input = document.getElementById('inputCustomPrice');
+        
+        if (chk.checked) {
+            container.style.display = 'block';
+            input.required = true;
+        } else {
+            container.style.display = 'none';
+            input.required = false;
+            input.value = ''; // Reset
+        }
     }
 
     function confirmDisassociate() {

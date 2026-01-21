@@ -1,6 +1,7 @@
 @extends('layouts.app')
 
-@section('title', 'Lista de Espera - Lic. Nazarena De Luca')
+@section('title', 'Lista de Espera - Admin')
+@section('header_title', 'Lista de Espera')
 
 @section('content')
 <div class="flex flex-col gap-8">

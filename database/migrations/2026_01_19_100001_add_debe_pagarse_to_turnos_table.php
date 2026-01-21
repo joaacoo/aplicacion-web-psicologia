@@ -11,8 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('usuarios', function (Blueprint $table) {
-            $table->boolean('block_weekends')->default(false)->after('password');
+        Schema::table('turnos', function (Blueprint $table) {
+            $table->boolean('debe_pagarse')->default(0)->after('estado');
         });
     }
 
@@ -21,8 +21,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('usuarios', function (Blueprint $table) {
-            $table->dropColumn('block_weekends');
+        Schema::table('turnos', function (Blueprint $table) {
+            $table->dropColumn('debe_pagarse');
         });
     }
 };

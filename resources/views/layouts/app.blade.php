@@ -17,9 +17,7 @@
             $isAdmin = auth()->user()->rol == 'admin';
             $isPatient = auth()->user()->rol == 'paciente';
         @endphp
-        <form id="logout-form" action="{{ route('logout') }}" method="POST" style="display: none;">
-            @csrf
-        </form>
+        {{-- Logout form removed (using footer one) --}}
     @endauth
 
     @php
@@ -33,32 +31,40 @@
         @if(isset($isAdmin) && $isAdmin)
             <!-- Admin Layout Container -->
             <div class="admin-layout @if(isset($isAdmin) && $isAdmin && isset($_COOKIE['sidebar_collapsed']) && $_COOKIE['sidebar_collapsed'] == 'true') @else sidebar-open @endif" id="admin-layout-container">
-                <aside class="admin-sidebar @if(isset($_COOKIE['sidebar_collapsed']) && $_COOKIE['sidebar_collapsed'] == 'true') collapsed @endif" id="admin-sidebar" style="z-index: 6001;">
+                <aside class="admin-sidebar @if(isset($_COOKIE['sidebar_collapsed']) && $_COOKIE['sidebar_collapsed'] == 'true') collapsed @endif" id="admin-sidebar" style="z-index: 6001; display: flex; flex-direction: column; height: 100vh; position: fixed; left: 0; top: 0; bottom: 0; overflow: hidden;">
                     <!-- Close button for mobile -->
                     <button onclick="window.toggleAdminSidebar()" class="sidebar-close-btn" style="position: absolute; top: 1rem; right: 1rem; background: none; border: none; font-size: 1.5rem; cursor: pointer; z-index: 10; display: none; color: #000; padding: 0.5rem;">
-                        <i class="fa-solid fa-xmark"></i>
                     </button>
                     
                     @if(auth()->user()->email === 'joacooodelucaaa16@gmail.com')
-                        <div class="sidebar-logo" style="padding: 1.5rem 0.5rem; margin-bottom: 2rem; border-bottom: 1px solid rgba(0, 0, 0, 0.1); display: flex; align-items: center; justify-content: center; width: 100%; height: 2.5rem;">
+                        <div class="sidebar-logo" style="padding: 1.5rem 0.5rem; margin-bottom: 1rem; border-bottom: 1px solid rgba(0, 0, 0, 0.1); display: flex; align-items: center; justify-content: center; width: 100%; height: 2.5rem; flex-shrink: 0;">
                              <span class="sidebar-text sidebar-text-small" style="font-size: 0.95rem !important; font-weight: normal; letter-spacing: -0.2px; white-space: nowrap; flex-shrink: 0; color: white; display: flex; align-items: center; text-align: center; height: 100%;">Panel de Desarrollador</span>
                         </div>
                     @else
-                        <div class="sidebar-logo" style="padding: 1.5rem 0.5rem; margin-bottom: 2rem; border-bottom: 1px solid rgba(0, 0, 0, 0.1); display: flex; align-items: center; justify-content: center; gap: 0.6rem; overflow: hidden; width: 100%; height: 2.5rem;">
+                            <div class="sidebar-logo" style="padding: 1.5rem 0.5rem; margin-bottom: 2rem; border-bottom: 3px solid #000; display: flex; align-items: center; justify-content: center; gap: 0.6rem; overflow: hidden; width: 100%; height: 2.5rem; flex-shrink: 0;">
                             <i class="fa-solid fa-brain" style="color: #000; font-size: 1.3rem; flex-shrink: 0; display: flex; align-items: center; height: 100%;"></i>
                             <span class="sidebar-text sidebar-text-small" style="font-size: 0.95rem !important; font-weight: normal; letter-spacing: -0.2px; white-space: nowrap; flex-shrink: 0; color: rgba(0, 0, 0, 0.5); display: flex; align-items: center; text-align: center; height: 100%;">Espacio Terapéutico</span>
                         </div>
                     @endif
                     
-                    <nav class="sidebar-nav">
+                    <nav class="sidebar-nav" style="flex: 1; min-height: 0; padding: 15px; padding-bottom: 2rem; overflow-y: auto; overflow-x: visible; display: flex; flex-direction: column; gap: 12px; overscroll-behavior: contain;">
+                        <style>
+                            /* Hide internal nav scrollbar if present */
+                            .sidebar-nav::-webkit-scrollbar { width: 4px; }
+                            .sidebar-nav::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 4px; }
+                        </style>
                         @if(auth()->user()->email !== 'joacooodelucaaa16@gmail.com')
-                            <a href="{{ route('admin.home') }}" class="sidebar-link bg-lila" style="border: 3px solid #000; box-shadow: 4px 4px 0px #000; transform: scale(1.02); z-index: 10;">
+                            <a href="{{ route('admin.home') }}" class="sidebar-link bg-lila">
                                 <i class="fa-solid fa-house"></i>
                                 <span class="sidebar-text" style="font-weight: 900;">Inicio</span>
                             </a>
                             <a href="{{ route('admin.agenda') }}" class="sidebar-link bg-celeste">
                                 <i class="fa-solid fa-calendar-day"></i>
                                 <span class="sidebar-text">Agenda Hoy</span>
+                            </a>
+                            <a href="{{ route('admin.finanzas') }}" class="sidebar-link bg-verde">
+                                <i class="fa-solid fa-chart-line"></i>
+                                <span class="sidebar-text">Finanzas</span>
                             </a>
                             <a href="{{ route('admin.pacientes') }}" class="sidebar-link bg-amarillo">
                                 <i class="fa-solid fa-users"></i>
@@ -97,46 +103,48 @@
                         @endif
                     </nav>
 
-                    <div class="sidebar-footer" style="padding: 1.5rem 0.5rem; margin-top: 2rem; border-top: 1px solid rgba(0, 0, 0, 0.1); display: flex; align-items: center; justify-content: center; gap: 0.5rem; overflow: hidden;">
-                        @if(auth()->user()->email !== 'joacooodelucaaa16@gmail.com')
-                            <a href="javascript:void(0)" class="sidebar-link" style="background-color: var(--color-rojo); color: white; width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem;" onclick="window.showConfirm('¿Estás segura de que querés cerrar sesión, Nazarena?', () => document.getElementById('logout-form').submit())">
+                    <div class="sidebar-footer" style="padding: 1.5rem 0.5rem; borderm-top: 1px solid rgba(0, 0, 0, 0.1); display: flex; align-items: center; justify-content: center; gap: 0.5rem; overflow: hidden; flex-shrink: 0; background: white;">
+                            <a href="javascript:void(0)" class="sidebar-link" style="background-color: var(--color-rojo); color: white; width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem;" onclick="window.showConfirm('¿Cerrar sesión?', () => document.getElementById('logout-form').submit())">
                                 <i class="fa-solid fa-sign-out-alt" style="line-height: 1;"></i>
                                 <span class="sidebar-text" style="font-size: 0.9rem; line-height: 1;">Cerrar Sesión</span>
                             </a>
-                        @endif
                     </div>
                 </aside>
 
                 <main class="main-content" style="padding-top: 0 !important;"> 
                     <!-- Unified Admin Header -->
-                    <div class="admin-unified-header" style="display: flex; justify-content: space-between; align-items: center; margin-top: 0 !important; margin-bottom: 2rem; background: white; padding: 1rem 1.5rem; border-bottom: 3px solid #000; box-shadow: 0 2px 0px rgba(0,0,0,0.05); position: sticky; top: 0; left: 0; width: 100%; z-index: 5999; transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1), transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); opacity: 1; transform: translateY(0); box-sizing: border-box;">
-                        <div style="display: flex; align-items: center; gap: 1rem;">
-                            <button class="neobrutalist-btn" onclick="toggleAdminSidebar()" style="padding: 0.5rem 0.8rem; background: var(--color-lila); position: relative; z-index: 6002;">
-                                <i class="fa-solid fa-bars" id="sidebar-toggle-icon"></i>
+                    <div class="admin-unified-header" style="padding: 1rem 2rem; display: flex; align-items: center; justify-content: space-between; background: white; border-bottom: 1px solid #e5e7eb; position: sticky; top: 0; z-index: 40;">
+                        <div style="display: flex; align-items: center;">
+                             <button onclick="window.toggleAdminSidebar()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; margin-right: 1rem; color: #111827; display: flex; align-items: center; justify-content: center; width: 40px; height: 40px;">
+                                <i class="fa-solid fa-bars"></i>
                             </button>
-                            <span class="logo no-select" style="font-size: 1.6rem; font-weight: 500;">
-                                @if(request()->routeIs('admin.home')) Inicio
-                                @elseif(request()->routeIs('admin.agenda')) Agenda del Día
-                                @elseif(request()->routeIs('admin.pacientes')) Pacientes
-                                @elseif(request()->routeIs('admin.pagos')) Pagos y Cobros
-                                @elseif(request()->routeIs('admin.turnos')) Gestión de Turnos
-                                @elseif(request()->routeIs('admin.documentos')) Biblioteca
-                                @elseif(request()->routeIs('admin.waitlist')) Lista de Espera
-                                @elseif(request()->routeIs('admin.configuracion')) Disponibilidad
-                                @elseif(request()->routeIs('admin.historial')) Historial
-                                @elseif(request()->routeIs('admin.developer')) Panel Developer
-                                @else Lic. Nazarena @endif
+                            <span style="font-size: 1.3rem; font-weight: 700; font-family: 'Fraunces', serif; color: #111827; display: flex; align-items: center; gap: 10px;">
+                                Lic. Nazarena De Luca
+                                <span style="color: #e5e7eb; font-weight: 300; font-size: 1.5rem;">|</span>
+                                <span style="color: #111827; font-weight: 500;">
+                                    @hasSection('header_title')
+                                        @yield('header_title')
+                                    @else
+                                        @if(request()->routeIs('admin.historial'))
+                                            Historial
+                                        @elseif(request()->routeIs('admin.developer'))
+                                            Panel Developer
+                                        @else
+                                            Panel de Control
+                                        @endif
+                                    @endif
+                                </span>
                             </span>
                         </div>
                         
                         <div style="display: flex; align-items: center; gap: 1.2rem;">
                             <!-- Notifications Bell -->
-                            <div id="notif-bell" class="notification-bell-container" style="cursor: pointer; position: relative; font-size: 3rem; display: flex; align-items: center;">
+                            <div id="admin-notif-bell" class="notification-bell-container" style="cursor: pointer; position: relative; font-size: 1.5rem; display: flex; align-items: center;">
                                 <i class="fa-solid fa-bell" style="color: #000;"></i>
-                                <span class="notification-badge" id="notif-count" style="position: absolute; top: -5px; right: -5px; background: #ff4d4d; color: white; border-radius: 50%; width: 24px; height: 24px; font-size: 0.7rem; display: none; align-items: center; justify-content: center; border: 2px solid #fff; font-weight: 800; font-weight: 900;">0</span>
+                                <span class="notification-badge" id="admin-notif-count" style="position: absolute; top: -5px; right: -5px; background: #ff4d4d; color: white; border-radius: 50%; width: 24px; height: 24px; font-size: 0.7rem; display: none; align-items: center; justify-content: center; border: 2px solid #fff; font-weight: 800; font-weight: 900;">0</span>
                                 
                                 <!-- Dropdown -->
-                                <div id="notif-dropdown" class="notification-dropdown" onclick="event.stopPropagation()" style="display: none; position: absolute; top: calc(100% + 20px); right: -10px; width: 380px; max-width: 90vw; background: white; border: 1px solid rgba(0,0,0,0.1); border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.12); z-index: 9999; overflow: hidden;">
+                                <div id="admin-notif-dropdown" class="notification-dropdown" onclick="event.stopPropagation()" style="display: none; position: absolute; top: calc(100% + 20px); right: -10px; width: 380px; max-width: 90vw; background: white; border: 1px solid rgba(0,0,0,0.1); border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.12); z-index: 9999; overflow: hidden;">
                                     <style>
                                         .notif-scroll::-webkit-scrollbar { width: 6px; }
                                         .notif-scroll::-webkit-scrollbar-track { background: transparent; }
@@ -159,11 +167,25 @@
                                             Marcar leídas
                                         </button>
                                     </div>
-                                    <div id="notif-items" class="notif-scroll" style="max-height: 450px; overflow-y: auto; background: #fafafa;">
+                                    <div id="admin-notif-items" class="notif-scroll" style="max-height: 450px; overflow-y: auto; background: #fafafa;">
                                         <!-- Notifications here -->
                                     </div>
                                 </div>
                             </div>
+                            
+                            <!-- Logout Button in Header -->
+                            <form id="logout-form-header" action="{{ route('logout') }}" method="POST" style="display: inline;">
+                                @csrf
+                                <button type="button" 
+                                    onclick="window.showConfirm('¿Cerrar sesión?', () => document.getElementById('logout-form-header').submit())"
+                                    style="background: transparent; border: none; cursor: pointer; font-size: 1.2rem; color: #d32f2f; display: flex; align-items: center; transition: all 0.2s; padding: 8px; border-radius: 8px;"
+                                    title="Cerrar Sesión"
+                                    onmouseover="this.style.backgroundColor='#fee2e2'; this.style.color='#b71c1c'"
+                                    onmouseout="this.style.backgroundColor='transparent'; this.style.color='#d32f2f'">
+                                    <i class="fa-solid fa-right-from-bracket"></i>
+                                    <span style="font-weight: 700; font-family: 'Inter', sans-serif; font-size: 1rem; margin-left: 8px;">Salir</span>
+                                </button>
+                            </form>
                         </div>
                     </div>
 
@@ -195,29 +217,40 @@
                     
                     <div class="nav-unificada-links">
                         @auth
-                            <!-- Mobile Menu Trigger -->
-                            <button class="neobrutalist-btn mobile-only-btn" onclick="toggleMobileMenu()" style="padding: 0.6rem 1rem; background: var(--color-lila); margin-left: 0.5rem; display: none;">
-                                <i class="fa-solid fa-bars" style="font-size: 1.2rem;"></i>
+                            <style>
+                                @media (max-width: 1024px) {
+                                    .mobile-only-btn {
+                                        display: flex !important;
+                                        align-items: center;
+                                        justify-content: center;
+                                        width: 55px; /* Increased size */
+                                        height: 55px; /* Increased size */
+                                        padding: 0 !important;
+                                    }
+                                }
+                            </style>
+                            <button class="neobrutalist-btn mobile-only-btn" onclick="toggleMobileMenu()" style="padding: 0; background: var(--color-lila); margin-left: 0.5rem; display: none;">
+                                <i class="fa-solid fa-bars" style="font-size: 1.5rem;"></i>
                             </button>
 
                             <!-- Desktop Nav Links -->
                             <div class="admin-nav-links desktop-menu">
                                 <!-- Notifications Bell for Patients -->
-                                <div id="notif-bell" class="notification-bell-container" style="cursor: pointer; position: relative; font-size: 1.2rem; margin-right: 1rem;">
-                                    <i class="fa-solid fa-bell"></i>
-                                    <span class="notification-badge" id="notif-count" style="display: none; position: absolute; top: -5px; right: -5px; background: #ff4d4d; color: white; border-radius: 50%; width: 18px; height: 18px; font-size: 0.7rem; display: flex; align-items: center; justify-content: center; border: 2px solid #000; font-weight: 800;">0</span>
-                                    
-                                    <!-- Dropdown -->
-                                    <div id="notif-dropdown" class="notification-dropdown" style="display: none;">
-                                        <div class="notification-header" style="padding: 10px 15px; border-bottom: 2px solid #000; display: flex; justify-content: space-between; align-items: center; background: #f8f8f8;">
-                                            <span style="font-weight: 800; font-size: 0.85rem;">Notificaciones</span>
-                                            <button onclick="markAllRead()" style="background: none; border: none; color: #555; font-size: 0.7rem; cursor: pointer; text-decoration: underline;">Limpiar todo</button>
-                                        </div>
-                                        <div id="notif-items" style="max-height: 300px; overflow-y: auto;">
-                                            <!-- Notifications here -->
-                                        </div>
+                            <div id="patient-notif-bell" class="notification-bell-container" style="cursor: pointer; position: relative; font-size: 1.2rem; margin-right: 1rem;">
+                                <i class="fa-solid fa-bell"></i>
+                                <span class="notification-badge" id="patient-notif-count" style="display: none; position: absolute; top: -5px; right: -5px; background: #ff4d4d; color: white; border-radius: 50%; width: 18px; height: 18px; font-size: 0.7rem; display: flex; align-items: center; justify-content: center; border: 2px solid #000; font-weight: 800;">0</span>
+                                
+                                <!-- Dropdown -->
+                                <div id="patient-notif-dropdown" class="notification-dropdown" style="display: none;">
+                                    <div class="notification-header" style="padding: 10px 15px; border-bottom: 2px solid #000; display: flex; justify-content: space-between; align-items: center; background: #f8f8f8;">
+                                        <span style="font-weight: 800; font-size: 0.85rem;">Notificaciones</span>
+                                        <button onclick="markAllRead()" style="background: none; border: none; color: #555; font-size: 0.7rem; cursor: pointer; text-decoration: underline;">Limpiar todo</button>
+                                    </div>
+                                    <div id="patient-notif-items" style="max-height: 300px; overflow-y: auto;">
+                                        <!-- Notifications here -->
                                     </div>
                                 </div>
+                            </div>
                                 <a href="javascript:void(0)" onclick="window.showConfirm('¿Querés cerrar sesión?', () => document.getElementById('logout-form').submit())" class="neobrutalist-btn" style="margin-left: 1rem; padding: 0.3rem 0.8rem; font-size: 0.85rem; background-color: #ff4d4d; color: white;">
                                     <i class="fa-solid fa-sign-out-alt" style="margin-right: 0.5rem;"></i> Salir
                                 </a>
@@ -260,6 +293,7 @@
                     </div>
                 @endif
 
+
                 @yield('content')
             </main>
         @endif
@@ -267,37 +301,46 @@
 
     @yield('subnavigation')
 
-    @if(auth()->check() && auth()->user()->rol == 'admin' && auth()->user()->email !== 'joacooodelucaaa16@gmail.com' && !request()->routeIs('login') && !request()->routeIs('register'))
+    @if(auth()->check() && auth()->user()->rol == 'admin' && auth()->user()->email !== 'joacooodelucaaa16@gmail.com' && !request()->routeIs('login') && !request()->routeIs('register') && !request()->routeIs('password.*'))
         
         <!-- BOTÓN FLOTANTE (FAB) -->
         <!-- BOTÓN FLOTANTE (FAB) -->
+        <!-- BOTÓN FLOTANTE (FAB) -->
         <style>
-            @keyframes pulse-border {
-                0% { box-shadow: 0 0 0 0 rgba(168, 85, 247, 0.7); }
-                70% { box-shadow: 0 0 0 15px rgba(168, 85, 247, 0); }
-                100% { box-shadow: 0 0 0 0 rgba(168, 85, 247, 0); }
+            .btn-ai {
+                position: fixed;
+                bottom: 1.5rem;
+                right: 1.5rem;
+                width: 60px;
+                height: 60px;
+                /* Option 2: Azul Sereno - Normal & Trustworthy */
+                background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+                color: white;
+                border-radius: 50%;
+                border: 2px solid rgba(255, 255, 255, 0.2);
+                box-shadow: 0 8px 20px rgba(29, 78, 216, 0.4);
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 1.6rem;
+                z-index: 10000;
+                transition: 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+                animation: pulse-glow 3s infinite;
+            }
+
+            .btn-ai:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 12px 25px rgba(29, 78, 216, 0.6);
+            }
+
+            @keyframes pulse-glow {
+                0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); }
+                70% { box-shadow: 0 0 0 15px rgba(59, 130, 246, 0); }
+                100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
             }
         </style>
-        <button onclick="toggleGemini()" id="ai-fab" style="
-            position: fixed;
-            bottom: 1.5rem;
-            right: 1.5rem;
-            width: 60px;
-            height: 60px;
-            background: #1976d2;
-            color: #fff;
-            border-radius: 50%;
-            border: none;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.6rem;
-            z-index: 10000;
-            transition: transform 0.2s;
-            animation: pulse-border 2s infinite;
-        ">
+        <button onclick="toggleGemini()" id="ai-fab" class="btn-ai">
             <i class="fa-solid fa-user-tie"></i>
         </button>
 
@@ -330,39 +373,38 @@
                 border-bottom: 1px solid #f3f4f6;
             ">
                 <div style="display: flex; align-items: center; gap: 0.8rem;">
-                    <div style="background: #eff6ff; padding: 8px; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
-                        <i class="fa-solid fa-user-tie" style="color: #3b82f6; font-size: 1.1rem;"></i>
+                    <div style="background: #e0f2fe; padding: 8px; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                        <i class="fa-solid fa-user-tie" style="color: #0369a1; font-size: 1.1rem;"></i>
                     </div>
                     <div style="display: flex; flex-direction: column;">
                         <span style="letter-spacing: -0.3px; line-height: 1.1; font-size: 1rem;">Asistente Clínico</span>
-                        <span style="font-size: 0.75rem; color: #6b7280; font-weight: 500;">Modelo: Gemma 3</span>
+                        <span style="font-size: 0.75rem; color: #6b7280; font-weight: 500;">Modelo: Gemini 1.5 Flash</span>
                     </div>
                 </div>
                 <button onclick="toggleGemini()" style="background: none; border: none; color: #9ca3af; font-size: 1.1rem; cursor: pointer; padding: 4px; transition: color 0.2s;" onmouseover="this.style.color='#1f2937'" onmouseout="this.style.color='#9ca3af'">
-                    <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
 
             <!-- Messages Area -->
-            <div id="ai-messages" style="flex: 1; padding: 1rem; overflow-y: auto; background: #f0f2f5; display: flex; flex-direction: column; gap: 1rem;">
+            <div id="ai-messages" style="flex: 1; padding: 1rem; overflow-y: auto; background: #f8fafc; display: flex; flex-direction: column; gap: 1rem;">
                 <!-- Welcome Message (Auto) -->
-                <div style="background: #ffffff; padding: 1rem; border-radius: 16px 16px 16px 0; align-self: flex-start; max-width: 90%; line-height: 1.5; font-size: 0.95rem; color: #374151; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                <div style="background: #ffffff; padding: 1rem; border-radius: 16px 16px 16px 0; align-self: flex-start; max-width: 90%; line-height: 1.5; font-size: 0.95rem; color: #374151; box-shadow: 0 1px 2px rgba(0,0,0,0.05); border: 1px solid #e2e8f0;">
                     Hola Lic. Nazarena 👋<br>¿En qué te puedo ayudar hoy?
                 </div>
                 
                 <!-- Quick Actions Chips -->
                 <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: auto; justify-content: flex-start;">
-                    <button onclick="sendGeminiMessage('¿Qué turnos tengo hoy?')" style="background: #ffffff; border: 1px solid #e5e7eb; padding: 0.5rem 1rem; border-radius: 20px; font-size: 0.85rem; font-weight: 500; cursor: pointer; color: #4b5563; transition: all 0.2s; box-shadow: 0 1px 2px rgba(0,0,0,0.05);" onmouseover="this.style.background='#f9fafb'; this.style.borderColor='#d1d5db'" onmouseout="this.style.background='#ffffff'; this.style.borderColor='#e5e7eb'">¿Qué turnos tengo hoy?</button>
-                    <button onclick="sendGeminiMessage('¿Cómo están mis pagos?')" style="background: #ffffff; border: 1px solid #e5e7eb; padding: 0.5rem 1rem; border-radius: 20px; font-size: 0.85rem; font-weight: 500; cursor: pointer; color: #4b5563; transition: all 0.2s; box-shadow: 0 1px 2px rgba(0,0,0,0.05);" onmouseover="this.style.background='#f9fafb'; this.style.borderColor='#d1d5db'" onmouseout="this.style.background='#ffffff'; this.style.borderColor='#e5e7eb'">¿Cómo están mis pagos?</button>
-                    <button onclick="sendGeminiMessage('Necesito soporte técnico')" style="background: #ffffff; border: 1px solid #e5e7eb; padding: 0.5rem 1rem; border-radius: 20px; font-size: 0.85rem; font-weight: 500; cursor: pointer; color: #4b5563; transition: all 0.2s; box-shadow: 0 1px 2px rgba(0,0,0,0.05);" onmouseover="this.style.background='#f9fafb'; this.style.borderColor='#d1d5db'" onmouseout="this.style.background='#ffffff'; this.style.borderColor='#e5e7eb'">¿Necesito ayuda?</button>
+                    <button onclick="sendGeminiMessage('¿Qué turnos tengo hoy?')" style="background: #ffffff; border: 1px solid #e5e7eb; padding: 0.5rem 1rem; border-radius: 20px; font-size: 0.85rem; font-weight: 500; cursor: pointer; color: #4b5563; transition: all 0.2s; box-shadow: 0 1px 2px rgba(0,0,0,0.05);" onmouseover="this.style.background='#eff6ff'; this.style.borderColor='#93c5fd'; this.style.color='#1d4ed8'" onmouseout="this.style.background='#ffffff'; this.style.borderColor='#e5e7eb'; this.style.color='#4b5563'">¿Qué turnos tengo hoy?</button>
+                    <button onclick="sendGeminiMessage('¿Cómo están mis pagos?')" style="background: #ffffff; border: 1px solid #e5e7eb; padding: 0.5rem 1rem; border-radius: 20px; font-size: 0.85rem; font-weight: 500; cursor: pointer; color: #4b5563; transition: all 0.2s; box-shadow: 0 1px 2px rgba(0,0,0,0.05);" onmouseover="this.style.background='#eff6ff'; this.style.borderColor='#93c5fd'; this.style.color='#1d4ed8'" onmouseout="this.style.background='#ffffff'; this.style.borderColor='#e5e7eb'; this.style.color='#4b5563'">¿Cómo están mis pagos?</button>
+                    <button onclick="sendGeminiMessage('Necesito soporte técnico')" style="background: #ffffff; border: 1px solid #e5e7eb; padding: 0.5rem 1rem; border-radius: 20px; font-size: 0.85rem; font-weight: 500; cursor: pointer; color: #4b5563; transition: all 0.2s; box-shadow: 0 1px 2px rgba(0,0,0,0.05);" onmouseover="this.style.background='#eff6ff'; this.style.borderColor='#93c5fd'; this.style.color='#1d4ed8'" onmouseout="this.style.background='#ffffff'; this.style.borderColor='#e5e7eb'; this.style.color='#4b5563'">¿Necesito ayuda?</button>
                 </div>
             </div>
 
             <!-- Input Area -->
             <div style="padding: 1rem; background: #ffffff; border-top: 1px solid #f3f4f6; display: flex; align-items: center; gap: 0.5rem;">
-                <textarea id="ai-input" placeholder="Escribí tu consulta..." rows="1" style="flex: 1; padding: 0.8rem 1rem; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 24px; resize: none; font-family: inherit; font-size: 0.95rem; outline: none; transition: border-color 0.2s;" onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='#e5e7eb'" onkeydown="if(event.key === 'Enter' && !event.shiftKey){ event.preventDefault(); sendGeminiMessage(); }"></textarea>
+                <textarea id="ai-input" placeholder="Escribí tu consulta..." rows="1" style="flex: 1; padding: 0.8rem 1rem; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 24px; resize: none; font-family: inherit; font-size: 0.95rem; outline: none; transition: border-color 0.2s; overflow-y: hidden;" oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'" onfocus="this.style.borderColor='#1d4ed8'" onblur="this.style.borderColor='#e5e7eb'" onkeydown="if(event.key === 'Enter' && !event.shiftKey){ event.preventDefault(); sendGeminiMessage(); }"></textarea>
                 <button onclick="sendGeminiMessage()" style="
-                    background: #3b82f6; 
+                    background: #1d4ed8; 
                     color: #fff; 
                     border: none; 
                     width: 40px; 
@@ -372,89 +414,138 @@
                     display: flex; 
                     align-items: center; 
                     justify-content: center; 
-                    box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.4); 
+                    box-shadow: 0 4px 6px -1px rgba(29, 78, 216, 0.4); 
                     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-                " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 8px -1px rgba(59, 130, 246, 0.5)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 6px -1px rgba(59, 130, 246, 0.4)'">
+                " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 8px -1px rgba(29, 78, 216, 0.5)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 6px -1px rgba(29, 78, 216, 0.4)'">
                     <i class="fa-solid fa-paper-plane" style="font-size: 0.9rem;"></i>
                 </button>
             </div>
         </div>
 
         <script>
-            // ... (keep existing scripts) ...
-            
+            // 3. Chat Logic with AbortController
+            let currentController = null;
+
             window.sendGeminiMessage = async function(msg = null) {
                 const input = document.getElementById('ai-input');
                 const messages = document.getElementById('ai-messages');
+                // The icon is inside the button which is after the input
+                const btn = document.querySelector('#ai-input + button'); // The button
+                const btnIcon = btn ? btn.querySelector('i') : null;
                 
+                if(!input || !messages || !btnIcon) return;
+
+                // If currently generating, this button acts as Stop
+                if (currentController) {
+                    currentController.abort();
+                    currentController = null;
+                    // Reset Icon
+                    btnIcon.className = 'fa-solid fa-paper-plane';
+                    btnIcon.style.color = '#ffffff'; 
+                    // Append "Stopped" message
+                    const stopMsg = document.createElement('div');
+                    stopMsg.style.textAlign = 'center';
+                    stopMsg.style.fontSize = '0.8rem';
+                    stopMsg.style.color = '#999';
+                    stopMsg.style.margin = '5px 0';
+                    stopMsg.innerText = 'Generación detenida.';
+                    messages.appendChild(stopMsg);
+                    // Remove the last loading bubble if exists
+                    const lastBubble = messages.lastElementChild;
+                    if(lastBubble && lastBubble.innerHTML.includes('...')) {
+                        lastBubble.remove();
+                    }
+                    return;
+                }
+
                 const messageText = msg || input.value.trim();
-                
                 if (!messageText) return;
 
-                // 1. Mostrar mensaje del usuario (Minimalist)
+                // --- UI Updates Start ---
+                
+                // Change Button to Square (Stop)
+                btnIcon.className = 'fa-solid fa-square';
+                btnIcon.style.fontSize = '0.8rem';
+                
+                // 1. Show User Message
                 const userMsg = document.createElement('div');
-                userMsg.style.marginBottom = '0.8rem';
-                userMsg.style.background = '#3b82f6'; // Azul vibrante
-                userMsg.style.color = '#ffffff';
-                userMsg.style.padding = '0.75rem 1rem';
-                userMsg.style.borderRadius = '18px 18px 0 18px';
+                userMsg.style.marginBottom = '0.5rem';
+                userMsg.style.background = '#eff6ff'; // Blue 50
+                userMsg.style.color = '#1e3a8a';      // Blue 900
+                userMsg.style.padding = '0.8rem';
+                userMsg.style.border = '1px solid #bfdbfe'; // Blue 200
+                userMsg.style.borderRadius = '12px 12px 0 12px';
                 userMsg.style.alignSelf = 'flex-end';
                 userMsg.style.maxWidth = '85%';
-                userMsg.style.lineHeight = '1.5';
+                userMsg.style.lineHeight = '1.4';
                 userMsg.style.fontSize = '0.95rem';
-                userMsg.style.boxShadow = '0 2px 4px rgba(59, 130, 246, 0.1)';
-                userMsg.innerHTML = messageText; // No "Vos:", directo texto
+                userMsg.innerHTML = `<strong>Vos:</strong> ${messageText}`;
                 messages.appendChild(userMsg);
 
                 if (!msg) input.value = '';
                 messages.scrollTop = messages.scrollHeight;
 
-                // 2. Crear burbuja de respuesta vacía (Minimalist)
+                // 2. Show AI Loading Bubble
                 const aiMsg = document.createElement('div');
-                aiMsg.style.marginBottom = '0.8rem';
-                aiMsg.style.background = '#f3f4f6'; // Gris muy suave
-                aiMsg.style.color = '#1f2937';
-                aiMsg.style.padding = '0.75rem 1rem';
-                aiMsg.style.borderRadius = '18px 18px 18px 0';
+                aiMsg.style.marginBottom = '0.5rem';
+                aiMsg.style.background = '#ffffff'; 
+                aiMsg.style.color = '#000000';
+                aiMsg.style.padding = '0.8rem';
+                aiMsg.style.border = '1px solid #e5e7eb';
+                aiMsg.style.borderRadius = '12px 12px 12px 0';
                 aiMsg.style.alignSelf = 'flex-start';
                 aiMsg.style.maxWidth = '85%';
-                aiMsg.style.lineHeight = '1.5';
+                aiMsg.style.lineHeight = '1.4';
                 aiMsg.style.fontSize = '0.95rem';
-                aiMsg.innerHTML = '...'; 
+                aiMsg.innerHTML = '<strong>IA:</strong> ...'; 
                 messages.appendChild(aiMsg);
                 messages.scrollTop = messages.scrollHeight;
 
-                // ... (Streaming logic same as before, just updating message content) ...
-                let fullResponse = "";
+                // --- Network Request ---
+                
+                currentController = new AbortController();
+                const signal = currentController.signal;
+
                 try {
-                     const response = await fetch('{{ route('admin.ai.chat') }}', {
+                    // 3. Petición al Backend (JSON)
+                    const response = await fetch('{{ route('admin.ai.chat') }}', {
                         method: 'POST',
                         headers: { 
                             'Content-Type': 'application/json',
                             'X-CSRF-TOKEN': '{{ csrf_token() }}'
                         },
-                        body: JSON.stringify({ message: messageText })
+                        body: JSON.stringify({ message: messageText }),
+                        signal: signal
                     });
 
                     if (!response.ok) throw new Error('Error en la conexión con la IA');
 
-                    const reader = response.body.getReader();
-                    const decoder = new TextDecoder();
-
-                    aiMsg.innerHTML = ''; // Limpiar "..."
-
-                    while (true) {
-                        const { done, value } = await reader.read();
-                        if (done) break;
-                        const chunk = decoder.decode(value, { stream: true });
-                        fullResponse += chunk;
-                        aiMsg.innerHTML = fullResponse.replace(/\n/g, '<br>');
-                        messages.scrollTop = messages.scrollHeight;
+                    const data = await response.json();
+                    
+                    if (data.response) {
+                         aiMsg.innerHTML = `<strong>IA:</strong> ${data.response.replace(/\n/g, '<br>')}`;
+                    } else {
+                         aiMsg.innerHTML = "<strong>IA:</strong> No entendí, ¿podés repetir?";
                     }
+                    messages.scrollTop = messages.scrollHeight;
+
                 } catch (error) {
-                    aiMsg.innerHTML = `<span style="color:red; font-size:0.85rem;">Error: ${error.message}</span>`;
+                    if (error.name === 'AbortError') {
+                        console.log('Fetch aborted');
+                        aiMsg.innerHTML += '<br><span style="color:#999; font-size:0.8rem;">(Detenido)</span>';
+                    } else {
+                        aiMsg.innerHTML += `<br><span style="color:red; font-size:0.8rem;">(Error: ${error.message})</span>`;
+                        console.error(error);
+                    }
+                } finally {
+                    // Reset Button Icon
+                    currentController = null;
+                    if(btnIcon) {
+                        btnIcon.className = 'fa-solid fa-paper-plane';
+                        btnIcon.style.fontSize = '0.9rem';
+                    }
                 }
-            }
+            };
         </script>
     @endif
 
@@ -500,22 +591,42 @@
             <!-- Report Button (Visible to Guests & Non-Dev Auth Users) -->
             <!-- Report Button (Visible to ALL guests and Non-Dev Auth Users) -->
             @if(!auth()->check() || (auth()->check() && auth()->user()->email !== 'joacooodelucaaa16@gmail.com'))
-                <button onclick="openReportModal()" style="
-                    background: transparent; 
-                    border: none;
-                    color: #ffffff; 
-                    font-size: 1rem; 
-                    cursor: pointer; 
-                    margin-bottom: 1rem; 
-                    transition: transform 0.2s;
-                    display: inline-flex;
-                    align-items: center;
-                    gap: 8px;
-                    font-family: 'Manrope', sans-serif;
-                    opacity: 1; /* Force opacity */
-                " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
-                    <i class="fa-solid fa-circle-exclamation" style="font-size: 1.1rem;"></i> Reportar un problema
-                </button>
+                @if(request()->routeIs('login'))
+                    <button onclick="openReportModal()" style="
+                        background: transparent; 
+                        border: none;
+                        color: #ffffff; 
+                        font-size: 0.9rem; /* Slightly smaller */
+                        cursor: pointer; 
+                        margin-bottom: 1rem; 
+                        transition: transform 0.2s;
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 8px;
+                        font-family: 'Manrope', sans-serif;
+                        opacity: 1; 
+                        text-decoration: underline; /* Added underline style for 'linky' feel or keep just text */
+                    " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                        <i class="fa-solid fa-circle-exclamation" style="font-size: 1rem;"></i> ¿Problemas para logearte? Reportar fallo
+                    </button>
+                @else
+                    <button onclick="openReportModal()" style="
+                        background: transparent; 
+                        border: none;
+                        color: #ffffff; 
+                        font-size: 1rem; 
+                        cursor: pointer; 
+                        margin-bottom: 1rem; 
+                        transition: transform 0.2s;
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 8px;
+                        font-family: 'Manrope', sans-serif;
+                        opacity: 1;
+                    " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                        <i class="fa-solid fa-circle-exclamation" style="font-size: 1.1rem;"></i> Reportar un problema
+                    </button>
+                @endif
             @endif
             
             <!-- Delete Account Button (Underlined, below Report) -->
@@ -553,6 +664,71 @@
             </div>
         </div>
     </div>
+
+    <!-- Duplicate Modal Removed -->
+
+    <!-- Html2Canvas Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script>
+        function openReportModal() {
+            document.getElementById('report-modal-overlay').style.display = 'flex';
+            document.getElementById('report-form-content').style.display = 'block';
+            document.getElementById('report-success-msg').style.display = 'none';
+            document.getElementById('report-loading-msg').style.display = 'none';
+            document.getElementById('report-desc').value = '';
+        }
+
+        function closeReportModal() {
+            document.getElementById('report-modal-overlay').style.display = 'none';
+        }
+
+        async function submitReport() {
+            const desc = document.getElementById('report-desc').value;
+            if (!desc.trim()) {
+                alert('Por favor describí el problema.');
+                return;
+            }
+
+            // Show loading
+            document.getElementById('report-form-content').style.display = 'none';
+            document.getElementById('report-loading-msg').style.display = 'block';
+
+            try {
+                // Capture Screenshot
+                const canvas = await html2canvas(document.body);
+                const screenshotData = canvas.toDataURL('image/png');
+
+                // Send to backend
+                const response = await fetch("{{ route('api.tickets.store') }}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    },
+                    body: JSON.stringify({
+                        description: desc,
+                        metadata: {
+                            screenshot: screenshotData,
+                            url: window.location.href,
+                            user_agent: navigator.userAgent
+                        }
+                    })
+                });
+
+                if (response.ok) {
+                    document.getElementById('report-loading-msg').style.display = 'none';
+                    document.getElementById('report-success-msg').style.display = 'block';
+                } else {
+                    throw new Error('Error al enviar');
+                }
+            } catch (error) {
+                console.error(error);
+                alert('Hubo un error al enviar el reporte. Por favor intentá de nuevo.');
+                document.getElementById('report-loading-msg').style.display = 'none';
+                document.getElementById('report-form-content').style.display = 'block';
+            }
+        }
+    </script>
 
     <!-- Delete Account Modal (DISABLED) -->
     <!-- Delete Account Modal -->
@@ -664,12 +840,15 @@
                 const res = await fetch('{{ route("notifications.latest") }}');
                 const data = await res.json();
                 
-                lastNotifCount = data.length;
+                lastNotifCount = data ? data.length : 0;
 
                 if (data && data.length > 0) {
                     if (count) {
                         count.innerText = data.length;
                         count.style.display = 'flex';
+                        // Add animation only if there are new notifications
+                        const bellIcon = document.querySelector('#notif-bell i');
+                        if(bellIcon) bellIcon.classList.add('fa-shake');
                     }
                     
                     if (items) {
@@ -688,7 +867,15 @@
                         `).join('');
                     }
                 } else {
-                    if (count) count.style.display = 'none';
+                    // Suppress visual indicators cleanly if 0
+                    if (count) {
+                        count.innerText = '0'; // For accessibility/debug if inspected
+                        count.style.display = 'none'; // Completely hide badge
+                        
+                        // Remove animation
+                        const bellIcon = document.querySelector('#notif-bell i');
+                        if(bellIcon) bellIcon.classList.remove('fa-shake');
+                    }
                     if (showInDropdown && items) {
                         items.innerHTML = '<div class="notification-empty" style="padding: 4rem 2rem; text-align: center; color: #a1a1a1; font-family: \'Inter\', sans-serif;"><p style="margin: 0; font-weight: 500; font-size: 0.95rem;">No tienes nuevas notificaciones</p></div>';
                     }
@@ -894,84 +1081,9 @@
                 }
             }
 
-            window.sendGeminiMessage = async function(msg = null) {
-                const input = document.getElementById('ai-input');
-                const messages = document.getElementById('ai-messages');
-                
-                const messageText = msg || input.value.trim();
-                
-                if (!messageText) return;
+            /* Duplicate sendGeminiMessage Removed */
 
-                // 1. Mostrar mensaje del usuario
-                const userMsg = document.createElement('div');
-                userMsg.style.marginBottom = '0.5rem';
-                userMsg.style.backgroundColor = 'var(--color-celeste)';
-                userMsg.style.padding = '0.8rem';
-                userMsg.style.border = '2px solid #000';
-                userMsg.style.borderRadius = '12px 12px 0 12px';
-                userMsg.style.alignSelf = 'flex-end';
-                userMsg.style.maxWidth = '85%';
-                userMsg.style.lineHeight = '1.4';
-                userMsg.innerHTML = `<strong>Vos:</strong> ${messageText}`;
-                messages.appendChild(userMsg);
-
-                if (!msg) input.value = '';
-                messages.scrollTop = messages.scrollHeight;
-
-                // 2. Crear burbuja de respuesta vacía (para streaming)
-                const aiMsg = document.createElement('div');
-                aiMsg.style.marginBottom = '0.5rem';
-                aiMsg.style.backgroundColor = '#f0f7ff';
-                aiMsg.style.padding = '0.8rem';
-                aiMsg.style.border = '2px solid #000';
-                aiMsg.style.borderRadius = '12px 12px 12px 0';
-                aiMsg.style.alignSelf = 'flex-start';
-                aiMsg.style.maxWidth = '85%';
-                aiMsg.style.lineHeight = '1.4';
-                aiMsg.innerHTML = `<strong>IA:</strong> `; // Inicio
-                messages.appendChild(aiMsg);
-                messages.scrollTop = messages.scrollHeight;
-
-                let fullResponse = "";
-
-                try {
-                    // 3. Petición al Backend (Stream)
-                    const response = await fetch('{{ route('admin.ai.chat') }}', {
-                        method: 'POST',
-                        headers: { 
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                        },
-                        body: JSON.stringify({ message: messageText })
-                    });
-
-                    if (!response.ok) throw new Error('Error en la conexión con la IA');
-
-                    // 4. Leer el stream
-                    const reader = response.body.getReader();
-                    const decoder = new TextDecoder();
-
-                    while (true) {
-                        const { done, value } = await reader.read();
-                        if (done) break;
-
-                        const chunk = decoder.decode(value, { stream: true });
-                        // Ollama/PHP might send plain text or multiple JSON objects.
-                        // Assuming the PHP controller echoes raw text chunks for simplicity based on the reviewed code.
-                        // If it receives JSON chunks, we might need to parse.
-                        // The reviewed AIController echoes raw data: echo $data;
-                        
-                        fullResponse += chunk;
-                        aiMsg.innerHTML = `<strong>IA:</strong> ${fullResponse.replace(/\n/g, '<br>')}`;
-                        messages.scrollTop = messages.scrollHeight;
-                    }
-
-                } catch (error) {
-                    aiMsg.innerHTML += `<br><span style="color:red; font-size:0.8rem;">(Error: ${error.message})</span>`;
-                    console.error(error);
-                }
-            }
-
+            @if(auth()->check() && auth()->user()->rol == 'admin')
             // Auto-Sync Holidays (Background)
             fetch('{{ route("admin.calendar.import-holidays") }}', {
                 method: 'POST',
@@ -983,6 +1095,7 @@
             }).then(res => res.json())
               .then(d => console.log('Holidays synced:', d))
               .catch(e => console.error('Sync failed:', e));
+            @endif
         });
 
         // Show modal if there are password errors (validation redirect)
@@ -1005,7 +1118,7 @@
         $isGuest = !auth()->check();
         $isLoginOrRegister = request()->routeIs('login') || request()->routeIs('register') || request()->routeIs('password.*');
         
-        $showWidget = ($isGuest || $isPatient) && !$isLoginOrRegister;
+        $showWidget = true; // Enabled for everyone for testing purposes
     @endphp
 
     @if($showWidget)
@@ -1031,13 +1144,13 @@
                 <!-- Quick Actions -->
                 <div style="display: flex; flex-direction: column; gap: 0.4rem; margin-top: 0.5rem;">
                     <a href="https://wa.me/5491139560673?text={{ urlencode('Hola Nazarena, ¿cómo puedo reservar un turno?') }}" target="_blank" class="neobrutalist-btn" style="padding: 0.4rem; font-size: 0.7rem; text-align: left; background: #fff; text-transform: none; border-width: 2px; box-shadow: 2px 2px 0px #000;">
-                        <i class="fa-solid fa-calendar-day" style="color: #25D366;"></i> ¿Cómo reservo un turno?
+                        <i class="fa-solid fa-calendar-day" style="color: #25D366;"></i> ¿Cómo reservo un turno? 📅
                     </a>
                     <a href="https://wa.me/5491139560673?text={{ urlencode('Hola Nazarena, tengo una consulta sobre los pagos de las sesiones.') }}" target="_blank" class="neobrutalist-btn" style="padding: 0.4rem; font-size: 0.7rem; text-align: left; background: #fff; text-transform: none; border-width: 2px; box-shadow: 2px 2px 0px #000;">
-                        <i class="fa-solid fa-money-bill-wave" style="color: #25D366;"></i> Consulta sobre pagos
+                        <i class="fa-solid fa-money-bill-wave" style="color: #25D366;"></i> Consulta sobre pagos 💰
                     </a>
                     <a href="https://wa.me/5491139560673?text={{ urlencode('Hola Nazarena, te quería consultar sobre la modalidad de las sesiones.') }}" target="_blank" class="neobrutalist-btn" style="padding: 0.4rem; font-size: 0.7rem; text-align: left; background: #fff; text-transform: none; border-width: 2px; box-shadow: 2px 2px 0px #000;">
-                        <i class="fa-solid fa-video" style="color: #25D366;"></i> Modalidad de las sesiones
+                        <i class="fa-solid fa-video" style="color: #25D366;"></i> Modalidad de las sesiones 💻
                     </a>
                 </div>
             </div>
@@ -1123,20 +1236,36 @@
     </script>
 
     <!-- Report Problem Modal -->
-    <div id="report-modal-overlay" class="confirm-modal-overlay" style="display: none; z-index: 12000;">
-        <div class="confirm-modal" style="width: 500px; max-width: 90%; border-radius: 16px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);">
-            <div class="confirm-modal-title" style="display: flex; justify-content: space-between; align-items: center;">
-                <span><i class="fa-solid fa-bug" style="color: #ef4444; margin-right: 8px;"></i> Reportar Problema</span>
-                <button onclick="document.getElementById('report-modal-overlay').style.display = 'none'" style="background:none; border:none; cursor:pointer;"><i class="fa-solid fa-times"></i></button>
+    <div id="report-modal-overlay" class="confirm-modal-overlay" style="display: none; z-index: 10002;">
+        <div class="confirm-modal" style="width: 500px; max-width: 90%; border-radius: 16px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); border: 2px solid #000; background: white;">
+            <div class="confirm-modal-title" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #f0f0f0; padding-bottom: 10px; margin-bottom: 15px;">
+                <span style="font-family: 'Syne', sans-serif; font-weight: 700;"><i class="fa-solid fa-bug" style="color: #ef4444; margin-right: 8px;"></i> Reportar Problema</span>
+                <button onclick="closeReportModal()" style="background:none; border:none; cursor:pointer; font-size: 1.2rem;"><i class="fa-solid fa-times"></i></button>
             </div>
-            <div style="margin: 1rem 0;">
-                <p style="font-size: 0.9rem; color: #666; margin-bottom: 1rem;">Describí brevemente qué pasó. Adjuntaremos datos técnicos automáticamente.</p>
-                <textarea id="report-desc" class="neobrutalist-input" rows="4" placeholder="Ej: No puedo guardar el turno cuando..." style="width: 100%;"></textarea>
-                <div id="report-status" style="margin-top: 5px; font-size: 0.8rem; color: #666;"></div>
+            
+            <div id="report-form-content">
+                <div style="margin: 1rem 0;">
+                    <p style="font-size: 0.9rem; color: #666; margin-bottom: 1rem; font-family: 'Inter', sans-serif;">Describí brevemente qué pasó.</p>
+                    <textarea id="report-desc" class="neobrutalist-input" rows="4" placeholder="Ej: No puedo guardar el turno cuando..." style="width: 100%; border: 2px solid #000; border-radius: 8px; padding: 10px; font-family: 'Inter', sans-serif;"></textarea>
+                </div>
+                <div class="confirm-modal-buttons" style="display: flex; gap: 10px; justify-content: center;">
+                    <button class="neobrutalist-btn bg-rosa" onclick="closeReportModal()" style="border-radius: 8px;">Cancelar</button>
+                    <button id="btn-send-report" class="neobrutalist-btn bg-celeste" onclick="submitReport()" style="border-radius: 8px;">Enviar Reporte</button>
+                </div>
             </div>
-            <div class="confirm-modal-buttons">
-                <button class="neobrutalist-btn bg-rosa" onclick="document.getElementById('report-modal-overlay').style.display = 'none'">Cancelar</button>
-                <button class="neobrutalist-btn bg-celeste" onclick="submitReport()">Enviar Reporte</button>
+
+            <!-- Success Message State -->
+            <div id="report-success-msg" style="display: none; text-align: center; padding: 20px;">
+                <i class="fa-solid fa-check-circle" style="font-size: 3rem; color: #388e3c; margin-bottom: 15px;"></i>
+                <h3 style="font-family: 'Syne', sans-serif; font-size: 1.2rem; margin-bottom: 10px;">¡Gracias por avisar!</h3>
+                <p style="font-family: 'Inter', sans-serif; color: #555; line-height: 1.5;">Ya se está encargando el técnico de arreglarlo. Muchas gracias y perdón las molestias.</p>
+                <button class="neobrutalist-btn" onclick="closeReportModal()" style="margin-top: 20px; background: #000; color: white; border-radius: 8px;">Cerrar</button>
+            </div>
+            
+            <!-- Loading State -->
+            <div id="report-loading-msg" style="display: none; text-align: center; padding: 20px;">
+                <i class="fa-solid fa-spinner fa-spin" style="font-size: 2rem; color: #000; margin-bottom: 15px;"></i>
+                <p style="font-family: 'Inter', sans-serif; color: #555;">Enviando reporte...</p>
             </div>
         </div>
     </div>
@@ -1208,5 +1337,439 @@
             }
         }
     </script>
+    <script>
+        // --- Sidebar Logic ---
+        window.toggleAdminSidebar = function() {
+            const sidebar = document.getElementById('admin-sidebar');
+            const layout = document.getElementById('admin-layout-container');
+            const closeBtn = document.querySelector('.sidebar-close-btn');
+            
+            // Toggle Button Icon (Desktop & Mobile)
+            // We search for the button calling this function
+            const allToggleBtns = document.querySelectorAll('button[onclick="window.toggleAdminSidebar()"]');
+
+            if (sidebar) {
+                const isCollapsed = sidebar.classList.contains('collapsed');
+                
+                if (isCollapsed) {
+                    // Open it
+                    sidebar.classList.remove('collapsed');
+                    document.cookie = "sidebar_collapsed=false; path=/";
+                    
+                    // Update Icons to X
+                    allToggleBtns.forEach(btn => {
+                        const i = btn.querySelector('i');
+                        if(i) {
+                            i.classList.remove('fa-bars');
+                            i.classList.add('fa-xmark');
+                        }
+                    });
+                    
+                    if(closeBtn) closeBtn.style.display = 'block';
+
+                } else {
+                    // Close it
+                    sidebar.classList.add('collapsed');
+                    document.cookie = "sidebar_collapsed=true; path=/";
+                    
+                    // Update Icons to Bars
+                    allToggleBtns.forEach(btn => {
+                        const i = btn.querySelector('i');
+                        if(i) {
+                            i.classList.remove('fa-xmark');
+                            i.classList.add('fa-bars');
+                        }
+                    });
+
+                    if(closeBtn) closeBtn.style.display = 'none';
+                }
+            }
+        };
+
+        window.closeAdminSidebar = function() {
+            const sidebar = document.getElementById('admin-sidebar');
+            // If it exists and is NOT collapsed (meaning it's open), we toggle it to close.
+            if(sidebar && !sidebar.classList.contains('collapsed')) {
+                window.toggleAdminSidebar();
+            }
+        };
+
+        // Auto-close sidebar when clicking a link (Global)
+        document.addEventListener('DOMContentLoaded', () => {
+            const sidebar = document.getElementById('admin-sidebar');
+            
+            if (sidebar) {
+                // Event Delegation for Click (Handles links correctly)
+                sidebar.addEventListener('click', (e) => {
+                    const link = e.target.closest('.sidebar-link');
+                    if (link) {
+                        // User Request: Don't close immediately (visually).
+                        // Instead, set the cookie so the NEXT page loads collapsed.
+                        document.cookie = "sidebar_collapsed=true; path=/";
+                    }
+                });
+            }
+        });
+
+        // --- Notifications Logic ---
+        document.addEventListener('DOMContentLoaded', () => {
+            
+            function initNotifications(config) {
+                const bell = document.getElementById(config.bellId);
+                const dropdown = document.getElementById(config.dropdownId);
+                const notifItems = document.getElementById(config.itemsId);
+                const notifCount = document.getElementById(config.countId);
+                
+                if (!bell || !dropdown) return;
+                
+                let isOpen = false;
+
+                async function fetchNotifications() {
+                    try {
+                        const url = "{{ route('notifications.latest') }}";
+                        const res = await fetch(url);
+                        if(!res.ok) throw new Error('Network error');
+                        const data = await res.json();
+                        renderNotifications(data);
+                        updateCount(data.length);
+                    } catch (e) {
+                         // Silent error
+                    }
+                }
+
+                function renderNotifications(notifs) {
+                    if(!notifItems) return;
+                    notifItems.innerHTML = '';
+                    if (notifs.length === 0) {
+                        notifItems.innerHTML = '<div style="padding: 1.5rem; text-align: center; color: #666; font-size: 0.9rem;">No tenés notificaciones nuevas 🎉</div>';
+                        return;
+                    }
+                    notifs.forEach(n => {
+                        const item = document.createElement('div');
+                        item.style.padding = '12px 15px';
+                        item.style.borderBottom = '1px solid #eee';
+                        item.style.cursor = 'pointer';
+                        item.style.transition = 'background 0.2s';
+                        item.onmouseover = () => item.style.background = '#f0f0f0';
+                        item.onmouseout = () => item.style.background = 'white';
+                        
+                        let icon = '<i class="fa-solid fa-info-circle" style="color: #3b82f6;"></i>';
+                        if(n.type && n.type.includes('Payment')) icon = '<i class="fa-solid fa-money-bill-wave" style="color: #10b981;"></i>';
+                        if(n.type && n.type.includes('Appointment')) icon = '<i class="fa-solid fa-calendar" style="color: #a855f7;"></i>';
+
+                        item.innerHTML = `
+                            <div style="display: flex; gap: 10px; align-items: flex-start;">
+                                <div style="margin-top: 2px;">${icon}</div>
+                                <div>
+                                    <div style="font-size: 0.85rem; color: #333; line-height: 1.4;">${n.data.message || 'Nueva notificación'}</div>
+                                    <div style="font-size: 0.75rem; color: #999; margin-top: 4px;">${new Date(n.created_at).toLocaleString()}</div>
+                                </div>
+                            </div>
+                        `;
+                        // Mark as read onclick
+                        item.onclick = async () => {
+                            const url = "{{ route('notifications.read', ':id') }}".replace(':id', n.id);
+                            await fetch(url, { 
+                                method: 'POST', 
+                                headers: {'X-CSRF-TOKEN': '{{ csrf_token() }}'} 
+                            });
+                            fetchNotifications();
+                        };
+                        notifItems.appendChild(item);
+                    });
+                }
+
+                function updateCount(count) {
+                    if(!notifCount) return;
+                    if (count > 0) {
+                        notifCount.style.display = 'flex';
+                        notifCount.innerText = count;
+                    } else {
+                        notifCount.style.display = 'none';
+                    }
+                }
+                
+                // Toggle Logic
+                bell.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    isOpen = !isOpen;
+                    dropdown.style.display = isOpen ? 'block' : 'none';
+                    if (isOpen) fetchNotifications();
+                });
+
+                document.addEventListener('click', () => {
+                    isOpen = false;
+                    dropdown.style.display = 'none';
+                });
+                
+                dropdown.addEventListener('click', (e) => e.stopPropagation());
+                
+                // Poll
+                setInterval(fetchNotifications, 60000);
+                fetchNotifications();
+            }
+
+            // Expose markAllRead globally but relying on active config context is tricky.
+            // Simplified: Global markAllRead just hits the endpoint and refreshes page or stays silent.
+            // Better: We hook it to reload the lists.
+            
+            // For now, let's just Init based on what exists.
+            initNotifications({
+                bellId: 'admin-notif-bell',
+                dropdownId: 'admin-notif-dropdown',
+                itemsId: 'admin-notif-items',
+                countId: 'admin-notif-count'
+            });
+            
+            initNotifications({
+                bellId: 'patient-notif-bell',
+                dropdownId: 'patient-notif-dropdown',
+                itemsId: 'patient-notif-items',
+                countId: 'patient-notif-count'
+            });
+
+            window.markAllRead = async function() {
+                await fetch('{{ route('notifications.read-all') }}', { 
+                    method: 'POST', 
+                    headers: {'X-CSRF-TOKEN': '{{ csrf_token() }}'} 
+                });
+                // Since we don't have easy access to the closure instances, and simplest UX is refresh or just wait next poll.
+                // We could dispatch event or just reload page if needed, but for now silent is okay.
+                // Or better: Re-run both inits? No, they add listeners.
+                
+                // Hack: Trigger clicks to close and re-open? No.
+                // Let's just trust the user will close and open again.
+                // Or we can manually hide the badge
+                const c1 = document.getElementById('admin-notif-count');
+                if(c1) c1.style.display = 'none';
+                const c2 = document.getElementById('patient-notif-count');
+                if(c2) c2.style.display = 'none';
+                
+                // And clear lists
+                 const l1 = document.getElementById('admin-notif-items');
+                 if(l1) l1.innerHTML = '<div style="padding: 1.5rem; text-align: center; color: #666; font-size: 0.9rem;">No tenés notificaciones nuevas 🎉</div>';
+                 const l2 = document.getElementById('patient-notif-items');
+                 if(l2) l2.innerHTML = '<div style="padding: 1.5rem; text-align: center; color: #666; font-size: 0.9rem;">No tenés notificaciones nuevas 🎉</div>';
+            }
+        });
+    </script>
+    @if(auth()->check() && auth()->user()->rol == 'admin' && auth()->user()->email !== 'joacooodelucaaa16@gmail.com' && !request()->routeIs('login') && !request()->routeIs('register'))
+        
+        <!-- BOTÓN FLOTANTE (FAB) -->
+        <style>
+            @keyframes pulse-border {
+                0% { box-shadow: 0 0 0 0 rgba(168, 85, 247, 0.7); }
+                70% { box-shadow: 0 0 0 15px rgba(168, 85, 247, 0); }
+                100% { box-shadow: 0 0 0 0 rgba(168, 85, 247, 0); }
+            }
+        </style>
+        <button onclick="toggleGemini()" id="ai-fab" style="
+            position: fixed;
+            bottom: 1.5rem;
+            right: 1.5rem;
+            width: 60px;
+            height: 60px;
+            background: #1976d2;
+            color: #fff;
+            border-radius: 50%;
+            border: none;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.6rem;
+            z-index: 10000;
+            transition: transform 0.2s;
+            animation: pulse-border 2s infinite;
+        ">
+            <i class="fa-solid fa-user-tie"></i>
+        </button>
+
+        <!-- PANEL ASISTENTE (Oculto por defecto) -->
+        <div id="ai-panel" style="
+            position: fixed;
+            bottom: 6rem;
+            right: 1.5rem;
+            width: 350px;
+            height: 500px;
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            border-radius: 20px;
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+            z-index: 10001;
+            font-family: 'Inter', sans-serif;
+        ">
+            <!-- Header Panel -->
+            <div style="
+                background: #ffffff;
+                color: #1f2937;
+                padding: 1.2rem;
+                font-weight: 700;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                border-bottom: 1px solid #f3f4f6;
+            ">
+                <div style="display: flex; align-items: center; gap: 0.8rem;">
+                    <div style="background: #eff6ff; padding: 8px; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                        <i class="fa-solid fa-user-tie" style="color: #3b82f6; font-size: 1.1rem;"></i>
+                    </div>
+                    <div style="display: flex; flex-direction: column;">
+                        <span style="letter-spacing: -0.3px; line-height: 1.1; font-size: 1rem;">Asistente Clínico</span>
+                        <span style="font-size: 0.75rem; color: #6b7280; font-weight: 500;">Modelo: Gemini 1.5 Flash</span>
+                    </div>
+                </div>
+                <button onclick="toggleGemini()" style="background: none; border: none; color: #9ca3af; font-size: 1.1rem; cursor: pointer; padding: 4px; transition: color 0.2s;" onmouseover="this.style.color='#1f2937'" onmouseout="this.style.color='#9ca3af'">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Messages Area -->
+            <div id="ai-messages" style="flex: 1; padding: 1rem; overflow-y: auto; background: #f0f2f5; display: flex; flex-direction: column; gap: 1rem;">
+                <!-- Welcome Message (Auto) -->
+                <div style="background: #ffffff; padding: 1rem; border-radius: 16px 16px 16px 0; align-self: flex-start; max-width: 90%; line-height: 1.5; font-size: 0.95rem; color: #374151; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                    Hola Lic. Nazarena 👋<br>¿En qué te puedo ayudar hoy?
+                </div>
+                
+                <!-- Quick Actions Chips -->
+                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: auto; justify-content: flex-start;">
+                    <button onclick="sendGeminiMessage('¿Qué turnos tengo hoy?')" style="background: #ffffff; border: 1px solid #e5e7eb; padding: 0.5rem 1rem; border-radius: 20px; font-size: 0.85rem; font-weight: 500; cursor: pointer; color: #4b5563; transition: all 0.2s; box-shadow: 0 1px 2px rgba(0,0,0,0.05);" onmouseover="this.style.background='#f9fafb'; this.style.borderColor='#d1d5db'" onmouseout="this.style.background='#ffffff'; this.style.borderColor='#e5e7eb'">¿Qué turnos tengo hoy?</button>
+                    <button onclick="sendGeminiMessage('¿Cómo están mis pagos?')" style="background: #ffffff; border: 1px solid #e5e7eb; padding: 0.5rem 1rem; border-radius: 20px; font-size: 0.85rem; font-weight: 500; cursor: pointer; color: #4b5563; transition: all 0.2s; box-shadow: 0 1px 2px rgba(0,0,0,0.05);" onmouseover="this.style.background='#f9fafb'; this.style.borderColor='#d1d5db'" onmouseout="this.style.background='#ffffff'; this.style.borderColor='#e5e7eb'">¿Cómo están mis pagos?</button>
+                </div>
+            </div>
+
+            <!-- Input Area -->
+            <div style="padding: 1rem; background: #ffffff; border-top: 1px solid #f3f4f6; display: flex; align-items: center; gap: 0.5rem;">
+                <textarea id="ai-input" placeholder="Escribí tu consulta..." rows="1" style="flex: 1; padding: 0.8rem 1rem; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 24px; resize: none; font-family: inherit; font-size: 0.95rem; outline: none; transition: border-color 0.2s;" onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='#e5e7eb'" onkeydown="if(event.key === 'Enter' && !event.shiftKey){ event.preventDefault(); sendGeminiMessage(); }"></textarea>
+                <button onclick="sendGeminiMessage()" style="
+                    background: #3b82f6; 
+                    color: #fff; 
+                    border: none; 
+                    width: 40px; 
+                    height: 40px; 
+                    border-radius: 50%; 
+                    cursor: pointer; 
+                    display: flex; 
+                    align-items: center; 
+                    justify-content: center; 
+                    box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.4); 
+                    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+                " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 8px -1px rgba(59, 130, 246, 0.5)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 6px -1px rgba(59, 130, 246, 0.4)'">
+                    <i class="fa-solid fa-paper-plane" style="font-size: 0.9rem;"></i>
+                </button>
+            </div>
+        </div>
+
+        <script>
+            function toggleGemini() {
+                const panel = document.getElementById('ai-panel');
+                if (panel) {
+                    panel.style.display = panel.style.display === 'none' || panel.style.display === '' ? 'flex' : 'none';
+                    if (panel.style.display === 'flex') {
+                        // Focus input
+                        setTimeout(() => document.getElementById('ai-input').focus(), 100);
+                    }
+                }
+            }
+
+            let currentGeminiController = null;
+
+            async function sendGeminiMessage(msg = null) {
+                const input = document.getElementById('ai-input');
+                const messages = document.getElementById('ai-messages');
+                const btnIcon = document.querySelector('#ai-input + button i'); 
+                
+                // If currently generating, stop
+                if (currentGeminiController) {
+                    currentGeminiController.abort();
+                    currentGeminiController = null;
+                    if(btnIcon) btnIcon.className = 'fa-solid fa-paper-plane';
+                    return;
+                }
+
+                const messageText = msg || input.value.trim();
+                if (!messageText) return;
+
+                if(btnIcon) btnIcon.className = 'fa-solid fa-square';
+
+                // 1. Show User Message
+                const userMsg = document.createElement('div');
+                userMsg.style.marginBottom = '0.5rem';
+                userMsg.style.background = '#e0f2fe'; 
+                userMsg.style.color = '#000';
+                userMsg.style.padding = '0.8rem';
+                userMsg.style.borderRadius = '12px 12px 0 12px';
+                userMsg.style.alignSelf = 'flex-end';
+                userMsg.style.maxWidth = '85%';
+                userMsg.style.fontSize = '0.95rem';
+                userMsg.innerHTML = `<strong>Vos:</strong> ${messageText}`;
+                messages.appendChild(userMsg);
+
+                if (!msg) input.value = '';
+                messages.scrollTop = messages.scrollHeight;
+
+                // 2. Loading
+                const aiMsg = document.createElement('div');
+                aiMsg.style.marginBottom = '0.5rem';
+                aiMsg.style.background = '#f0f7ff'; 
+                aiMsg.style.color = '#000';
+                aiMsg.style.padding = '0.8rem';
+                aiMsg.style.borderRadius = '12px 12px 12px 0';
+                aiMsg.style.alignSelf = 'flex-start';
+                aiMsg.style.maxWidth = '85%';
+                aiMsg.style.fontSize = '0.95rem';
+                aiMsg.innerHTML = '<strong>IA:</strong> ...'; 
+                messages.appendChild(aiMsg);
+                messages.scrollTop = messages.scrollHeight;
+
+                currentGeminiController = new AbortController();
+                
+                try {
+                    const response = await fetch('{{ route('admin.ai.chat') }}', {
+                        method: 'POST',
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                        },
+                        body: JSON.stringify({ message: messageText }),
+                        signal: currentGeminiController.signal
+                    });
+
+                    if (!response.ok) throw new Error('Error en la conexión con la IA');
+
+                    const data = await response.json();
+                    
+                    if (data.response) {
+                        // Replace simple newlines with breaks
+                        let formattedResp = data.response.replace(/\n/g, '<br>');
+                        // Basic markdown bold support
+                        formattedResp = formattedResp.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                        
+                        aiMsg.innerHTML = `<strong>IA:</strong> ${formattedResp}`;
+                    } else {
+                        aiMsg.innerHTML = "<strong>IA:</strong> No entendí, intentalo de nuevo.";
+                    }
+                    
+                    messages.scrollTop = messages.scrollHeight;
+                    
+                } catch (error) {
+                    if (error.name !== 'AbortError') {
+                        aiMsg.innerHTML = `<span style="color:red;">Error: ${error.message}</span>`;
+                    } else {
+                        aiMsg.innerHTML += " (Detenido)";
+                    }
+                } finally {
+                    currentGeminiController = null;
+                    if(btnIcon) btnIcon.className = 'fa-solid fa-paper-plane';
+                    // Re-focus input for fast conversation
+                    input.focus();
+                }
+            }
+        </script>
+    @endif
 </body>
 </html>

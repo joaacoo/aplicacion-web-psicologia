@@ -1,6 +1,7 @@
 @extends('layouts.app')
 
-@section('title', 'Pacientes - Lic. Nazarena De Luca')
+@section('title', 'Pacientes - Admin')
+@section('header_title', 'Gestión de Pacientes')
 
 @section('content')
 <div class="flex flex-col gap-8">
@@ -34,7 +35,8 @@
                             <td style="padding: 0.8rem; text-align: right;">
                                 <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
                             <button class="neobrutalist-btn no-select bg-amarillo" style="padding: 0.2rem 0.6rem; font-size: 0.7rem;" 
-                                    onclick="openManageModal('{{ $patient->id }}', '{{ $patient->nombre }}', '{{ $patient->email }}', '{{ $patient->telefono ?? 'No registrado' }}', '{{ $patient->tipo_paciente }}', '{{ $patient->meet_link }}')">
+                            <button class="neobrutalist-btn no-select bg-amarillo" style="padding: 0.2rem 0.6rem; font-size: 0.7rem;" 
+                                    onclick="openManageModal('{{ $patient->id }}', '{{ $patient->nombre }}', '{{ $patient->email }}', '{{ $patient->telefono ?? 'No registrado' }}', '{{ $patient->tipo_paciente }}', '{{ $patient->meet_link }}', '{{ $patient->paciente->precio_personalizado ?? 0 }}')">
                                         Gestionar
                                     </button>
                                 </div>

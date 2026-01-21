@@ -1,6 +1,7 @@
 @extends('layouts.app')
 
-@section('title', 'Gestión Turnos - Lic. Nazarena De Luca')
+@section('title', 'Turnos - Admin')
+@section('header_title', 'Gestión de Turnos')
 
 @section('content')
 <div class="flex flex-col gap-8">
@@ -39,7 +40,8 @@
                 </thead>
                 <tbody id="turnosTableBody">
                     @foreach($appointments as $appt)
-                        <tr style="border-bottom: 2px solid #eee;" class="turno-row" data-paciente="{{ strtolower($appt->user->nombre) }}" data-estado="{{ $appt->estado }}" data-tipo="{{ $appt->user->tipo_paciente }}">
+                        @php $tipo = $appt->user->paciente->tipo_paciente ?? 'nuevo'; @endphp
+                        <tr style="border-bottom: 2px solid #eee;" class="turno-row" data-paciente="{{ strtolower($appt->user->nombre) }}" data-estado="{{ $appt->estado }}" data-tipo="{{ $tipo }}">
                             <td data-label="Fecha" style="padding: 1rem; font-weight: 700;">{{ $appt->fecha_hora->format('d/m H:i') }} hs</td>
                             <td data-label="Paciente" style="padding: 1rem;">{{ $appt->user->nombre }}</td>
                             <td data-label="Estado" style="padding: 1rem;">
@@ -48,8 +50,9 @@
                                </span>
                             </td>
                             <td data-label="Tipo" style="padding: 1rem;">
-                                <span class="no-select" style="font-weight: bold; background: {{ $appt->user->tipo_paciente == 'frecuente' ? 'var(--color-verde)' : 'var(--color-amarillo)' }}; padding: 0.3rem 0.6rem; border: 2px solid #000; border-radius: 5px; text-transform: uppercase; font-size: 0.85rem;">
-                                    {{ $appt->user->tipo_paciente }}
+                                @php $tipo = $appt->user->paciente->tipo_paciente ?? 'nuevo'; @endphp
+                                <span class="no-select" style="font-weight: bold; background: {{ $tipo == 'frecuente' ? 'var(--color-verde)' : 'var(--color-amarillo)' }}; padding: 0.3rem 0.6rem; border: 2px solid #000; border-radius: 5px; text-transform: uppercase; font-size: 0.85rem;">
+                                    {{ $tipo }}
                                 </span>
                             </td>
                             <td style="padding: 1rem;">
@@ -123,8 +126,25 @@
         const nextBtn = document.getElementById('nextPageBtn');
 
         if (pageIndicator) pageIndicator.innerText = `Página ${currentPage} de ${totalPages}`;
-        if (prevBtn) prevBtn.disabled = (currentPage === 1);
-        if (nextBtn) nextBtn.disabled = (currentPage === totalPages);
+        
+        if (prevBtn) {
+            // [MODIFIED] Hide button if on page 1
+            if (currentPage === 1) {
+                prevBtn.style.display = 'none';
+            } else {
+                prevBtn.style.display = 'inline-block';
+                prevBtn.disabled = false;
+            }
+        }
+        
+        if (nextBtn) {
+             // Optional: Hide next button if on last page or empty
+             if (currentPage >= totalPages || totalRows === 0) {
+                 nextBtn.disabled = true; // Or hide it too if preferred
+             } else {
+                 nextBtn.disabled = false;
+             }
+        }
     }
 
     function changePage(dir) {

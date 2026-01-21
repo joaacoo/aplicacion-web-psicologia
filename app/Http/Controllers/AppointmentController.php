@@ -60,7 +60,17 @@ class AppointmentController extends Controller
     public function confirm($id)
     {
         $appointment = Appointment::findOrFail($id);
-        $appointment->update(['estado' => 'confirmado']);
+        
+        // [FINANCE] Lock price at confirmation to preserve history
+        $honorario = 0;
+        if ($appointment->user && $appointment->user->paciente) {
+            $honorario = $appointment->user->paciente->honorario_pactado;
+        }
+
+        $appointment->update([
+            'estado' => 'confirmado',
+            'monto_final' => $honorario
+        ]);
 
         // Notificar al Paciente
         \App\Models\Notification::create([

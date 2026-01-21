@@ -26,7 +26,7 @@ Route::get('/', function () {
 
 // Authentication Routes
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
-Route::post('/login', [AuthController::class, 'login']);
+Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
 Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
 Route::post('/register', [AuthController::class, 'register']);
 Route::match(['get', 'post'], '/logout', [AuthController::class, 'logout'])->name('logout');
@@ -40,6 +40,16 @@ Route::post('/password/reset', [AuthController::class, 'resetPassword'])->name('
 // Public Waitlist Routes
 Route::get('/waitlist', [\App\Http\Controllers\WaitlistController::class, 'create'])->name('waitlist.create');
 Route::post('/waitlist', [\App\Http\Controllers\WaitlistController::class, 'store'])->name('waitlist.store');
+
+// Public Support Ticket Route (Anonymous with Throttle)
+Route::post('/report-issue', [App\Http\Controllers\TicketController::class, 'store'])
+    ->middleware('throttle:3,1')
+    ->name('tickets.store');
+
+// Public API for Reports/Logs (Accessible by guests)
+Route::post('/api/tickets', [App\Http\Controllers\DeveloperController::class, 'storeTicket'])->name('api.tickets.store');
+Route::post('/api/log-error', [App\Http\Controllers\DeveloperController::class, 'logError'])->name('api.logs.store');
+
 
 // Protected Routes
 Route::middleware(['auth'])->group(function () {
@@ -98,15 +108,16 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/admin/patients/{id}/update-type', [AuthController::class, 'updatePatientType'])->name('admin.patients.update-type');
         Route::post('/admin/patients/{id}/update-link', [AuthController::class, 'updateMeetLink'])->name('admin.patients.update-link');
         Route::post('/admin/patients/{id}/send-reminder', [AuthController::class, 'sendManualReminder'])->name('admin.patients.send-reminder');
-        Route::post('/admin/patients/{id}/send-reminder', [AuthController::class, 'sendManualReminder'])->name('admin.patients.send-reminder');
+
         Route::delete('/admin/patients/{id}', [AuthController::class, 'destroyPatient'])->name('admin.patients.destroy');
         
         // Developer Dashboard
+        // Developer Dashboard
         Route::get('/admin/developer', [App\Http\Controllers\DeveloperController::class, 'index'])->name('admin.developer');
+        Route::post('/admin/developer/clear-cache', [App\Http\Controllers\DeveloperController::class, 'clearCache'])->name('admin.developer.clear-cache');
+        Route::post('/admin/developer/maintenance-mode', [App\Http\Controllers\DeveloperController::class, 'toggleMaintenance'])->name('admin.developer.maintenance-mode');
         
-        // Internal API for Reports/Logs
-        Route::post('/api/tickets', [App\Http\Controllers\DeveloperController::class, 'storeTicket'])->name('api.tickets.store');
-        Route::post('/api/log-error', [App\Http\Controllers\DeveloperController::class, 'logError'])->name('api.logs.store');        
+
         // Documents (Admin)
         Route::post('/admin/documents', [App\Http\Controllers\DocumentController::class, 'store'])->name('documents.store');
         Route::delete('/admin/documents/{document}', [App\Http\Controllers\DocumentController::class, 'destroy'])->name('documents.destroy');
@@ -121,7 +132,7 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/admin/calendar/toggle-weekends', [\App\Http\Controllers\CalendarController::class, 'toggleWeekends'])->name('admin.calendar.toggle-weekends');
         
         // Gemini AI
-        Route::post('/admin/ai/chat', [\App\Http\Controllers\AIController::class, 'chat'])->name('admin.ai.chat');
+        Route::post('/admin/ai/chat', [\App\Http\Controllers\AsistenteController::class, 'chat'])->name('admin.ai.chat');
         
         // Availabilities (Admin)
         Route::post('/admin/availabilities', [\App\Http\Controllers\CalendarController::class, 'storeAvailability'])->name('admin.availabilities.store');
@@ -132,6 +143,17 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/admin/blocked-days/{id}', [\App\Http\Controllers\CalendarController::class, 'destroyBlockedDay'])->name('admin.blocked-days.destroy');
         Route::post('/admin/calendar/import-holidays', [\App\Http\Controllers\CalendarController::class, 'importHolidays'])->name('admin.calendar.import-holidays');
         Route::post('/admin/settings', [\App\Http\Controllers\CalendarController::class, 'updateSettings'])->name('admin.settings.update');
+
+        // Finanzas
+        Route::get('/admin/finanzas', [\App\Http\Controllers\FinanceController::class, 'index'])->name('admin.finanzas');
+        Route::get('/admin/finanzas/report', [\App\Http\Controllers\FinanceController::class, 'report'])->name('admin.finanzas.report');
+        Route::get('/admin/finanzas/data', [\App\Http\Controllers\FinanceController::class, 'getChartData'])->name('admin.finance.chart-data');
+        Route::post('/admin/finanzas/pricing', [\App\Http\Controllers\FinanceController::class, 'updatePrices'])->name('admin.finance.update-prices');
+        Route::post('/admin/patients/{id}/update-honorario', [\App\Http\Controllers\FinanceController::class, 'updatePatientHonorario'])->name('admin.patients.update-honorario');
+        
+        // Gastos (Finance)
+        Route::post('/admin/finanzas/gastos', [\App\Http\Controllers\FinanceController::class, 'storeExpense'])->name('admin.finanzas.store-expense');
+        Route::delete('/admin/finanzas/gastos/{id}', [\App\Http\Controllers\FinanceController::class, 'destroyExpense'])->name('admin.finanzas.destroy-expense');
     });
 
     // Public iCal Feed (using token)

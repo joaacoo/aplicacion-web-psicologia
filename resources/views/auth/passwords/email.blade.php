@@ -4,7 +4,7 @@
 
 @section('content')
 <div class="flex justify-center items-center" style="min-height: 70vh;">
-    <div class="neobrutalist-card" style="width: 100%; max-width: 500px; background: white;">
+    <div class="neobrutalist-card" style="width: 100%; max-width: 500px; background: white; margin-bottom: 4rem;">
         
         <h2 class="text-center" style="margin-bottom: 0.5rem; font-size: 2rem;">¿Olvidaste tu contraseña?</h2>
         <p class="text-center" style="margin-bottom: 2rem; color: #555;">Ingresá tu email y te enviaremos un link para crear una nueva.</p>

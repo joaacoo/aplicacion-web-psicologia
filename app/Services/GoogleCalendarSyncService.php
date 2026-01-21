@@ -15,12 +15,13 @@ class GoogleCalendarSyncService
      */
     public function sync(User $user)
     {
-        if (!$user->google_calendar_url) {
+        $pro = $user->profesional;
+        if (!$pro || !$pro->google_calendar_url) {
             return false;
         }
 
         try {
-            $response = Http::withoutVerifying()->get($user->google_calendar_url);
+            $response = Http::withoutVerifying()->get($pro->google_calendar_url);
             if (!$response->successful()) {
                 Log::error("Failed to fetch Google Calendar for user {$user->id}");
                 return false;

@@ -67,7 +67,11 @@ class DeveloperController extends Controller
             'description' => $request->description,
             'status' => 'nuevo',
             'priority' => 'media', // Default, admin can escalate
-            'metadata' => $request->metadata
+            'metadata' => array_merge($request->metadata ?? [], [
+                'user_id' => auth()->id(),
+                'url' => $request->input('url', url()->previous()),
+                'timestamp' => now()->toDateTimeString()
+            ])
         ]);
 
         // Send Email Notification to Admin
@@ -99,5 +103,18 @@ class DeveloperController extends Controller
         ]);
 
         return response()->json(['status' => 'logged']);
+    }
+    // 4. Quick Actions
+    public function clearCache()
+    {
+        \Illuminate\Support\Facades\Artisan::call('optimize:clear');
+        return response()->json(['message' => 'Caché eliminada correctamente.']);
+    }
+
+    public function toggleMaintenance()
+    {
+        // For now, we won't actually bring the site down via Artisan to avoid lockout.
+        // We will just return a success message simulating the action or use a cache key.
+        return response()->json(['message' => 'Modo mantenimiento alternado (Simulado).']);
     }
 }

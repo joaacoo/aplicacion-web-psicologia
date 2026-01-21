@@ -13,27 +13,30 @@
         <h2 class="text-center" style="margin-bottom: 0.2rem; font-size: 2.2rem;">Iniciar Sesión</h2>
         <p class="text-center" style="margin-bottom: 1.2rem; color: #555; font-size: 0.95rem;">Bienvenida/o a tu espacio seguro</p>
 
-        <form action="/login" method="POST" class="w-full">
+        <form action="{{ route('login') }}" method="POST" class="w-full">
             @csrf
 
             <div class="text-center mb-6">
+                <!-- Ensure this asset exists or is correct, user used asset('img/logo-nuevo.png') -->
                 <img src="{{ asset('img/logo-nuevo.png') }}" alt="Logo Lic. Nazarena De Luca" style="width: 100%; max-width: 200px; height: auto; margin: 0 auto;">
             </div>
             
             <div class="mb-4">
                 <label for="email" style="font-weight: 700;">Email</label>
                 <input type="email" name="email" id="email" class="neobrutalist-input" required placeholder="nombre@ejemplo.com" value="{{ old('email') }}">
-                @error('email')
-                    <span style="color: red; font-size: 0.8rem; font-weight: bold; display: block; margin-top: 5px;">{{ $message }}</span>
-                @enderror
+
             </div>
 
             <div class="mb-4">
                 <label for="password" style="font-weight: 700;">Contraseña</label>
                 <input type="password" name="password" id="password" class="neobrutalist-input" required placeholder="Tu contraseña">
+                @error('email')
+                    <span style="color: red; font-size: 1rem; font-weight: bold; display: block; margin-top: 5px;">{{ $message }}</span>
+                @enderror
                 @error('password')
                     <span style="color: red; font-size: 1rem; font-weight: bold; display: block; margin-top: 0.5rem;">{{ $message }}</span>
                 @enderror
+                <!-- If the generic credentials error is not caught by specific fields, it might need to be displayed here manually if it comes as a general error bag item, but usually 'email' key catches it -->
             </div>
 
             <div class="px-6 flex items-center" style="margin-top: 0.5rem; margin-bottom: 0.5rem;">

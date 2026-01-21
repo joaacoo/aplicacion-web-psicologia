@@ -1,16 +1,19 @@
 @extends('layouts.app')
 
+@section('title', 'Developer - Admin')
+@section('header_title', 'Panel de Desarrollador')
 @section('content')
 <div style="padding: 2rem; font-family: 'Inter', sans-serif;">
     
     <!-- Header -->
+    <!-- Header -->
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
         <div>
-            <h1 style="font-size: 1.8rem; font-weight: 800; margin-bottom: 0.5rem;">Panel de Desarrollador</h1>
-            <p style="color: #666;">Centro de Control y Monitoreo del Sistema</p>
+            <h1 style="font-weight: 700; color: #000; letter-spacing: -1px;">Panel de Desarrollador</h1>
+            <p style="color: #666; font-size: 0.9rem;">Monitoreo y herramientas del sistema</p>
         </div>
         <div style="text-align: right;">
-            <span style="font-size: 0.9rem; color: #999;">Última actualización: {{ now()->format('H:i:s') }}</span>
+
         </div>
     </div>
 
@@ -38,15 +41,84 @@
                     <i class="fa-solid {{ $systemStatus == 'green' ? 'fa-check' : ($systemStatus == 'yellow' ? 'fa-exclamation' : 'fa-bug') }}"></i>
                 </div>
                 <div>
-                    <h4 style="margin: 0; font-size: 1.4rem; font-weight: 800;">
+                    <h4 style="margin: 0; font-size: 1.4rem; font-weight: 800; display: flex; align-items: center; gap: 8px;">
+                        <span style="width: 10px; height: 10px; background: {{ $systemStatus == 'green' ? '#10b981' : ($systemStatus == 'yellow' ? '#eab308' : '#ef4444') }}; border-radius: 50%; display: inline-block; animation: pulse 2s infinite;"></span>
                         {{ $systemStatus == 'green' ? 'SISTEMA ESTABLE' : ($systemStatus == 'yellow' ? 'ATENCIÓN REQUERIDA' : 'ESTADO CRÍTICO') }}
                     </h4>
                     <p style="margin: 0.5rem 0 0 0; color: #555;">
-                        {{ $systemStatus == 'green' ? 'Todos los sistemas operativos. No se detectan anomalías.' : 'Se detectaron reportes o errores que requieren revisión.' }}
+                        {{ $systemStatus == 'green' ? 'El sitio de turnos está operando sin problemas. No hay errores reportados.' : 'Se detectaron reportes o errores que requieren revisión.' }}
                     </p>
+                    <style>
+                    @keyframes pulse {
+                        0% { opacity: 1; }
+                        50% { opacity: 0.4; }
+                        100% { opacity: 1; }
+                    }
+                    .dev-action-btn {
+                       transition: transform 0.2s, background-color 0.2s;
+                    }
+                    .dev-action-btn:hover {
+                        transform: translateY(-3px);
+                        background-color: #f9fafb !important;
+                        border-color: #d1d5db !important;
+                    }
+                    </style>
                 </div>
             </div>
         </div>
+    </div>
+    
+    <!-- Quick Actions & Services -->
+    <div style="margin-bottom: 2rem;">
+        <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 1rem;">Acciones de Desarrollador</h3>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 0.5rem;">
+            <button onclick="runQuickAction('{{ route('admin.developer.clear-cache') }}')" class="dev-action-btn" style="padding: 0.5rem 1rem; border-radius: 8px; border: 1px solid #e5e7eb; background: white; cursor: pointer; font-size: 0.85rem; font-weight: 600;">
+                <i class="fa-solid fa-broom" style="margin-right: 5px;"></i> Limpiar Caché
+            </button>
+            <button onclick="runQuickAction('{{ route('admin.developer.maintenance-mode') }}')" class="dev-action-btn" style="padding: 0.5rem 1rem; border-radius: 8px; border: 1px solid #e5e7eb; background: white; cursor: pointer; font-size: 0.85rem; font-weight: 600;">
+                <i class="fa-solid fa-hammer" style="margin-right: 5px;"></i> Modo Mantenimiento
+            </button>
+            <button onclick="testAI()" class="dev-action-btn" style="padding: 0.5rem 1rem; border-radius: 8px; border: 1px solid #e5e7eb; background: white; cursor: pointer; font-size: 0.85rem; font-weight: 600; color: #3b82f6;">
+                <i class="fa-solid fa-robot" style="margin-right: 5px;"></i> Testear IA
+            </button>
+        </div>
+        <script>
+            function testAI() {
+                if(!confirm('¿Probar conexión con Gemini 1.5 Flash?')) return;
+                fetch('{{ route("admin.ai.chat") }}', { 
+                    method: 'POST', 
+                    headers: {'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}'},
+                    body: JSON.stringify({ message: 'Hola, esto es un test de conexión.' })
+                })
+                .then(r => r.json())
+                .then(d => alert('Respuesta IA: ' + d.response))
+                .catch(e => alert('Error: ' + e));
+            }
+        </script>
+        <p style="font-size: 0.8rem; color: #6b7280; margin-bottom: 1.5rem;">
+            <i class="fa-solid fa-info-circle" style="margin-right: 4px;"></i> 
+            <strong>Limpiar Caché:</strong> Elimina archivos temporales para reflejar cambios recientes. 
+            <strong>Modo Mantenimiento:</strong> Desactiva el acceso público al sitio temporalmente.
+        </p>
+        
+        <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 1rem;">Estado Servicios</h3>
+        <div style="display: flex; gap: 1rem; margin-bottom: 0.5rem;">
+             <div style="display: flex; align-items: center; gap: 5px; font-size: 0.9rem;">
+                <span style="width: 8px; height: 8px; background: {{ DB::connection()->getPdo() ? '#10b981' : '#ef4444' }}; border-radius: 50%;"></span> MySQL
+             </div>
+             <div style="display: flex; align-items: center; gap: 5px; font-size: 0.9rem;">
+                <span style="width: 8px; height: 8px; background: {{ config('mail.host') ? '#10b981' : '#eab308' }}; border-radius: 50%;"></span> Correos
+             </div>
+             <div style="display: flex; align-items: center; gap: 5px; font-size: 0.9rem;">
+                <span style="width: 8px; height: 8px; background: #10b981; border-radius: 50%;"></span> Hostinger
+             </div>
+        </div>
+        <p style="font-size: 0.8rem; color: #6b7280;">
+            <i class="fa-solid fa-server" style="margin-right: 4px;"></i>
+            <strong>MySQL:</strong> Base de datos principal. 
+            <strong>Correos:</strong> Servicio SMTP para emails. 
+            <strong>Hostinger:</strong> Estado del servidor de hosting.
+        </p>
     </div>
 
     <!-- B. Metrics -->
@@ -172,4 +244,22 @@
     </div>
 
 </div>
+</div>
+
+<script>
+    function runQuickAction(url) {
+        if(!confirm('¿Ejecutar esta acción remota?')) return;
+        
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            }
+        })
+        .then(res => res.json())
+        .then(data => alert(data.message))
+        .catch(err => alert('Error: ' + err));
+    }
+</script>
 @endsection

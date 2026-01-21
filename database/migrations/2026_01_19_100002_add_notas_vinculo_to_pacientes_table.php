@@ -11,8 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('usuarios', function (Blueprint $table) {
-            $table->boolean('block_weekends')->default(false)->after('password');
+        Schema::table('pacientes', function (Blueprint $table) {
+            $table->text('notas_vinculo')->nullable()->after('honorario_pactado');
         });
     }
 
@@ -21,8 +21,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('usuarios', function (Blueprint $table) {
-            $table->dropColumn('block_weekends');
+        Schema::table('pacientes', function (Blueprint $table) {
+            $table->dropColumn('notas_vinculo');
         });
     }
 };

@@ -91,7 +91,17 @@ class PaymentController extends Controller
         $payment = Payment::findOrFail($id);
         $payment->update(['estado' => 'verificado', 'verificado_en' => now()]);
         
-        $payment->appointment->update(['estado' => 'confirmado']);
+        $payment->appointment->update(['estado' => 'confirmado']); // Note: In a real scenario, we should also update monto_final here
+        
+        // [FINANCE] Lock price
+        $honorario = 0;
+        if ($payment->appointment->user && $payment->appointment->user->paciente) {
+             $honorario = $payment->appointment->user->paciente->honorario_pactado;
+        }
+        $payment->appointment->update([
+            'estado' => 'confirmado',
+            'monto_final' => $honorario
+        ]);
 
         // Notificar al Paciente por DB
         \App\Models\Notification::create([
