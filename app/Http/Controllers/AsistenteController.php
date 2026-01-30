@@ -38,7 +38,7 @@ class AsistenteController extends Controller
             }
 
             $client = (new Factory)->withApiKey($apiKey)->make();
-            $model = $client->generativeModel(model: 'gemini-1.5-flash');
+            $model = $client->generativeModel(model: 'gemini-1.5-flash-001');
 
             // Definir herramientas
             $tools = [

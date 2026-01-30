@@ -330,14 +330,107 @@ h3.special-font {
     padding: 0 20px;
 }
 
-/* Navbar (Matching reference) */
-.navbar {
-    position: sticky;
-    top: 0;
-    z-index: 100;
+/* --- Layout Unificado (Universal) --- */
+
+/* 1. Variables de Layout */
+:root {
+    --header-height: 80px;
+    /* Altura Maestra Fija */
+    --sidebar-width: 280px;
+    --z-header: 1000;
+    --z-sidebar: 1001;
+    --z-modal: 9999;
+}
+
+/* 2. Contenedor Principal (Flex Wrapper) */
+.app-wrapper {
+    display: flex;
+    min-height: 100vh;
+    width: 100%;
+    overflow-x: hidden;
+}
+
+/* 3. Main Content Wrapper */
+.app-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    /* Prevenir desbordamientos en flex children */
+    transition: margin-left 0.3s ease;
+}
+
+/* 4. HEADER UNIVERSAL (Hereda para todos los roles) */
+.universal-header {
+    height: var(--header-height);
     background-color: var(--color-white);
     border-bottom: var(--border-thick);
-    padding: 1rem 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 1.5rem;
+    position: sticky;
+    top: 0;
+    width: 100%;
+    z-index: var(--z-header);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    height: 100%;
+}
+
+/* 5. Navbar interna (Contenedor de links/herramientas) */
+.header-navbar {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    height: 100%;
+}
+
+/* CLASE PARA OCULTAR SIN ROMPER LAYOUT (Para Pacientes) */
+.role-hidden {
+    visibility: hidden;
+    pointer-events: none;
+    opacity: 0;
+    /* Mantiene el ancho/espacio pero no se ve */
+}
+
+/* 6. Ajustes de Contenido */
+.page-content {
+    padding: 2rem;
+    flex: 1;
+    width: 100%;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+/* Ajuste Mobile */
+@media (max-width: 768px) {
+    .universal-header {
+        padding: 0 1rem;
+    }
+
+    .page-content {
+        padding: 1rem;
+    }
+}
+
+/* --- Fin Layout Unificado --- */
+
+/* Navbar Legacy (Mantenido por compatibilidad si es necesario, pero reescrito arriba) */
+.navbar {
+    /* Legacy override */
+    display: none;
 }
 
 .nav-container {
@@ -1488,48 +1581,59 @@ body.has-sub-nav {
     color: #000;
 }
 
-/* Admin Sidebar Collapsible - Overlay Mode */
-.admin-layout {
-    display: flex;
-    min-height: 100vh;
-    width: 100%;
-    position: relative;
-    overflow-x: hidden;
-}
-
+/* 5. SIDEBAR (Hybrid: Sticky Desktop / Fixed Mobile) */
 .admin-sidebar {
-    width: 300px;
-    /* Increased slightly for better text visibility */
+    width: var(--sidebar-width);
     background: white;
     border-right: var(--border-thick);
     padding: 1.5rem;
     display: flex;
     flex-direction: column;
-    position: fixed;
-    left: 0;
-    top: 0;
     height: 100vh;
-    z-index: 6000;
-    /* Higher than navbar but equal to sidebar toggles */
+    z-index: var(--z-sidebar);
+    flex-shrink: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+
+    /* Desktop Default: Sticky */
+    position: sticky;
+    top: 0;
+    left: 0;
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 4px 0 10px rgba(0, 0, 0, 0.1);
-    overflow: hidden;
-    /* Static sidebar as per Master Prompt */
 }
 
-.admin-sidebar.collapsed,
-.admin-sidebar.closed {
+.admin-sidebar.collapsed {
+    margin-left: calc(var(--sidebar-width) * -1);
+    /* Slide out negative margin for sticky */
     transform: translateX(-100%);
 }
 
-.admin-layout {
-    display: flex;
-    min-height: 100vh;
-    width: 100%;
+/* Mobile Overrides used by JS toggle */
+@media (max-width: 1024px) {
+    .admin-sidebar {
+        position: fixed;
+        /* Overlay on mobile */
+        height: 100%;
+        transform: translateX(-100%);
+        /* Hidden by default */
+        box-shadow: 4px 0 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .admin-sidebar.active {
+        transform: translateX(0);
+    }
+
+    .app-main {
+        margin-left: 0 !important;
+        /* No pushing on mobile */
+        width: 100% !important;
+    }
 }
 
-.admin-layout.sidebar-open .main-content {
-    margin-left: var(--sidebar-width);
+/* Legacy Compat: Ensure .admin-layout classes don't break new structure */
+.admin-layout {
+    display: contents;
+    /* Let children flow in app-wrapper */
 }
 
 .admin-sidebar-toggle {

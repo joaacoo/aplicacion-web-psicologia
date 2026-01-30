@@ -110,15 +110,20 @@
                 <span style="width: 8px; height: 8px; background: {{ config('mail.host') ? '#10b981' : '#eab308' }}; border-radius: 50%;"></span> Correos
              </div>
              <div style="display: flex; align-items: center; gap: 5px; font-size: 0.9rem;">
-                <span style="width: 8px; height: 8px; background: #10b981; border-radius: 50%;"></span> Hostinger
+                <span style="width: 8px; height: 8px; background: #ef4444; border-radius: 50%;"></span> Hostinger
              </div>
         </div>
-        <p style="font-size: 0.8rem; color: #6b7280;">
+        <p style="font-size: 0.8rem; color: #6b7280; margin-bottom: 0.5rem;">
             <i class="fa-solid fa-server" style="margin-right: 4px;"></i>
             <strong>MySQL:</strong> Base de datos principal. 
             <strong>Correos:</strong> Servicio SMTP para emails. 
-            <strong>Hostinger:</strong> Estado del servidor de hosting.
+            <strong>Hostinger:</strong> Conexión con servidor de producción.
         </p>
+        <div style="font-size: 0.75rem; color: #888; display: flex; gap: 10px;">
+            <span style="display: flex; align-items: center; gap: 4px;"><span style="width: 6px; height: 6px; background: #10b981; border-radius: 50%;"></span> Online</span>
+            <span style="display: flex; align-items: center; gap: 4px;"><span style="width: 6px; height: 6px; background: #eab308; border-radius: 50%;"></span> Warning</span>
+            <span style="display: flex; align-items: center; gap: 4px;"><span style="width: 6px; height: 6px; background: #ef4444; border-radius: 50%;"></span> Offline/Error</span>
+        </div>
     </div>
 
     <!-- B. Metrics -->

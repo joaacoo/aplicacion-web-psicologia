@@ -11,6 +11,57 @@
     <link rel="icon" type="image/jpeg" href="{{ asset('img/069b6f01-e0b6-4089-9e31-e383edf4ff62.jpg') }}">
 </head>
 <body style="background-color: var(--color-celeste);"> <!-- Fondo celeste en body general como en Hero del reference para dar más vida -->
+    <script>
+        // Critical System Script - Must load early
+        window.toggleAdminSidebar = function() {
+            try {
+                const sidebar = document.getElementById('admin-sidebar');
+                const toggleBtn = document.getElementById('admin-sidebar-toggle');
+                
+                if (!sidebar) {
+                    console.error('Error: Sidebar no encontrada');
+                    return;
+                }
+                
+                const isMobile = window.innerWidth <= 1024;
+                
+                if (isMobile) {
+                    sidebar.classList.toggle('active');
+                    document.body.style.overflow = sidebar.classList.contains('active') ? 'hidden' : '';
+                    
+                    // Close button logic
+                    const closeBtn = document.querySelector('.sidebar-close-btn');
+                    if(closeBtn) closeBtn.style.display = sidebar.classList.contains('active') ? 'block' : 'none';
+                } else {
+                    sidebar.classList.toggle('collapsed');
+                    
+                    // Force style update to guarantee visibility
+                    if (sidebar.classList.contains('collapsed')) {
+                        sidebar.style.transform = 'translateX(-100%)';
+                    } else {
+                        sidebar.style.transform = 'translateX(0)';
+                    }
+
+                    document.cookie = "sidebar_collapsed=" + sidebar.classList.contains('collapsed') + "; path=/; max-age=" + (60 * 60 * 24 * 30);
+                    
+                    // Layout push
+                    const layout = document.getElementById('admin-layout-container');
+                    if(layout) layout.classList.toggle('sidebar-open', !sidebar.classList.contains('collapsed'));
+                }
+
+                // Icon Sync
+                if (toggleBtn) {
+                     const i = toggleBtn.querySelector('i');
+                     if(i) {
+                         const isOpen = (isMobile && sidebar.classList.contains('active')) || (!isMobile && !sidebar.classList.contains('collapsed'));
+                         i.className = isOpen ? 'fa-solid fa-xmark' : 'fa-solid fa-bars';
+                     }
+                }
+            } catch(e) {
+                console.error('Error crítico sidebar:', e);
+            }
+        };
+    </script>
 
     @auth
         @php
@@ -28,31 +79,30 @@
         {{-- Auth pages: Minimal, no nav, no extra padding --}}
         @yield('content')
     @else
-        @if(isset($isAdmin) && $isAdmin)
-            <!-- Admin Layout Container -->
-            <div class="admin-layout @if(isset($isAdmin) && $isAdmin && isset($_COOKIE['sidebar_collapsed']) && $_COOKIE['sidebar_collapsed'] == 'true') @else sidebar-open @endif" id="admin-layout-container">
-                <aside class="admin-sidebar @if(isset($_COOKIE['sidebar_collapsed']) && $_COOKIE['sidebar_collapsed'] == 'true') collapsed @endif" id="admin-sidebar" style="z-index: 6001; display: flex; flex-direction: column; height: 100vh; position: fixed; left: 0; top: 0; bottom: 0; overflow: hidden;">
+        <!-- STRUCTURE: Unified Application Wrapper -->
+        <div class="app-wrapper">
+            
+            <!-- [SIDEBAR SECTION] Only for Admin/Psychologist -->
+            @if(isset($isAdmin) && $isAdmin)
+                <aside class="admin-sidebar @if(isset($_COOKIE['sidebar_collapsed']) && $_COOKIE['sidebar_collapsed'] == 'true') collapsed @endif" id="admin-sidebar" style="z-index: 6001; display: flex; flex-direction: column; height: 100vh; position: sticky; top: 0; left: 0; flex-shrink: 0;">
                     <!-- Close button for mobile -->
                     <button onclick="window.toggleAdminSidebar()" class="sidebar-close-btn" style="position: absolute; top: 1rem; right: 1rem; background: none; border: none; font-size: 1.5rem; cursor: pointer; z-index: 10; display: none; color: #000; padding: 0.5rem;">
+                        <i class="fa-solid fa-times"></i>
                     </button>
                     
                     @if(auth()->user()->email === 'joacooodelucaaa16@gmail.com')
-                        <div class="sidebar-logo" style="padding: 1.5rem 0.5rem; margin-bottom: 1rem; border-bottom: 1px solid rgba(0, 0, 0, 0.1); display: flex; align-items: center; justify-content: center; width: 100%; height: 2.5rem; flex-shrink: 0;">
+                        <div class="sidebar-logo" style="padding: 1.5rem 0.5rem; margin-bottom: 1rem; border-bottom: 1px solid rgba(0, 0, 0, 0.1); display: flex; align-items: center; justify-content: center; width: 100%; height: var(--header-height); flex-shrink: 0;">
                              <span class="sidebar-text sidebar-text-small" style="font-size: 0.95rem !important; font-weight: normal; letter-spacing: -0.2px; white-space: nowrap; flex-shrink: 0; color: white; display: flex; align-items: center; text-align: center; height: 100%;">Panel de Desarrollador</span>
                         </div>
                     @else
-                            <div class="sidebar-logo" style="padding: 1.5rem 0.5rem; margin-bottom: 2rem; border-bottom: 3px solid #000; display: flex; align-items: center; justify-content: center; gap: 0.6rem; overflow: hidden; width: 100%; height: 2.5rem; flex-shrink: 0;">
+                            <div class="sidebar-logo" style="padding: 1.5rem 0.5rem; margin-bottom: 2rem; border-bottom: 3px solid #000; display: flex; align-items: center; justify-content: center; gap: 0.6rem; overflow: hidden; width: 100%; height: var(--header-height); flex-shrink: 0;">
                             <i class="fa-solid fa-brain" style="color: #000; font-size: 1.3rem; flex-shrink: 0; display: flex; align-items: center; height: 100%;"></i>
                             <span class="sidebar-text sidebar-text-small" style="font-size: 0.95rem !important; font-weight: normal; letter-spacing: -0.2px; white-space: nowrap; flex-shrink: 0; color: rgba(0, 0, 0, 0.5); display: flex; align-items: center; text-align: center; height: 100%;">Espacio Terapéutico</span>
                         </div>
                     @endif
                     
                     <nav class="sidebar-nav" style="flex: 1; min-height: 0; padding: 15px; padding-bottom: 2rem; overflow-y: auto; overflow-x: visible; display: flex; flex-direction: column; gap: 12px; overscroll-behavior: contain;">
-                        <style>
-                            /* Hide internal nav scrollbar if present */
-                            .sidebar-nav::-webkit-scrollbar { width: 4px; }
-                            .sidebar-nav::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 4px; }
-                        </style>
+                        <!-- Sidebar Links (Same as before) -->
                         @if(auth()->user()->email !== 'joacooodelucaaa16@gmail.com')
                             <a href="{{ route('admin.home') }}" class="sidebar-link bg-lila">
                                 <i class="fa-solid fa-house"></i>
@@ -103,200 +153,94 @@
                         @endif
                     </nav>
 
-                    <div class="sidebar-footer" style="padding: 1.5rem 0.5rem; borderm-top: 1px solid rgba(0, 0, 0, 0.1); display: flex; align-items: center; justify-content: center; gap: 0.5rem; overflow: hidden; flex-shrink: 0; background: white;">
+                     <div class="sidebar-footer" style="padding: 1.5rem 0.5rem; border-top: 3px solid #000; display: flex; align-items: center; justify-content: center; gap: 0.5rem; overflow: hidden; flex-shrink: 0; background: white;">
                             <a href="javascript:void(0)" class="sidebar-link" style="background-color: var(--color-rojo); color: white; width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem;" onclick="window.showConfirm('¿Cerrar sesión?', () => document.getElementById('logout-form').submit())">
                                 <i class="fa-solid fa-sign-out-alt" style="line-height: 1;"></i>
                                 <span class="sidebar-text" style="font-size: 0.9rem; line-height: 1;">Cerrar Sesión</span>
                             </a>
                     </div>
                 </aside>
+            @endif
 
-                <main class="main-content" style="padding-top: 0 !important;"> 
-                    <!-- Unified Admin Header -->
-                    <div class="admin-unified-header" style="padding: 1rem 2rem; display: flex; align-items: center; justify-content: space-between; background: white; border-bottom: 1px solid #e5e7eb; position: sticky; top: 0; z-index: 40;">
-                        <div style="display: flex; align-items: center;">
-                             <button onclick="window.toggleAdminSidebar()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; margin-right: 1rem; color: #111827; display: flex; align-items: center; justify-content: center; width: 40px; height: 40px;">
+            <!-- [MAIN CONTENT SECTION] Universal for All Roles -->
+            <!-- The 'app-main' class ensures it takes remaining width -->
+            <div class="app-main">
+                
+                <!-- UNIVERSAL HEADER (Identical HTML Structure for ALL) -->
+                <header class="universal-header">
+                    
+                    <!-- LEFT SIDE: Toggle (Admin) + Brand -->
+                    <div class="header-left">
+                        @if(isset($isAdmin) && $isAdmin)
+                            <button id="admin-sidebar-toggle" onclick="window.toggleAdminSidebar()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; margin-right: 0.5rem; color: #111827; display: flex; align-items: center; justify-content: center; width: 40px; height: 40px;">
                                 <i class="fa-solid fa-bars"></i>
                             </button>
-                            <span style="font-size: 1.3rem; font-weight: 700; font-family: 'Fraunces', serif; color: #111827; display: flex; align-items: center; gap: 10px;">
-                                Lic. Nazarena De Luca
-                                <span style="color: #e5e7eb; font-weight: 300; font-size: 1.5rem;">|</span>
-                                <span style="color: #111827; font-weight: 500;">
-                                    @hasSection('header_title')
-                                        @yield('header_title')
-                                    @else
-                                        @if(request()->routeIs('admin.historial'))
-                                            Historial
-                                        @elseif(request()->routeIs('admin.developer'))
-                                            Panel Developer
-                                        @else
-                                            Panel de Control
-                                        @endif
-                                    @endif
-                                </span>
-                            </span>
-                        </div>
-                        
-                        <div style="display: flex; align-items: center; gap: 1.2rem;">
-                            <!-- Notifications Bell -->
-                            <div id="admin-notif-bell" class="notification-bell-container" style="cursor: pointer; position: relative; font-size: 1.5rem; display: flex; align-items: center;">
-                                <i class="fa-solid fa-bell" style="color: #000;"></i>
-                                <span class="notification-badge" id="admin-notif-count" style="position: absolute; top: -5px; right: -5px; background: #ff4d4d; color: white; border-radius: 50%; width: 24px; height: 24px; font-size: 0.7rem; display: none; align-items: center; justify-content: center; border: 2px solid #fff; font-weight: 800; font-weight: 900;">0</span>
-                                
-                                <!-- Dropdown -->
-                                <div id="admin-notif-dropdown" class="notification-dropdown" onclick="event.stopPropagation()" style="display: none; position: absolute; top: calc(100% + 20px); right: -10px; width: 380px; max-width: 90vw; background: white; border: 1px solid rgba(0,0,0,0.1); border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.12); z-index: 9999; overflow: hidden;">
-                                    <style>
-                                        .notif-scroll::-webkit-scrollbar { width: 6px; }
-                                        .notif-scroll::-webkit-scrollbar-track { background: transparent; }
-                                        .notif-scroll::-webkit-scrollbar-thumb { background: #e0e0e0; border-radius: 3px; }
-                                    </style>
-                                    <style>
-                                        /* Smart Header Styles */
-                                        .admin-unified-header {
-                                            transition: transform 0.3s cubic-bezier(0.165, 0.84, 0.44, 1), opacity 0.3s ease;
-                                        }
-                                        .admin-unified-header.header-hidden {
-                                            transform: translateY(-100%);
-                                            opacity: 0;
-                                            pointer-events: none;
-                                        }
-                                    </style>
-                                    <div class="notification-header" style="padding: 18px 24px; border-bottom: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center; background: white;">
-                                        <span style="font-weight: 700; font-size: 1rem; font-family: 'Inter', sans-serif; letter-spacing: -0.5px; color: #1a1a1a;">Notificaciones</span>
-                                        <button onclick="markAllRead()" style="background: transparent; border: none; color: #666; font-size: 0.8rem; cursor: pointer; font-weight: 500; font-family: 'Inter', sans-serif;" onmouseover="this.style.color='#000'" onmouseout="this.style.color='#666'">
-                                            Marcar leídas
-                                        </button>
-                                    </div>
-                                    <div id="admin-notif-items" class="notif-scroll" style="max-height: 450px; overflow-y: auto; background: #fafafa;">
-                                        <!-- Notifications here -->
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Logout Button in Header -->
-                            <form id="logout-form-header" action="{{ route('logout') }}" method="POST" style="display: inline;">
-                                @csrf
-                                <button type="button" 
-                                    onclick="window.showConfirm('¿Cerrar sesión?', () => document.getElementById('logout-form-header').submit())"
-                                    style="background: transparent; border: none; cursor: pointer; font-size: 1.2rem; color: #d32f2f; display: flex; align-items: center; transition: all 0.2s; padding: 8px; border-radius: 8px;"
-                                    title="Cerrar Sesión"
-                                    onmouseover="this.style.backgroundColor='#fee2e2'; this.style.color='#b71c1c'"
-                                    onmouseout="this.style.backgroundColor='transparent'; this.style.color='#d32f2f'">
-                                    <i class="fa-solid fa-right-from-bracket"></i>
-                                    <span style="font-weight: 700; font-family: 'Inter', sans-serif; font-size: 1rem; margin-left: 8px;">Salir</span>
-                                </button>
-                            </form>
+                        @endif
+
+                        <div class="logo-text">
+                            <span class="brand-title logo no-select">Lic. <span class="hide-on-mobile">Nazarena</span> De Luca</span>
                         </div>
                     </div>
 
+                    <!-- RIGHT SIDE: Navbar Content -->
+                    <div class="header-right">
+                        <!-- Common Tools (Notifications & Logout) - Visible for ALL Auth Users -->
+                        @auth
+                           <div class="header-navbar">
+                                <!-- Notifications Bell -->
+                                <div id="universal-notif-bell" class="notification-bell-container" style="cursor: pointer; position: relative; font-size: 1.5rem; display: flex; align-items: center;">
+                                    <i class="fa-solid fa-bell" style="color: #000;"></i>
+                                    <span class="notification-badge" id="universal-notif-count" style="position: absolute; top: -5px; right: -5px; background: #ff4d4d; color: white; border-radius: 50%; width: 20px; height: 20px; font-size: 0.7rem; display: none; align-items: center; justify-content: center; border: 2px solid #fff; font-weight: 800;">0</span>
+                                    
+                                    <!-- Dropdown (Universal) -->
+                                    <div id="universal-notif-dropdown" class="notification-dropdown" onclick="event.stopPropagation()" style="display: none; position: absolute; top: calc(100% + 15px); right: -10px; width: 320px; max-width: 90vw; background: white; border: 1px solid rgba(0,0,0,0.1); border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); z-index: 9999; overflow: hidden;">
+                                        <div class="notification-header" style="padding: 15px; border-bottom: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center; background: #fafafa;">
+                                            <span style="font-weight: 700; font-size: 0.9rem; color: #333;">Notificaciones</span>
+                                            <button onclick="markAllRead()" style="background: transparent; border: none; color: #666; font-size: 0.75rem; cursor: pointer; text-decoration: underline;">
+                                                Marcar leídas
+                                            </button>
+                                        </div>
+                                        <div id="universal-notif-items" class="notif-scroll" style="max-height: 350px; overflow-y: auto; background: white;">
+                                            <!-- Items injected via JS -->
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Logout -->
+                                <form action="{{ route('logout') }}" method="POST" style="display: inline;">
+                                    @csrf
+                                    <button type="button" 
+                                        onclick="window.showConfirm('¿Cerrar sesión?', () => this.closest('form').submit())"
+                                        style="background: transparent; border: none; cursor: pointer; font-size: 1.2rem; color: #d32f2f; display: flex; align-items: center; transition: all 0.2s; padding: 8px; margin-left: 0.5rem;"
+                                        title="Cerrar Sesión">
+                                        <i class="fa-solid fa-right-from-bracket"></i>
+                                        <span class="hide-on-mobile" style="font-weight: 700; font-family: 'Inter', sans-serif; font-size: 1rem; margin-left: 8px;">Salir</span>
+                                    </button>
+                                </form>
+                           </div>
+                        @endauth
+                    </div>
+                </header>
+
+                <!-- Page Content Body -->
+                <main class="page-content">
                     @if(session('success'))
                         <div class="alert alert-success">
                             {{ session('success') }}
                         </div>
                     @endif
-                    
-
                     @if(session('error'))
                         <div class="alert alert-error">
                             {{ session('error') }}
                         </div>
                     @endif
 
-                    <div class="workspace-container" style="width: 100%; max-width: 1400px; min-height: 80vh;">
-                        @yield('content')
-                    </div>
+                    @yield('content')
                 </main>
-            </div>
-        @else
-            <!-- Standard Top Nav Layout (Patient / Guest) -->
-            <nav class="navbar-unificada no-select">
-                <div class="navbar-content">
-                    <div class="logo-text">
-                        <span class="brand-title logo no-select">Lic. <span class="hide-on-mobile">Nazarena</span> De Luca</span>
-                    </div>
-                    
-                    <div class="nav-unificada-links">
-                        @auth
-                            <style>
-                                @media (max-width: 1024px) {
-                                    .mobile-only-btn {
-                                        display: flex !important;
-                                        align-items: center;
-                                        justify-content: center;
-                                        width: 55px; /* Increased size */
-                                        height: 55px; /* Increased size */
-                                        padding: 0 !important;
-                                    }
-                                }
-                            </style>
-                            <button class="neobrutalist-btn mobile-only-btn" onclick="toggleMobileMenu()" style="padding: 0; background: var(--color-lila); margin-left: 0.5rem; display: none;">
-                                <i class="fa-solid fa-bars" style="font-size: 1.5rem;"></i>
-                            </button>
 
-                            <!-- Desktop Nav Links -->
-                            <div class="admin-nav-links desktop-menu">
-                                <!-- Notifications Bell for Patients -->
-                            <div id="patient-notif-bell" class="notification-bell-container" style="cursor: pointer; position: relative; font-size: 1.2rem; margin-right: 1rem;">
-                                <i class="fa-solid fa-bell"></i>
-                                <span class="notification-badge" id="patient-notif-count" style="display: none; position: absolute; top: -5px; right: -5px; background: #ff4d4d; color: white; border-radius: 50%; width: 18px; height: 18px; font-size: 0.7rem; display: flex; align-items: center; justify-content: center; border: 2px solid #000; font-weight: 800;">0</span>
-                                
-                                <!-- Dropdown -->
-                                <div id="patient-notif-dropdown" class="notification-dropdown" style="display: none;">
-                                    <div class="notification-header" style="padding: 10px 15px; border-bottom: 2px solid #000; display: flex; justify-content: space-between; align-items: center; background: #f8f8f8;">
-                                        <span style="font-weight: 800; font-size: 0.85rem;">Notificaciones</span>
-                                        <button onclick="markAllRead()" style="background: none; border: none; color: #555; font-size: 0.7rem; cursor: pointer; text-decoration: underline;">Limpiar todo</button>
-                                    </div>
-                                    <div id="patient-notif-items" style="max-height: 300px; overflow-y: auto;">
-                                        <!-- Notifications here -->
-                                    </div>
-                                </div>
-                            </div>
-                                <a href="javascript:void(0)" onclick="window.showConfirm('¿Querés cerrar sesión?', () => document.getElementById('logout-form').submit())" class="neobrutalist-btn" style="margin-left: 1rem; padding: 0.3rem 0.8rem; font-size: 0.85rem; background-color: #ff4d4d; color: white;">
-                                    <i class="fa-solid fa-sign-out-alt" style="margin-right: 0.5rem;"></i> Salir
-                                </a>
+            </div> <!-- End app-main -->
 
-
-
-                            </div>
-                        @endauth
-                </div>
-                
-                <!-- Mobile Dropdown Menu -->
-                <div id="mobile-nav-dropdown" class="mobile-nav-dropdown" style="display: none;">
-                    @auth
-                        @if(!$isPatient)
-                            <a href="#agenda" class="mobile-nav-item" onclick="toggleMobileMenu()"><i class="fa-solid fa-calendar-day"></i> Agenda Hoy</a>
-                            <a href="#pacientes" class="mobile-nav-item" onclick="toggleMobileMenu()"><i class="fa-solid fa-users"></i> Pacientes</a>
-                            <a href="#pagos" class="mobile-nav-item" onclick="toggleMobileMenu()"><i class="fa-solid fa-money-bill-wave"></i> Pagos</a>
-                            <a href="#turnos" class="mobile-nav-item" onclick="toggleMobileMenu()"><i class="fa-solid fa-calendar-alt"></i> Gestión Turnos</a>
-                            <a href="#documentos" class="mobile-nav-item" onclick="toggleMobileMenu()"><i class="fa-solid fa-file-alt"></i> Biblioteca</a>
-                        @else
-                            <a href="#booking" class="mobile-nav-item" onclick="toggleMobileMenu()"><i class="fa-solid fa-calendar-plus"></i> Reservar Turno</a>
-                            <a href="#mis-turnos" class="mobile-nav-item" onclick="toggleMobileMenu()"><i class="fa-solid fa-calendar-check"></i> Mis Turnos</a>
-                            <a href="#materiales" class="mobile-nav-item" onclick="toggleMobileMenu()"><i class="fa-solid fa-folder-open"></i> Mi Biblioteca</a>
-                        @endif
-                        <div style="border-top: 2px solid #eee; margin: 0.5rem 0;"></div>
-                        <a href="javascript:void(0)" class="mobile-nav-item logout" onclick="window.showConfirm('¿Querés cerrar sesión?', () => document.getElementById('logout-form').submit())"><i class="fa-solid fa-sign-out-alt"></i> Cerrar Sesión</a>
-                    @endauth
-                </div>
-            </nav>
-
-            <main class="container mt-16" style="min-height: 80vh; padding-top: 3rem; padding-bottom: 3rem;">
-                @if(session('success'))
-                    <div class="alert alert-success">
-                        {{ session('success') }}
-                    </div>
-                @endif
-                @if(session('error'))
-                    <div class="alert alert-error">
-                        {{ session('error') }}
-                    </div>
-                @endif
-
-
-                @yield('content')
-            </main>
-        @endif
+        </div> <!-- End app-wrapper -->
     @endif
 
     @yield('subnavigation')
@@ -797,15 +741,18 @@
             confirmMessage.innerText = message;
             _pendingConfirmAction = callback;
             confirmOverlay.style.display = 'flex';
+            document.body.style.overflow = 'hidden'; // Lock scroll
         };
 
         confirmOk.addEventListener('click', () => {
             if (_pendingConfirmAction) _pendingConfirmAction();
             confirmOverlay.style.display = 'none';
+            document.body.style.overflow = 'auto'; // Restore scroll
         });
 
         confirmCancel.addEventListener('click', () => {
             confirmOverlay.style.display = 'none';
+            document.body.style.overflow = 'auto'; // Restore scroll
         });
 
         const bell = document.getElementById('notif-bell');
@@ -921,41 +868,7 @@
             }
         };
         
-        // Admin Sidebar Toggle Logic
-        window.toggleAdminSidebar = function() {
-            const sidebar = document.getElementById('admin-sidebar');
-            const container = document.getElementById('admin-layout-container');
-            const icon = document.getElementById('sidebar-toggle-icon');
-            
-            if (!sidebar) {
-                console.error("Sidebar element not found!");
-                return;
-            }
-            
-            const isMobile = window.innerWidth <= 1024;
-            
-            if (isMobile) {
-                sidebar.classList.toggle('active');
-                if (container) {
-                    container.classList.toggle('sidebar-open', sidebar.classList.contains('active'));
-                    document.body.style.overflow = sidebar.classList.contains('active') ? 'hidden' : '';
-                }
-            } else {
-                sidebar.classList.toggle('collapsed');
-                if (container) {
-                    container.classList.toggle('sidebar-open', !sidebar.classList.contains('collapsed'));
-                }
-                const isCollapsed = sidebar.classList.contains('collapsed');
-                document.cookie = `sidebar_collapsed=${isCollapsed}; path=/; max-age=${60 * 60 * 24 * 30}`;
-            }
-
-            // Sync icon state
-            if (icon) {
-                const isOpen = (isMobile && sidebar.classList.contains('active')) || 
-                                (!isMobile && !sidebar.classList.contains('collapsed'));
-                icon.className = isOpen ? 'fa-solid fa-xmark' : 'fa-solid fa-bars';
-            }
-        };
+        // Admin Sidebar Toggle Logic removed (consolidated below)
 
         // Forcing direct click attachment for maximum reliability
         document.addEventListener('DOMContentLoaded', () => {
@@ -1235,182 +1148,44 @@
         }
     </script>
 
-    <!-- Report Problem Modal -->
-    <div id="report-modal-overlay" class="confirm-modal-overlay" style="display: none; z-index: 10002;">
-        <div class="confirm-modal" style="width: 500px; max-width: 90%; border-radius: 16px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); border: 2px solid #000; background: white;">
-            <div class="confirm-modal-title" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #f0f0f0; padding-bottom: 10px; margin-bottom: 15px;">
-                <span style="font-family: 'Syne', sans-serif; font-weight: 700;"><i class="fa-solid fa-bug" style="color: #ef4444; margin-right: 8px;"></i> Reportar Problema</span>
-                <button onclick="closeReportModal()" style="background:none; border:none; cursor:pointer; font-size: 1.2rem;"><i class="fa-solid fa-times"></i></button>
-            </div>
-            
-            <div id="report-form-content">
-                <div style="margin: 1rem 0;">
-                    <p style="font-size: 0.9rem; color: #666; margin-bottom: 1rem; font-family: 'Inter', sans-serif;">Describí brevemente qué pasó.</p>
-                    <textarea id="report-desc" class="neobrutalist-input" rows="4" placeholder="Ej: No puedo guardar el turno cuando..." style="width: 100%; border: 2px solid #000; border-radius: 8px; padding: 10px; font-family: 'Inter', sans-serif;"></textarea>
-                </div>
-                <div class="confirm-modal-buttons" style="display: flex; gap: 10px; justify-content: center;">
-                    <button class="neobrutalist-btn bg-rosa" onclick="closeReportModal()" style="border-radius: 8px;">Cancelar</button>
-                    <button id="btn-send-report" class="neobrutalist-btn bg-celeste" onclick="submitReport()" style="border-radius: 8px;">Enviar Reporte</button>
-                </div>
-            </div>
-
-            <!-- Success Message State -->
-            <div id="report-success-msg" style="display: none; text-align: center; padding: 20px;">
-                <i class="fa-solid fa-check-circle" style="font-size: 3rem; color: #388e3c; margin-bottom: 15px;"></i>
-                <h3 style="font-family: 'Syne', sans-serif; font-size: 1.2rem; margin-bottom: 10px;">¡Gracias por avisar!</h3>
-                <p style="font-family: 'Inter', sans-serif; color: #555; line-height: 1.5;">Ya se está encargando el técnico de arreglarlo. Muchas gracias y perdón las molestias.</p>
-                <button class="neobrutalist-btn" onclick="closeReportModal()" style="margin-top: 20px; background: #000; color: white; border-radius: 8px;">Cerrar</button>
-            </div>
-            
-            <!-- Loading State -->
-            <div id="report-loading-msg" style="display: none; text-align: center; padding: 20px;">
-                <i class="fa-solid fa-spinner fa-spin" style="font-size: 2rem; color: #000; margin-bottom: 15px;"></i>
-                <p style="font-family: 'Inter', sans-serif; color: #555;">Enviando reporte...</p>
-            </div>
-        </div>
-    </div>
-
     <script>
-        // 1. Error Capture
-        window.onerror = function(message, source, lineno, colno, error) {
-            fetch('{{ route('api.logs.store') }}', {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                },
-                body: JSON.stringify({
-                    message: message,
-                    stack: error ? error.stack : null,
-                    url: window.location.href,
-                    component: 'Global'
-                })
-            });
-        };
-
-        // 2. Report Modal Logic
-        function openReportModal() {
-            document.getElementById('report-modal-overlay').style.display = 'flex';
-            document.getElementById('report-desc').focus();
-        }
-
-        async function submitReport() {
-            const desc = document.getElementById('report-desc').value;
-            const statusBtn = document.getElementById('report-status');
-            
-            if(!desc.trim()) {
-                alert('Por favor describí el problema.');
-                return;
-            }
-
-            statusBtn.innerText = 'Enviando...';
-
-            try {
-                const res = await fetch('{{ route('api.tickets.store') }}', {
-                    method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                    },
-                    body: JSON.stringify({
-                        description: desc,
-                        metadata: {
-                            url: window.location.href,
-                            userAgent: navigator.userAgent,
-                            screen: `${window.screen.width}x${window.screen.height}`
-                        }
-                    })
-                });
-
-                if(res.ok) {
-                    alert('¡Reporte enviado! Gracias por avisarnos.');
-                    document.getElementById('report-modal-overlay').style.display = 'none';
-                    document.getElementById('report-desc').value = '';
-                    statusBtn.innerText = '';
-                } else {
-                    throw new Error('Error al enviar');
-                }
-            } catch (e) {
-                alert('Hubo un error enviando el reporte. Intentalo de nuevo.');
-                statusBtn.innerText = 'Error.';
-                console.error(e);
-            }
-        }
-    </script>
-    <script>
-        // --- Sidebar Logic ---
-        window.toggleAdminSidebar = function() {
-            const sidebar = document.getElementById('admin-sidebar');
-            const layout = document.getElementById('admin-layout-container');
-            const closeBtn = document.querySelector('.sidebar-close-btn');
-            
-            // Toggle Button Icon (Desktop & Mobile)
-            // We search for the button calling this function
-            const allToggleBtns = document.querySelectorAll('button[onclick="window.toggleAdminSidebar()"]');
-
-            if (sidebar) {
-                const isCollapsed = sidebar.classList.contains('collapsed');
-                
-                if (isCollapsed) {
-                    // Open it
-                    sidebar.classList.remove('collapsed');
-                    document.cookie = "sidebar_collapsed=false; path=/";
-                    
-                    // Update Icons to X
-                    allToggleBtns.forEach(btn => {
-                        const i = btn.querySelector('i');
-                        if(i) {
-                            i.classList.remove('fa-bars');
-                            i.classList.add('fa-xmark');
-                        }
-                    });
-                    
-                    if(closeBtn) closeBtn.style.display = 'block';
-
-                } else {
-                    // Close it
-                    sidebar.classList.add('collapsed');
-                    document.cookie = "sidebar_collapsed=true; path=/";
-                    
-                    // Update Icons to Bars
-                    allToggleBtns.forEach(btn => {
-                        const i = btn.querySelector('i');
-                        if(i) {
-                            i.classList.remove('fa-xmark');
-                            i.classList.add('fa-bars');
-                        }
-                    });
-
-                    if(closeBtn) closeBtn.style.display = 'none';
-                }
-            }
-        };
-
-        window.closeAdminSidebar = function() {
-            const sidebar = document.getElementById('admin-sidebar');
-            // If it exists and is NOT collapsed (meaning it's open), we toggle it to close.
-            if(sidebar && !sidebar.classList.contains('collapsed')) {
-                window.toggleAdminSidebar();
-            }
-        };
-
+        // Cleaned up scripts
         // Auto-close sidebar when clicking a link (Global)
         document.addEventListener('DOMContentLoaded', () => {
             const sidebar = document.getElementById('admin-sidebar');
             
+            // Re-apply robust button logic
+            const btn = document.getElementById('admin-sidebar-toggle');
+            if (btn) {
+                // Force High Z-Index ensuring it's clickable
+                btn.style.position = 'relative'; 
+                btn.style.zIndex = '999999';
+
+                // Remove existing listeners by cloning
+                const newBtn = btn.cloneNode(true);
+                btn.parentNode.replaceChild(newBtn, btn);
+                
+                // Attach clean listener
+                newBtn.onclick = (e) => {
+                    e.preventDefault(); 
+                    e.stopPropagation();
+                    console.log('Button Clicked (Re-attached)'); 
+                    window.toggleAdminSidebar();
+                };
+            }
+
             if (sidebar) {
-                // Event Delegation for Click (Handles links correctly)
                 sidebar.addEventListener('click', (e) => {
                     const link = e.target.closest('.sidebar-link');
                     if (link) {
-                        // User Request: Don't close immediately (visually).
-                        // Instead, set the cookie so the NEXT page loads collapsed.
                         document.cookie = "sidebar_collapsed=true; path=/";
                     }
                 });
             }
         });
+    </script>
 
+    <script>
         // --- Notifications Logic ---
         document.addEventListener('DOMContentLoaded', () => {
             
@@ -1514,18 +1289,12 @@
             // Better: We hook it to reload the lists.
             
             // For now, let's just Init based on what exists.
+            // Universal Init
             initNotifications({
-                bellId: 'admin-notif-bell',
-                dropdownId: 'admin-notif-dropdown',
-                itemsId: 'admin-notif-items',
-                countId: 'admin-notif-count'
-            });
-            
-            initNotifications({
-                bellId: 'patient-notif-bell',
-                dropdownId: 'patient-notif-dropdown',
-                itemsId: 'patient-notif-items',
-                countId: 'patient-notif-count'
+                bellId: 'universal-notif-bell',
+                dropdownId: 'universal-notif-dropdown',
+                itemsId: 'universal-notif-items',
+                countId: 'universal-notif-count'
             });
 
             window.markAllRead = async function() {
@@ -1769,7 +1538,9 @@
                     input.focus();
                 }
             }
+
         </script>
     @endif
+
 </body>
 </html>

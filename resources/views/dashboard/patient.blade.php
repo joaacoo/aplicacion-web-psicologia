@@ -129,7 +129,55 @@
                 @media (max-width: 768px) {
                     #mis-turnos { padding: 1rem !important; }
                     #mis-turnos h3 { font-size: 1rem; }
-                    #mis-turnos table th, #mis-turnos table td { padding: 0.3rem !important; font-size: 0.85rem; }
+                    
+                    /* Mobile Card View for Table */
+                    #mis-turnos table, #mis-turnos thead, #mis-turnos tbody, #mis-turnos th, #mis-turnos td, #mis-turnos tr { 
+                        display: block; 
+                    }
+                    
+                    #mis-turnos thead tr { 
+                        position: absolute;
+                        top: -9999px;
+                        left: -9999px;
+                    }
+                    
+                    #mis-turnos tr { border-bottom: 3px solid #000 !important; margin-bottom: 1rem; background: #fff; padding: 10px; border: 2px solid #eee; border-radius: 8px; }
+                    
+                    #mis-turnos td { 
+                        border: none !important;
+                        position: relative;
+                        padding-left: 50% !important; 
+                        text-align: right;
+                        padding-top: 5px !important;
+                        padding-bottom: 5px !important;
+                        min-height: 30px;
+                    }
+                    
+                    #mis-turnos td:before { 
+                        position: absolute;
+                        top: 6px;
+                        left: 10px;
+                        width: 45%; 
+                        padding-right: 10px; 
+                        white-space: nowrap;
+                        text-align: left;
+                        font-weight: 800;
+                        color: #666;
+                    }
+                    
+                    /* Labels */
+                    #mis-turnos td:nth-of-type(1):before { content: "Fecha"; }
+                    #mis-turnos td:nth-of-type(2):before { content: "Estado"; }
+                    #mis-turnos td:nth-of-type(3):before { content: "Pago"; }
+                    #mis-turnos td:nth-of-type(4):before { content: "Acciones"; }
+
+                    /* Modified Date Style: Black and Smaller */
+                    #mis-turnos td:nth-of-type(1) { 
+                        font-weight: 800; 
+                        font-size: 0.95rem !important; /* Smaller size */
+                        color: #666 !important; /* Grey/Black tone as requested (user mentioned "gris" then "change to black", let's use dark grey #333 for readability or #000) */
+                        color: #111 !important;
+                    }
                 }
             </style>
             <div id="mis-turnos" class="neobrutalist-card">
@@ -671,12 +719,13 @@ $blockedDays = $blockedDays ?? [];
     @media (max-width: 768px) {
         #whatsapp-chat-window {
             bottom: 80px; 
-            right: 1.5rem; /* Anchor to right (aligned with button) */
-            left: auto;  /* Do not anchor left */
-            transform: scale(0.9); /* Just scale */
-            transform-origin: bottom right; /* Grow from button */
-            width: 90%;
-            max-width: 350px;
+            right: 0; /* Align to viewport edge */
+            left: 0;  /* Align to viewport edge */
+            margin: 0 auto; /* Center horizontally */
+            transform-origin: bottom center; 
+            width: 90%; /* Max width relative to screen */
+            max-width: 350px; /* Safe cap */
+            z-index: 10000;
         }
         #whatsapp-chat-window.active {
             transform: scale(1);

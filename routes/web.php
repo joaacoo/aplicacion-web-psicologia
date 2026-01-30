@@ -24,6 +24,10 @@ Route::get('/', function () {
     return redirect()->route('login');
 })->name('home');
 
+Route::get('/test', function () {
+    return view('test');
+});
+
 // Authentication Routes
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');

@@ -4,11 +4,12 @@
 @section('header_title', 'Inicio')
 
 @section('content')
-<div style="padding: 2rem; max-width: 1400px; margin: 0 auto; margin-bottom: 40px;">
+<div class="admin-content-wrapper" style="padding: 2rem; max-width: 1400px; margin: 0 auto; margin-bottom: 40px;">
     
     <!-- Welcome Text -->
+    <!-- Welcome Text -->
     <div style="margin-bottom: 2rem;">
-        <h1 id="bienvenida-text" class="welcome-text" style="font-weight: 700; color: #000; font-family: 'Syne', sans-serif; letter-spacing: -0.5px; text-shadow: 2px 2px 0px rgba(0,0,0,0.1);">
+        <h1 id="bienvenida-text" class="welcome-text" style="font-weight: 700; color: #000; font-family: 'Syne', sans-serif; letter-spacing: -0.5px; text-shadow: 2px 2px 0px rgba(0,0,0,0.1); margin-top: 0;">
 
             {{ $welcomeMessage }}
         </h1>
@@ -18,8 +19,14 @@
             }
             @media (max-width: 768px) {
                 .welcome-text {
-                    font-size: 1.3rem !important; /* Smaller on mobile */
-                    margin-bottom: 1.5rem !important;
+                    font-size: 1.2rem !important; /* Smaller as requested */
+                    line-height: 1.3 !important;
+                    margin-bottom: 1rem !important;
+                    margin-top: 0 !important;
+                }
+                /* Target the parent container to reduce padding on mobile */
+                .admin-content-wrapper {
+                    padding: 1rem !important;
                 }
             }
         </style>
