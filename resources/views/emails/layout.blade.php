@@ -2,6 +2,7 @@
 <html>
 <head>
     <meta charset="utf-8">
+    <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}?v=2">
     <style>
         body {
             font-family: 'Public Sans', 'Helvetica', Arial, sans-serif;

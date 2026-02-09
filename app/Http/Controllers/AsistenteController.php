@@ -32,9 +32,19 @@ class AsistenteController extends Controller
 
         try {
             $apiKey = env('GEMINI_API_KEY');
+            \Log::info("DEBUG: Checking GEMINI_API_KEY from env");
+            if (empty($apiKey)) {
+                \Log::error("Gemini Error: API Key is empty or null. Check .env file.");
+                // Fallback attempt (sometimes getenv works where env doesn't in some configs)
+                $apiKey = getenv('GEMINI_API_KEY');
+                if ($apiKey) {
+                    \Log::info("DEBUG: Found API Key using getenv()");
+                }
+            }
+
             if (!$apiKey) {
-                \Log::error("Gemini Error: Falta API Key");
-                throw new \Exception("Falta API Key");
+                \Log::error("Gemini Error: Falta API Key (Final check)");
+                throw new \Exception("Falta API Key - Verifique configuración de entorno.");
             }
 
             $client = (new Factory)->withApiKey($apiKey)->make();
@@ -62,14 +72,20 @@ class AsistenteController extends Controller
 
 
 
-            // Simular history con system instruction "fake" ya que startChat a veces falla con systemInstruction real en version client
+            // Simular history con system instruction "fake"
             $chat = $model->startChat(history: [
                 new Content(
-                    parts: [new Part(text: "Eres el Asistente Virtual administrativo del consultorio. Si preguntan por turnos, usa la función obtenerTurnosHoy.")],
+                    parts: [new Part(text: "Eres un asistente administrativo privado para el consultorio de Nazarena.
+- SOLO respondes sobre: turnos de hoy/mañana/semana, comprobantes pendientes por validar, deudores (nuevos que deben pagar antes), resumen facturado del mes.
+- Usa datos reales del sistema.
+- Responde corto y en español.
+- Si no es sobre eso: 'Solo puedo ayudarte con turnos, pagos pendientes y agenda. ¿Qué necesitás?'
+- Para nuevos pacientes: recuerda que deben pagar antes de la sesión.
+- Fecha actual: " . now()->format('d/m/Y') )],
                     role: Role::USER
                 ),
                 new Content(
-                    parts: [new Part(text: "Entendido. Soy el Asistente Virtual.")],
+                    parts: [new Part(text: "Entendido. Soy el Asistente Virtual administrativo.")],
                     role: Role::MODEL
                 )
             ]);

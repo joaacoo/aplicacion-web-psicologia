@@ -2,65 +2,330 @@
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Inicio - Lic. Nazarena</title>
     <meta name="csrf-token" content="{{ csrf_token() }}">
     
     <!-- CSS -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-    <link rel="icon" type="image/jpeg" href="{{ asset('img/069b6f01-e0b6-4089-9e31-e383edf4ff62.jpg') }}">
-</head>
-<body style="background-color: var(--color-celeste);"> <!-- Fondo celeste en body general como en Hero del reference para dar más vida -->
-    <script>
-        // Critical System Script - Must load early
-        window.toggleAdminSidebar = function() {
-            try {
-                const sidebar = document.getElementById('admin-sidebar');
-                const toggleBtn = document.getElementById('admin-sidebar-toggle');
-                
-                if (!sidebar) {
-                    console.error('Error: Sidebar no encontrada');
-                    return;
-                }
-                
-                const isMobile = window.innerWidth <= 1024;
-                
-                if (isMobile) {
-                    sidebar.classList.toggle('active');
-                    document.body.style.overflow = sidebar.classList.contains('active') ? 'hidden' : '';
-                    
-                    // Close button logic
-                    const closeBtn = document.querySelector('.sidebar-close-btn');
-                    if(closeBtn) closeBtn.style.display = sidebar.classList.contains('active') ? 'block' : 'none';
-                } else {
-                    sidebar.classList.toggle('collapsed');
-                    
-                    // Force style update to guarantee visibility
-                    if (sidebar.classList.contains('collapsed')) {
-                        sidebar.style.transform = 'translateX(-100%)';
-                    } else {
-                        sidebar.style.transform = 'translateX(0)';
-                    }
+    <link rel="icon" type="image/jpeg" href="{{ asset('img/069b6f01-e0b6-4089-9e31-e383edf4ff62.jpg') }}?v={{ time() }}">
+    <link rel="stylesheet" href="{{ asset('css/whatsapp_widget.css') }}">
+    <style>
+        /* Body Fix for Full Width Footer */
+        body {
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            margin: 0;
+        }
 
-                    document.cookie = "sidebar_collapsed=" + sidebar.classList.contains('collapsed') + "; path=/; max-age=" + (60 * 60 * 24 * 30);
-                    
-                    // Layout push
-                    const layout = document.getElementById('admin-layout-container');
-                    if(layout) layout.classList.toggle('sidebar-open', !sidebar.classList.contains('collapsed'));
-                }
-
-                // Icon Sync
-                if (toggleBtn) {
-                     const i = toggleBtn.querySelector('i');
-                     if(i) {
-                         const isOpen = (isMobile && sidebar.classList.contains('active')) || (!isMobile && !sidebar.classList.contains('collapsed'));
-                         i.className = isOpen ? 'fa-solid fa-xmark' : 'fa-solid fa-bars';
-                     }
-                }
-            } catch(e) {
-                console.error('Error crítico sidebar:', e);
+        /* Prevent Auto-Zoom on Mobile Inputs */
+        @media screen and (max-width: 768px) {
+            /* Prevent Auto-Zoom on Mobile Inputs */
+            input, select, textarea, .neobrutalist-input, .neobrutalist-btn {
+                font-size: 16px !important;
+                -webkit-text-size-adjust: 100% !important; /* iOS */
+                touch-action: manipulation;                /* reduce zoom agresivo */
             }
-        };
+            
+            /* 1. Máximo ancho para que no fuerce zoom horizontal */
+            .confirm-modal {
+                max-width: 95vw !important;
+                width: 95vw !important;
+                margin: 10px auto !important;
+                transform: translate3d(0,0,0);
+                will-change: transform;
+            }
+
+            /* 3. Evitar que el modal se mueva/vibre con transform hack */
+            #report-modal-overlay {
+                will-change: transform;
+                transform: translate3d(0,0,0);             /* fuerza GPU + estabilidad */
+                backface-visibility: hidden;
+            }
+            
+            /* 4. Prevenir vibración del select en el modal de reporte */
+            #report-modal-overlay .confirm-modal {
+                contain: layout style;
+                transform: translate3d(0,0,0);
+                will-change: transform;
+            }
+            
+            #report-modal-overlay select[name="subject"] {
+                width: 100% !important;
+                max-width: 100% !important;
+                min-width: 0 !important;
+                box-sizing: border-box !important;
+            }
+        }
+        
+        /* Universal Header Visibility Fix */
+        .universal-header {
+            z-index: 10000 !important; /* Always on top of everything except modals */
+            top: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            position: fixed !important;
+            display: flex !important;   /* Restore FLEX to keep alignment */
+            align-items: center !important;
+            height: 70px !important;    /* Force height consistency */
+        }
+
+        @media (max-width: 768px) {
+            .universal-header {
+                padding: 0.8rem 1rem !important;
+            }
+            .app-main-wrapper {
+                padding-top: 70px !important;
+            }
+        }
+
+        /* Prevent background scroll when modal is open */
+        body.modal-open {
+            overflow: hidden !important;
+            padding-right: 15px; /* Evita que la página vibre al ocultar el scroll */
+        }
+
+        /* Ajuste automático del margen del contenido (Global) */
+        @media (min-width: 1025px) {
+            /* Si la sidebar está abierta */
+            .admin-layout.sidebar-open .app-main-wrapper {
+                margin-left: 280px !important;
+                transition: margin-left 0.3s ease;
+            }
+
+            /* Si la sidebar está colapsada */
+            .admin-sidebar.collapsed ~ .app-main-wrapper {
+                margin-left: 100px !important;
+                transition: margin-left 0.3s ease;
+            }
+        }
+
+        /* Minimalist Modal Redesign */
+        .confirm-modal-minimal {
+            background: white !important;
+            border: 1px solid #e0e0e0 !important;
+            border-radius: 20px !important;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
+            overflow: hidden !important;
+        }
+        .confirm-modal-title-minimal {
+            background: #fdfdfd !important;
+            color: #1a1a1a !important;
+            border-bottom: 1px solid #f0f0f0 !important;
+            padding: 1.25rem 1.5rem !important;
+            font-weight: 800 !important;
+            font-size: 1.1rem !important;
+        }
+
+        /* Prevent shake on select focus */
+        select, input, textarea {
+            font-size: 16px !important;
+            transform: none !important;
+        }
+        select:focus {
+            outline: none !important;
+            border-color: var(--color-celeste) !important;
+            transform: none !important;
+        }
+        /* Static Sidebar Styles */
+        .nav-sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 80px;
+            background: #f8fafc; /* Softer pastel blue-gray */
+            border-right: 3px solid #000;
+            display: flex;
+            flex-direction: column;
+            padding: 1.5rem 0; /* Reduced padding */
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 10001; /* Above header */
+            overflow: hidden;
+        }
+
+        /* Only allow hover expansion on desktop */
+        @media (min-width: 1025px) {
+            .nav-sidebar:hover {
+                width: 240px;
+            }
+            .nav-sidebar:hover .nav-text {
+                opacity: 1;
+            }
+        }
+
+        /* Desktop Only Hover */
+        @media (min-width: 1025px) {
+            .nav-sidebar:hover {
+                width: 240px;
+            }
+            .nav-sidebar:hover .sidebar-header {
+                justify-content: flex-start;
+                padding-left: 25px;
+            }
+        }
+
+        .nav-logo img {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            border: 2px solid #000;
+            object-fit: cover;
+        }
+
+        .nav-items {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            flex-grow: 1;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 12px 25px;
+            text-decoration: none;
+            color: #000;
+            font-weight: 700;
+            font-family: 'Inter', sans-serif;
+            transition: background 0.2s, transform 0.2s;
+            white-space: nowrap;
+        }
+
+        .nav-link i {
+            font-size: 1.5rem;
+            min-width: 30px;
+            text-align: center;
+        }
+
+        .nav-text {
+            margin-left: 20px;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .nav-sidebar:hover .nav-text {
+            opacity: 1;
+        }
+
+        @media (max-width: 1024px) {
+            .nav-sidebar.open .nav-text, .nav-sidebar.active .nav-text {
+                opacity: 1 !important;
+            }
+        }
+
+        .nav-link:hover {
+            background: #f5f5f5;
+            transform: translateX(5px);
+        }
+
+        .nav-link.active {
+            background: #e0f2fe; /* Light pastel blue */
+            border-top: 2px solid #000;
+            border-bottom: 2px solid #000;
+        }
+
+        .sidebar-footer {
+            /* padding-top: 1rem; */
+            /* border-top: 1px solid #eee; */
+        }
+
+        .logout-btn {
+            color: #ff4d4d !important;
+        }
+
+        @media (min-width: 769px) {
+            .app-main-wrapper {
+                /* padding-left: 80px; */
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                width: 100%;
+                box-sizing: border-box;
+            }
+            .workspace-container {
+                width: 100%;
+                max-width: 1400px;
+                margin: 0 auto;
+                padding: 0 2rem;
+            }
+        }
+
+        /* Confirmation Modals (Logout & Security) */
+        .security-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.85);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 20000;
+            backdrop-filter: blur(5px);
+        }
+
+        .security-modal {
+            background: white;
+            border: 5px solid #000;
+            box-shadow: 10px 10px 0px #000;
+            padding: 2.5rem;
+            max-width: 450px;
+            width: 90%;
+            text-align: center;
+            border-radius: 20px;
+        }
+
+        .security-modal h3 {
+            font-family: 'Syne', sans-serif;
+            font-weight: 800;
+            font-size: 1.8rem;
+            margin-bottom: 1.5rem;
+            letter-spacing: -1px;
+        }
+
+        .security-modal p {
+            font-weight: 600;
+            color: #444;
+            margin-bottom: 2rem;
+            line-height: 1.5;
+        }
+        
+    </style>
+    <style>
+        html { 
+            height: 100%; 
+        }
+        /* Mobile Select Fix */
+        select {
+            background-color: #fff !important;
+            color: #000;
+            border: 3px solid #000;
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+        }
+        select:focus {
+            outline: none;
+            background-color: #fff !important;
+        }
+    </style>
+</head>
+<body style="margin: 0; padding: 0; font-family: 'Manrope', sans-serif; background-color: var(--color-celeste); min-height: 100vh; display: flex; flex-direction: column; overflow-x: hidden; width: 100%;">
+    <script>
+        // Simplified Sidebar Logic - Always Open on Desktop
+            window.toggleAdminSidebar = function() {
+                    const sidebar = document.getElementById('admin-sidebar');
+                    const overlay = document.getElementById('sidebar-overlay');
+                    
+            if (window.innerWidth <= 1024) {
+                        sidebar.classList.toggle('active');
+                        if (overlay) overlay.classList.toggle('active');
+                }
+            };
     </script>
 
     @auth
@@ -68,7 +333,6 @@
             $isAdmin = auth()->user()->rol == 'admin';
             $isPatient = auth()->user()->rol == 'paciente';
         @endphp
-        {{-- Logout form removed (using footer one) --}}
     @endauth
 
     @php
@@ -76,422 +340,422 @@
     @endphp
 
     @if($isAuthPage)
-        {{-- Auth pages: Minimal, no nav, no extra padding --}}
-        @yield('content')
+            @yield('content')
     @else
-        <!-- STRUCTURE: Unified Application Wrapper -->
-        <div class="app-wrapper">
-            
-            <!-- [SIDEBAR SECTION] Only for Admin/Psychologist -->
-            @if(isset($isAdmin) && $isAdmin)
-                <aside class="admin-sidebar @if(isset($_COOKIE['sidebar_collapsed']) && $_COOKIE['sidebar_collapsed'] == 'true') collapsed @endif" id="admin-sidebar" style="z-index: 6001; display: flex; flex-direction: column; height: 100vh; position: sticky; top: 0; left: 0; flex-shrink: 0;">
-                    <!-- Close button for mobile -->
-                    <button onclick="window.toggleAdminSidebar()" class="sidebar-close-btn" style="position: absolute; top: 1rem; right: 1rem; background: none; border: none; font-size: 1.5rem; cursor: pointer; z-index: 10; display: none; color: #000; padding: 0.5rem;">
-                        <i class="fa-solid fa-times"></i>
-                    </button>
-                    
-                    @if(auth()->user()->email === 'joacooodelucaaa16@gmail.com')
-                        <div class="sidebar-logo" style="padding: 1.5rem 0.5rem; margin-bottom: 1rem; border-bottom: 1px solid rgba(0, 0, 0, 0.1); display: flex; align-items: center; justify-content: center; width: 100%; height: var(--header-height); flex-shrink: 0;">
-                             <span class="sidebar-text sidebar-text-small" style="font-size: 0.95rem !important; font-weight: normal; letter-spacing: -0.2px; white-space: nowrap; flex-shrink: 0; color: white; display: flex; align-items: center; text-align: center; height: 100%;">Panel de Desarrollador</span>
-                        </div>
-                    @else
-                            <div class="sidebar-logo" style="padding: 1.5rem 0.5rem; margin-bottom: 2rem; border-bottom: 3px solid #000; display: flex; align-items: center; justify-content: center; gap: 0.6rem; overflow: hidden; width: 100%; height: var(--header-height); flex-shrink: 0;">
-                            <i class="fa-solid fa-brain" style="color: #000; font-size: 1.3rem; flex-shrink: 0; display: flex; align-items: center; height: 100%;"></i>
-                            <span class="sidebar-text sidebar-text-small" style="font-size: 0.95rem !important; font-weight: normal; letter-spacing: -0.2px; white-space: nowrap; flex-shrink: 0; color: rgba(0, 0, 0, 0.5); display: flex; align-items: center; text-align: center; height: 100%;">Espacio Terapéutico</span>
-                        </div>
-                    @endif
-                    
-                    <nav class="sidebar-nav" style="flex: 1; min-height: 0; padding: 15px; padding-bottom: 2rem; overflow-y: auto; overflow-x: visible; display: flex; flex-direction: column; gap: 12px; overscroll-behavior: contain;">
-                        <!-- Sidebar Links (Same as before) -->
-                        @if(auth()->user()->email !== 'joacooodelucaaa16@gmail.com')
-                            <a href="{{ route('admin.home') }}" class="sidebar-link bg-lila">
-                                <i class="fa-solid fa-house"></i>
-                                <span class="sidebar-text" style="font-weight: 900;">Inicio</span>
-                            </a>
-                            <a href="{{ route('admin.agenda') }}" class="sidebar-link bg-celeste">
-                                <i class="fa-solid fa-calendar-day"></i>
-                                <span class="sidebar-text">Agenda Hoy</span>
-                            </a>
-                            <a href="{{ route('admin.finanzas') }}" class="sidebar-link bg-verde">
-                                <i class="fa-solid fa-chart-line"></i>
-                                <span class="sidebar-text">Finanzas</span>
-                            </a>
-                            <a href="{{ route('admin.pacientes') }}" class="sidebar-link bg-amarillo">
-                                <i class="fa-solid fa-users"></i>
-                                <span class="sidebar-text">Pacientes</span>
-                            </a>
-                            <a href="{{ route('admin.pagos') }}" class="sidebar-link bg-verde">
-                                <i class="fa-solid fa-money-bill-wave"></i>
-                                <span class="sidebar-text">Pagos</span>
-                            </a>
-                            <a href="{{ route('admin.turnos') }}" class="sidebar-link bg-rosa">
-                                <i class="fa-solid fa-calendar-check"></i>
-                                <span class="sidebar-text">Gestión Turnos</span>
-                            </a>
-                            <a href="{{ route('admin.documentos') }}" class="sidebar-link bg-lila">
-                                <i class="fa-solid fa-folder-open"></i>
-                                <span class="sidebar-text">Biblioteca</span>
-                            </a>
-                            <a href="{{ route('admin.waitlist') }}" class="sidebar-link bg-celeste">
-                                <i class="fa-solid fa-clock"></i>
-                                <span class="sidebar-text">Lista Espera</span>
-                            </a>
-                            <a href="{{ route('admin.configuracion') }}" class="sidebar-link bg-amarillo">
-                                <i class="fa-solid fa-gear"></i>
-                                <span class="sidebar-text">Disponibilidad</span>
-                            </a>
-                            <a href="{{ route('admin.historial') }}" class="sidebar-link bg-verde">
-                                <i class="fa-solid fa-clock-rotate-left"></i>
-                                <span class="sidebar-text">Historial</span>
-                            </a>
-                        @endif
-                        @if(auth()->user()->email === 'joacooodelucaaa16@gmail.com')
-                            <a href="{{ route('admin.developer') }}" class="sidebar-link" style="background: #1f2937; color: white;">
-                                <i class="fa-solid fa-terminal"></i>
-                                <span class="sidebar-text">Panel Dev</span>
-                            </a>
-                        @endif
-                    </nav>
-
-                     <div class="sidebar-footer" style="padding: 1.5rem 0.5rem; border-top: 3px solid #000; display: flex; align-items: center; justify-content: center; gap: 0.5rem; overflow: hidden; flex-shrink: 0; background: white;">
-                            <a href="javascript:void(0)" class="sidebar-link" style="background-color: var(--color-rojo); color: white; width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem;" onclick="window.showConfirm('¿Cerrar sesión?', () => document.getElementById('logout-form').submit())">
-                                <i class="fa-solid fa-sign-out-alt" style="line-height: 1;"></i>
-                                <span class="sidebar-text" style="font-size: 0.9rem; line-height: 1;">Cerrar Sesión</span>
-                            </a>
-                    </div>
-                </aside>
-            @endif
-
-            <!-- [MAIN CONTENT SECTION] Universal for All Roles -->
-            <!-- The 'app-main' class ensures it takes remaining width -->
-            <div class="app-main">
+            @if(isset($isAdmin) && $isAdmin && !View::hasSection('hide_sidebar'))
+            <div class="admin-layout" style="display: flex; flex: 1; width: 100%;">
                 
-                <!-- UNIVERSAL HEADER (Identical HTML Structure for ALL) -->
-                <header class="universal-header">
+
+                <!-- Static Sidebar -->
+                <nav class="nav-sidebar">
+                    <!-- Logo at the very top -->
+                    <div class="sidebar-logo" style="padding: 1rem; display: flex; justify-content: center; align-items: center; margin-bottom: 0.5rem;">
+                        <img src="{{ asset('img/logo-nuevo.png') }}" alt="Logo" style="height: 80px; width: auto;">
+                    </div>
                     
-                    <!-- LEFT SIDE: Toggle (Admin) + Brand -->
-                    <div class="header-left">
-                        @if(isset($isAdmin) && $isAdmin)
-                            <button id="admin-sidebar-toggle" onclick="window.toggleAdminSidebar()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; margin-right: 0.5rem; color: #111827; display: flex; align-items: center; justify-content: center; width: 40px; height: 40px;">
-                                <i class="fa-solid fa-bars"></i>
-                            </button>
-                        @endif
-
-                        <div class="logo-text">
-                            <span class="brand-title logo no-select">Lic. <span class="hide-on-mobile">Nazarena</span> De Luca</span>
+                    <div class="sidebar-header" style="padding: 1rem; border-bottom: 2px solid #eee; margin-bottom: 1rem; display: flex; justify-content: center; flex-direction: column; align-items: center; gap: 10px;">
+                        <!-- Branding Image -->
+                         <div class="nav-brand-img" style="width: 50px; height: 50px; border-radius: 50%; border: 3px solid #000; overflow: hidden; background: white; box-shadow: 3px 3px 0px #000;">
+                            <img src="{{ asset('img/069b6f01-e0b6-4089-9e31-e383edf4ff62.jpg') }}" alt="Nazarena" style="width: 100%; height: 100%; object-fit: cover;">
                         </div>
+                        <style>
+                            @media (max-width: 1024px) {
+                                .nav-brand-img {
+                                    display: none !important;
+                                }
+                                .sidebar-header {
+                                    border-bottom: none !important;
+                                    padding: 0 !important;
+                                    margin: 0 !important;
+                                }
+                                
+                                /* Mobile sidebar full screen with overlay */
+                                .nav-sidebar {
+                                    position: fixed !important;
+                                    left: -100% !important;
+                                    top: 0 !important;
+                                    width: 70% !important;
+                                    max-width: 300px !important;
+                                    height: 100vh !important;
+                                    background: #f8fafc !important;
+                                    z-index: 999999 !important;
+                                    transition: left 0.3s ease-in-out !important;
+                                    overflow-y: auto !important;
+                                    box-shadow: 5px 0 15px rgba(0,0,0,0.3) !important;
+                                }
+                                
+                                .nav-sidebar.open {
+                                    left: 0 !important;
+                                }
+                                
+                                /* Close button */
+                                .sidebar-close-btn {
+                                    display: flex !important;
+                                }
+                                
+                                /* Sidebar logo on mobile */
+                                .sidebar-logo {
+                                    padding: 1.5rem 1rem !important;
+                                    border-bottom: 2px solid #eee !important;
+                                }
+                            }
+                            
+                            /* Close button - hidden on desktop */
+                            .sidebar-close-btn {
+                                display: none;
+                                position: absolute;
+                                top: 1rem;
+                                right: 1rem;
+                                background: #dc2626;
+                                color: white;
+                                border: 2px solid #000;
+                                width: 40px;
+                                height: 40px;
+                                border-radius: 8px;
+                                cursor: pointer;
+                                align-items: center;
+                                justify-content: center;
+                                font-size: 1.2rem;
+                                box-shadow: 3px 3px 0px #000;
+                                z-index: 999999;
+                            }
+                            
+                            .sidebar-close-btn:active {
+                                transform: translate(2px, 2px);
+                                box-shadow: 1px 1px 0px #000;
+                            }
+                            
+                            /* Overlay */
+                            .sidebar-overlay {
+                                display: none;
+                                position: fixed;
+                                top: 0;
+                                left: 0;
+                                width: 100vw;
+                                height: 100vh;
+                                background: rgba(0, 0, 0, 0.5);
+                                z-index: 999998;
+                            }
+                            
+                            .sidebar-overlay.active {
+                                display: block;
+                            }
+                        </style>
+                    </div>
+                    
+                    <!-- Close button for mobile -->
+                    <button class="sidebar-close-btn" onclick="window.toggleAdminSidebar()">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+
+                    <div class="nav-items" style="flex: 1; display: flex; flex-direction: column;">
+                        <a href="{{ route('admin.pacientes') }}" class="nav-link {{ request()->routeIs('admin.pacientes') ? 'active' : '' }}">
+                            <i class="fa-solid fa-user-group"></i>
+                            <span class="nav-text">Pacientes</span>
+                        </a>
+                        <a href="{{ route('admin.agenda') }}" class="nav-link {{ request()->routeIs('admin.agenda') ? 'active' : '' }}">
+                            <i class="fa-solid fa-calendar-days"></i>
+                            <span class="nav-text">Agenda</span>
+                        </a>
+                        <a href="{{ route('admin.waitlist') }}" class="nav-link {{ request()->routeIs('admin.waitlist') ? 'active' : '' }}">
+                            <i class="fa-solid fa-users-line"></i>
+                            <span class="nav-text">Lista de Espera</span>
+                        </a>
+                        <a href="{{ route('admin.finanzas') }}" class="nav-link {{ request()->routeIs('admin.finanzas') ? 'active' : '' }}">
+                            <i class="fa-solid fa-wallet"></i>
+                            <span class="nav-text">Finanzas</span>
+                        </a>
+                         <a href="{{ route('admin.configuracion') }}" class="nav-link {{ request()->routeIs('admin.configuracion') ? 'active' : '' }}">
+                            <i class="fa-solid fa-gear"></i>
+                            <span class="nav-text">Configuración</span>
+                        </a>
+                         <a href="{{ route('admin.historial') }}" class="nav-link {{ request()->routeIs('admin.historial') ? 'active' : '' }}">
+                            <i class="fa-solid fa-clock-rotate-left"></i>
+                            <span class="nav-text">Acciones</span>
+                        </a>
                     </div>
 
-                    <!-- RIGHT SIDE: Navbar Content -->
-                    <div class="header-right">
-                        <!-- Common Tools (Notifications & Logout) - Visible for ALL Auth Users -->
-                        @auth
-                           <div class="header-navbar">
-                                <!-- Notifications Bell -->
-                                <div id="universal-notif-bell" class="notification-bell-container" style="cursor: pointer; position: relative; font-size: 1.5rem; display: flex; align-items: center;">
-                                    <i class="fa-solid fa-bell" style="color: #000;"></i>
-                                    <span class="notification-badge" id="universal-notif-count" style="position: absolute; top: -5px; right: -5px; background: #ff4d4d; color: white; border-radius: 50%; width: 20px; height: 20px; font-size: 0.7rem; display: none; align-items: center; justify-content: center; border: 2px solid #fff; font-weight: 800;">0</span>
-                                    
-                                    <!-- Dropdown (Universal) -->
-                                    <div id="universal-notif-dropdown" class="notification-dropdown" onclick="event.stopPropagation()" style="display: none; position: absolute; top: calc(100% + 15px); right: -10px; width: 320px; max-width: 90vw; background: white; border: 1px solid rgba(0,0,0,0.1); border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); z-index: 9999; overflow: hidden;">
-                                        <div class="notification-header" style="padding: 15px; border-bottom: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center; background: #fafafa;">
-                                            <span style="font-weight: 700; font-size: 0.9rem; color: #333;">Notificaciones</span>
-                                            <button onclick="markAllRead()" style="background: transparent; border: none; color: #666; font-size: 0.75rem; cursor: pointer; text-decoration: underline;">
-                                                Marcar leídas
+                    <div class="sidebar-footer">
+                        <a href="javascript:void(0)" onclick="openLogoutModal()" class="nav-link logout-btn">
+                            <i class="fa-solid fa-right-from-bracket"></i>
+                            <span class="nav-text">Salir</span>
+                        </a>
+                    </div>
+                </nav>
+
+                <main class="app-main-wrapper" style="margin-left: 0; padding-top: 70px !important; width: 100%; flex: 1; background-color: var(--color-celeste); display: flex; flex-direction: column; align-items: center;">
+ 
+                    <!-- Universal Header (Restored) -->
+                    <header class="universal-header" style="background: white; border-bottom: var(--border-thick); position: fixed; top: 0; left: 0; right: 0; z-index: 7000; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                        <div class="header-content" style="padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; width: 100%; box-sizing: border-box; max-width: 100vw;">
+                            <!-- LEFT SIDE: Toggle (Admin) + Brand -->
+                            <div class="header-left" style="display: flex; align-items: center; gap: 1rem;">
+                                <button id="admin-sidebar-toggle" class="admin-sidebar-toggle-btn" onclick="window.toggleAdminSidebar()" style="display: none; background: transparent; border: none; font-size: 1.5rem; cursor: pointer; padding: 0.5rem; color: rgb(51, 51, 51); position: relative; z-index: 999999;">
+                                    <i class="fa-solid fa-bars"></i>
+                                </button>
+                <style>
+                                    @media (max-width: 1024px) {
+                                        #admin-sidebar-toggle {
+                                            display: flex !important;
+                                        }
+                                        /* Hide brand on mobile sidebar view per request */
+                                        /* .nav-brand-img { display: none !important; } */
+                                    }
+                                </style>
+
+                                <style>
+                                    @media (min-width: 1025px) {
+                                        .logo-shift {
+                                            margin-left: 120px;
+                                        }
+                                    }
+                                </style>
+                                <a href="{{ route('admin.home') }}" class="logo-text logo-shift" style="text-decoration: none; display: flex; align-items: center; gap: 0.8rem;">
+                                    <span class="brand-title logo no-select">Lic. <span class="hide-on-mobile">Nazarena</span> De Luca</span>
+                                </a>
+                            </div>
+
+                            <!-- RIGHT SIDE: Tools -->
+                            <div class="header-right" style="display: flex; align-items: center; gap: 1.5rem;">
+                                @auth
+                                    <div class="header-navbar" style="display: flex; align-items: center; gap: 1.2rem;">
+                                        <!-- Notifications Bell (Increased gap) -->
+                                        <div id="notif-bell" class="notification-bell-container" onclick="toggleNotifications(event)" style="cursor: pointer; position: relative; font-size: 1.5rem; display: flex; align-items: center; z-index: 10001; -webkit-tap-highlight-color: transparent; margin-left: 1rem;">
+                                            <i class="fa-solid fa-bell" style="color: #000;"></i>
+                                            <span class="notification-badge" id="notif-count" style="position: absolute; top: -5px; right: -5px; background: #ff4d4d; color: white; border-radius: 50%; min-width: 20px; height: 20px; font-size: 0.7rem; display: none; align-items: center; justify-content: center; border: 2px solid #fff; font-weight: 800; padding: 0 4px;">0</span>
+                                            
+                                            <!-- Dropdown -->
+                                            <div id="notif-dropdown" class="notification-dropdown" onclick="event.stopPropagation()" style="display: none; position: absolute; top: calc(100% + 15px); right: -10px; width: 360px; max-width: 90vw; background: white; border-radius: 16px; box-shadow: 0 16px 40px rgba(0,0,0,0.18), 0 4px 12px rgba(0,0,0,0.08); overflow: hidden; z-index: 10005; border: 3px solid #000;">
+                                                <div class="notification-header" style="padding: 1rem 1.2rem; border-bottom: 3px solid #000; display: flex; justify-content: space-between; align-items: center; background: #f8f9fa;">
+                                                    <span style="font-weight: 800; font-size: 1.05rem; color: #111; font-family: 'Manrope', sans-serif;">Notificaciones</span>
+                                                    <button onclick="markAllRead()" style="background: var(--color-celeste); border: 2px solid #000; color: #000; font-size: 0.75rem; font-weight: 700; cursor: pointer; padding: 0.4rem 0.8rem; border-radius: 8px; box-shadow: 2px 2px 0px #000;">
+                                                        Leer todas
+                                                    </button>
+                                                </div>
+                                                <div id="notif-items" class="notification-items-container" style="max-height: 420px; overflow-y: auto;">
+                                                    <div class="notification-empty" style="padding: 3rem 1.5rem; text-align: center; color: #888;">
+                                                        <div class="icon-placeholder" style="color: #bbb;"><i class="fa-solid fa-bell"></i></div>
+                                                        <div style="font-weight: 600; color: #333; margin-bottom: 0.5rem; font-size: 1.1rem;">Todo al día</div>
+                                                        <div style="font-size: 0.9rem; line-height: 1.4; color: #666;">No tenés notificaciones nuevas por ahora.</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Logout (Restored Desktop Form) -->
+                                        <form id="logout-form" action="{{ route('logout') }}" method="POST" style="display: inline;" class="header-logout-form">
+                                            @csrf
+                                            <button type="button" 
+                                                onclick="openLogoutModal()"
+                                                class="neobrutalist-btn"
+                                                style="background: var(--color-rojo); color: #fff; border: 3px solid #000; box-shadow: 3px 3px 0px #000; padding: 0.4rem 1rem; font-weight: 700; display: none; link-style: none; align-items: center; gap: 0.5rem;"
+                                                title="Cerrar Sesión">
+                                                <i class="fa-solid fa-right-from-bracket"></i>
+                                                <span>Salir</span>
                                             </button>
-                                        </div>
-                                        <div id="universal-notif-items" class="notif-scroll" style="max-height: 350px; overflow-y: auto; background: white;">
-                                            <!-- Items injected via JS -->
-                                        </div>
-                                    </div>
-                                </div>
+                                        </form>
+                                        <style>
+                                            @media (max-width: 1024px) {
+                                                .header-logout-form button {
+                                                    display: flex !important;
+                                                    padding: 0.4rem !important;
+                                                }
+                                                .header-logout-form button span {
+                                                    display: none !important;
+                                                }
+                                            }
+                                        </style>
+                                   </div>
+                                @endauth
+                            </div>
+                        </div>
+                    </header>
 
-                                <!-- Logout -->
-                                <form action="{{ route('logout') }}" method="POST" style="display: inline;">
-                                    @csrf
-                                    <button type="button" 
-                                        onclick="window.showConfirm('¿Cerrar sesión?', () => this.closest('form').submit())"
-                                        style="background: transparent; border: none; cursor: pointer; font-size: 1.2rem; color: #d32f2f; display: flex; align-items: center; transition: all 0.2s; padding: 8px; margin-left: 0.5rem;"
-                                        title="Cerrar Sesión">
-                                        <i class="fa-solid fa-right-from-bracket"></i>
-                                        <span class="hide-on-mobile" style="font-weight: 700; font-family: 'Inter', sans-serif; font-size: 1rem; margin-left: 8px;">Salir</span>
-                                    </button>
-                                </form>
-                           </div>
-                        @endauth
-                    </div>
-                </header>
-
-                <!-- Page Content Body -->
-                <main class="page-content">
                     @if(session('success'))
                         <div class="alert alert-success">
                             {{ session('success') }}
                         </div>
                     @endif
+                    
+
                     @if(session('error'))
                         <div class="alert alert-error">
+                            {{ session('error') }}
+                            </div>
+                    @endif
+
+
+                    <div class="workspace-container" style="width: 100%; max-width: 1400px; min-height: 80vh; padding-top: 20px; margin: 0 auto; display: flex; flex-direction: column;">
+                        @yield('content')
+                    </div>
+                </main>
+            </div>
+                            @elseif(View::hasSection('hide_sidebar'))
+                                <main style="width: 100%; min-height: 100vh;">
+                                    @yield('content')
+                                </main>
+                            @else
+            <!-- Patient Header -->
+            @auth
+                <header class="universal-header" style="background: white; border-bottom: var(--border-thick); position: fixed; top: 0; left: 0; right: 0; z-index: 7000; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                    <div class="header-content" style="padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; width: 100%; box-sizing: border-box; max-width: 100vw;">
+                        <!-- LEFT SIDE: Brand -->
+                        <div class="header-left" style="display: flex; align-items: center; gap: 1rem;">
+                                <div class="logo-text" style="margin-left: 0; cursor: default;">
+                                    <span class="brand-title logo no-select" style="font-size: 1.4rem;">Lic. <span class="hide-on-mobile">Nazarena</span> De Luca</span>
+                                </div>
+                            <style>
+                                @media (max-width: 768px) {
+                                    .header-left .logo-text {
+                                        margin-left: -0.5rem !important;
+                                    }
+                                    .header-left .brand-title.logo {
+                                        font-size: 1.4rem !important;
+                                        max-width: 220px; /* Increased max-width */
+                                        display: inline-block;
+                                        white-space: nowrap;
+                                        overflow: hidden;
+                                        text-overflow: ellipsis; /* Truncate with dots */
+                                    }
+                                    .header-left .hide-on-mobile {
+                                        display: inline; /* Let truncation handle it */
+                                    }
+                                    .sidebar-trigger-btn {
+                                        display: block !important; /* Show trigger on mobile */
+                                    }
+                                    /* Body padding removed (sidebar is overlay) */
+                                    body { padding-bottom: 0 !important; }
+                                    #whatsapp-widget-container { bottom: 20px !important; }
+                                    
+                                    .header-right {
+                                        gap: 0.5rem !important;
+                                    }
+                                }
+                            </style>
+                        </div>
+
+                        <!-- RIGHT SIDE: Notifications, Logout -->
+                        <div class="header-right" style="display: flex; align-items: center; gap: 1.5rem;">
+                               <div class="header-navbar" style="display: flex; align-items: center; gap: 1.2rem;">
+                                <!-- Mobile Sidebar Trigger (Top-Down Menu) -->
+                                <button onclick="togglePatientMenu()" class="sidebar-trigger-btn" style="background: var(--color-amarillo); border: 3px solid #000; padding: 0.5rem; border-radius: 10px; cursor: pointer; box-shadow: 3px 3px 0px #000; display: none;">
+                                    <i class="fa-solid fa-bars" style="font-size: 1.2rem; color: #000;"></i>
+                                </button>
+                                <!-- Notifications Bell -->
+                                <div id="patient-notif-bell" class="notification-bell-container" onclick="toggleNotifications(event, 'patient-notif-dropdown')" style="cursor: pointer; position: relative; font-size: 1.5rem; display: flex; align-items: center; z-index: 10001;">
+                                        <i class="fa-solid fa-bell" style="color: #000;"></i>
+                                    <span class="notification-badge" id="patient-notif-count" style="position: absolute; top: -5px; right: -5px; background: #ff4d4d; color: white; border-radius: 50%; min-width: 20px; height: 20px; font-size: 0.7rem; display: none; align-items: center; justify-content: center; border: 2px solid #fff; font-weight: 800; padding: 0 4px;">0</span>
+                                        
+                                    <!-- Dropdown -->
+                                    <div id="patient-notif-dropdown" class="notification-dropdown" onclick="event.stopPropagation()" style="display: none; position: absolute; top: calc(100% + 15px); right: -10px; width: 360px; max-width: 95vw; background: white; border-radius: 16px; box-shadow: 0 16px 40px rgba(0,0,0,0.18), 0 4px 12px rgba(0,0,0,0.08); overflow: hidden; z-index: 10005; border: 3px solid #000;">
+                                            <div class="notification-header" style="padding: 1rem 1.2rem; border-bottom: 3px solid #000; display: flex; justify-content: space-between; align-items: center; background: #f8f9fa;">
+                                                <span style="font-weight: 800; font-size: 1.05rem; color: #111; font-family: 'Manrope', sans-serif;">Notificaciones</span>
+                                            <button onclick="markAllRead()" style="background: var(--color-celeste); border: 2px solid #000; color: #000; font-size: 0.75rem; font-weight: 700; cursor: pointer; padding: 0.4rem 0.8rem; border-radius: 8px; box-shadow: 2px 2px 0px #000;">
+                                                    Leer todas
+                                                </button>
+                                            </div>
+                                        <div id="patient-notif-items" class="notification-items-container" style="max-height: 420px; overflow-y: auto;">
+                                                <div class="notification-empty" style="padding: 3rem 1.5rem; text-align: center; color: #888;">
+                                                    <div class="icon-placeholder" style="color: #bbb;"><i class="fa-solid fa-bell"></i></div>
+                                                    <div style="font-weight: 600; color: #333; margin-bottom: 0.5rem; font-size: 1.1rem;">Todo al día</div>
+                                                    <div style="font-size: 0.9rem; line-height: 1.4; color: #666;">No tenés notificaciones nuevas por ahora.</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                <!-- Logout Button -->
+                                <form action="{{ route('logout') }}" method="POST" style="display: inline;" class="header-logout-form">
+                                    @csrf
+                                        <button type="button" 
+                                        onclick="openLogoutModal()"
+                                        class="neobrutalist-btn"
+                                        style="background: var(--color-rojo); color: #fff; border: 3px solid #000; box-shadow: 3px 3px 0px #000; padding: 0.4rem 1rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem;"
+                                        title="Cerrar Sesión">
+                                        <i class="fa-solid fa-right-from-bracket"></i>
+                                        <span class="hide-on-mobile logout-text">Salir</span>
+                                        </button>
+                                </form>
+                               </div>
+                            <style>
+                                @media (max-width: 768px) {
+                                    .header-navbar {
+                                        flex-direction: row !important;
+                                        gap: 1rem !important; /* Visual equality */
+                                        align-items: center !important;
+                                    }
+                                    .header-logout-form {
+                                        display: flex !important; /* Ensure form behaves as a flex item */
+                                        margin: 0 !important;
+                                    }
+                                    /* En móvil mostrar solo el icono: ocultar el texto del logout */
+                                    .header-logout-form .logout-text {
+                                        display: none !important;
+                                    }
+                                    .header-logout-form .neobrutalist-btn {
+                                        padding: 0.4rem !important; /* Square-ish button */
+                                        width: 40px !important;
+                                        height: 40px !important;
+                                        justify-content: center !important;
+                                        align-items: center !important;
+                                        box-shadow: 2px 2px 0px #000 !important; /* Consistent shadow */
+                                    }
+                                    /* Reducir gaps en la derecha para evitar que se corte el botón */
+                                    .header-right {
+                                        gap: 0 !important; /* Control spacing via sidebar-trigger-btn and navbar gap */
+                                    }
+                                }
+                            </style>
+                        </div>
+                    </div>
+                </header>
+            @endauth
+
+            <main class="container mt-16" style="flex: 1; min-height: auto; padding-top: @auth 90px; @else 3rem; @endauth padding-bottom: 3rem; width: 100%; max-width: 1400px; margin: 0 auto;">
+                    @if(session('success'))
+                    <div class="alert alert-success">
+                            {{ session('success') }}
+                        </div>
+                    @endif
+                    @if(session('error'))
+                    <div class="alert alert-error">
                             {{ session('error') }}
                         </div>
                     @endif
 
                     @yield('content')
                 </main>
-
-            </div> <!-- End app-main -->
-
-        </div> <!-- End app-wrapper -->
+        @endif
     @endif
 
-    @yield('subnavigation')
-
-    @if(auth()->check() && auth()->user()->rol == 'admin' && auth()->user()->email !== 'joacooodelucaaa16@gmail.com' && !request()->routeIs('login') && !request()->routeIs('register') && !request()->routeIs('password.*'))
-        
-        <!-- BOTÓN FLOTANTE (FAB) -->
-        <!-- BOTÓN FLOTANTE (FAB) -->
-        <!-- BOTÓN FLOTANTE (FAB) -->
-        <style>
-            .btn-ai {
-                position: fixed;
-                bottom: 1.5rem;
-                right: 1.5rem;
-                width: 60px;
-                height: 60px;
-                /* Option 2: Azul Sereno - Normal & Trustworthy */
-                background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-                color: white;
-                border-radius: 50%;
-                border: 2px solid rgba(255, 255, 255, 0.2);
-                box-shadow: 0 8px 20px rgba(29, 78, 216, 0.4);
-                cursor: pointer;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                font-size: 1.6rem;
-                z-index: 10000;
-                transition: 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-                animation: pulse-glow 3s infinite;
-            }
-
-            .btn-ai:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 12px 25px rgba(29, 78, 216, 0.6);
-            }
-
-            @keyframes pulse-glow {
-                0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); }
-                70% { box-shadow: 0 0 0 15px rgba(59, 130, 246, 0); }
-                100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
-            }
-        </style>
-        <button onclick="toggleGemini()" id="ai-fab" class="btn-ai">
-            <i class="fa-solid fa-user-tie"></i>
-        </button>
-
-        <!-- PANEL ASISTENTE (Oculto por defecto) -->
-        <div id="ai-panel" style="
-            position: fixed;
-            bottom: 6rem;
-            right: 1.5rem;
-            width: 350px;
-            height: 500px;
-            background: #ffffff;
-            border: 1px solid #e5e7eb;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-            border-radius: 20px;
-            display: none;
-            flex-direction: column;
-            overflow: hidden;
-            z-index: 10001;
-            font-family: 'Inter', sans-serif;
-        ">
-            <!-- Header Panel -->
-            <div style="
-                background: #ffffff;
-                color: #1f2937;
-                padding: 1.2rem;
-                font-weight: 700;
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                border-bottom: 1px solid #f3f4f6;
-            ">
-                <div style="display: flex; align-items: center; gap: 0.8rem;">
-                    <div style="background: #e0f2fe; padding: 8px; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
-                        <i class="fa-solid fa-user-tie" style="color: #0369a1; font-size: 1.1rem;"></i>
-                    </div>
-                    <div style="display: flex; flex-direction: column;">
-                        <span style="letter-spacing: -0.3px; line-height: 1.1; font-size: 1rem;">Asistente Clínico</span>
-                        <span style="font-size: 0.75rem; color: #6b7280; font-weight: 500;">Modelo: Gemini 1.5 Flash</span>
-                    </div>
-                </div>
-                <button onclick="toggleGemini()" style="background: none; border: none; color: #9ca3af; font-size: 1.1rem; cursor: pointer; padding: 4px; transition: color 0.2s;" onmouseover="this.style.color='#1f2937'" onmouseout="this.style.color='#9ca3af'">
-                </button>
-            </div>
-
-            <!-- Messages Area -->
-            <div id="ai-messages" style="flex: 1; padding: 1rem; overflow-y: auto; background: #f8fafc; display: flex; flex-direction: column; gap: 1rem;">
-                <!-- Welcome Message (Auto) -->
-                <div style="background: #ffffff; padding: 1rem; border-radius: 16px 16px 16px 0; align-self: flex-start; max-width: 90%; line-height: 1.5; font-size: 0.95rem; color: #374151; box-shadow: 0 1px 2px rgba(0,0,0,0.05); border: 1px solid #e2e8f0;">
-                    Hola Lic. Nazarena 👋<br>¿En qué te puedo ayudar hoy?
-                </div>
-                
-                <!-- Quick Actions Chips -->
-                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: auto; justify-content: flex-start;">
-                    <button onclick="sendGeminiMessage('¿Qué turnos tengo hoy?')" style="background: #ffffff; border: 1px solid #e5e7eb; padding: 0.5rem 1rem; border-radius: 20px; font-size: 0.85rem; font-weight: 500; cursor: pointer; color: #4b5563; transition: all 0.2s; box-shadow: 0 1px 2px rgba(0,0,0,0.05);" onmouseover="this.style.background='#eff6ff'; this.style.borderColor='#93c5fd'; this.style.color='#1d4ed8'" onmouseout="this.style.background='#ffffff'; this.style.borderColor='#e5e7eb'; this.style.color='#4b5563'">¿Qué turnos tengo hoy?</button>
-                    <button onclick="sendGeminiMessage('¿Cómo están mis pagos?')" style="background: #ffffff; border: 1px solid #e5e7eb; padding: 0.5rem 1rem; border-radius: 20px; font-size: 0.85rem; font-weight: 500; cursor: pointer; color: #4b5563; transition: all 0.2s; box-shadow: 0 1px 2px rgba(0,0,0,0.05);" onmouseover="this.style.background='#eff6ff'; this.style.borderColor='#93c5fd'; this.style.color='#1d4ed8'" onmouseout="this.style.background='#ffffff'; this.style.borderColor='#e5e7eb'; this.style.color='#4b5563'">¿Cómo están mis pagos?</button>
-                    <button onclick="sendGeminiMessage('Necesito soporte técnico')" style="background: #ffffff; border: 1px solid #e5e7eb; padding: 0.5rem 1rem; border-radius: 20px; font-size: 0.85rem; font-weight: 500; cursor: pointer; color: #4b5563; transition: all 0.2s; box-shadow: 0 1px 2px rgba(0,0,0,0.05);" onmouseover="this.style.background='#eff6ff'; this.style.borderColor='#93c5fd'; this.style.color='#1d4ed8'" onmouseout="this.style.background='#ffffff'; this.style.borderColor='#e5e7eb'; this.style.color='#4b5563'">¿Necesito ayuda?</button>
-                </div>
-            </div>
-
-            <!-- Input Area -->
-            <div style="padding: 1rem; background: #ffffff; border-top: 1px solid #f3f4f6; display: flex; align-items: center; gap: 0.5rem;">
-                <textarea id="ai-input" placeholder="Escribí tu consulta..." rows="1" style="flex: 1; padding: 0.8rem 1rem; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 24px; resize: none; font-family: inherit; font-size: 0.95rem; outline: none; transition: border-color 0.2s; overflow-y: hidden;" oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'" onfocus="this.style.borderColor='#1d4ed8'" onblur="this.style.borderColor='#e5e7eb'" onkeydown="if(event.key === 'Enter' && !event.shiftKey){ event.preventDefault(); sendGeminiMessage(); }"></textarea>
-                <button onclick="sendGeminiMessage()" style="
-                    background: #1d4ed8; 
-                    color: #fff; 
-                    border: none; 
-                    width: 40px; 
-                    height: 40px; 
-                    border-radius: 50%; 
-                    cursor: pointer; 
-                    display: flex; 
-                    align-items: center; 
-                    justify-content: center; 
-                    box-shadow: 0 4px 6px -1px rgba(29, 78, 216, 0.4); 
-                    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-                " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 8px -1px rgba(29, 78, 216, 0.5)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 6px -1px rgba(29, 78, 216, 0.4)'">
-                    <i class="fa-solid fa-paper-plane" style="font-size: 0.9rem;"></i>
-                </button>
+    <!-- Custom Logout Modal -->
+    <div id="logout-modal-overlay" class="confirm-modal-overlay" style="display: none; background: rgba(0,0,0,0.7); position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 999999; align-items: center; justify-content: center; backdrop-filter: blur(8px);">
+        <div class="security-modal" style="padding: 2rem; background: white; border: 3px solid #000; box-shadow: 10px 10px 0px #000; border-radius: 20px; max-width: 400px; width: 90%; position: relative; z-index: 1000000;">
+            <h3 style="font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.5rem; margin-bottom: 0.8rem;">Cerrar sesión</h3>
+            <p style="font-family: 'Inter', sans-serif; font-weight: 600; color: #555; margin-bottom: 1.5rem; font-size: 0.9rem;">¿Confirmás que querés cerrar tu sesión?</p>
+            <div style="display: flex; gap: 1rem; justify-content: center;">
+                <button onclick="closeLogoutModal()" class="neobrutalist-btn bg-white" style="flex: 1; border: 2px solid #000; padding: 0.6rem; font-weight: 700; font-size: 0.85rem; background: white; color: #000;">Cancelar</button>
+                <button onclick="document.getElementById('logout-form').submit();" class="neobrutalist-btn" style="flex: 1; background: var(--color-rojo); color: white; border: 2px solid #000; padding: 0.6rem; font-weight: 700; font-size: 0.85rem;">SALIR</button>
             </div>
         </div>
+    </div>
 
-        <script>
-            // 3. Chat Logic with AbortController
-            let currentController = null;
+    <script>
+        function openLogoutModal() {
+            document.getElementById('logout-modal-overlay').style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        }
 
-            window.sendGeminiMessage = async function(msg = null) {
-                const input = document.getElementById('ai-input');
-                const messages = document.getElementById('ai-messages');
-                // The icon is inside the button which is after the input
-                const btn = document.querySelector('#ai-input + button'); // The button
-                const btnIcon = btn ? btn.querySelector('i') : null;
-                
-                if(!input || !messages || !btnIcon) return;
+        function closeLogoutModal() {
+            document.getElementById('logout-modal-overlay').style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+    </script>
 
-                // If currently generating, this button acts as Stop
-                if (currentController) {
-                    currentController.abort();
-                    currentController = null;
-                    // Reset Icon
-                    btnIcon.className = 'fa-solid fa-paper-plane';
-                    btnIcon.style.color = '#ffffff'; 
-                    // Append "Stopped" message
-                    const stopMsg = document.createElement('div');
-                    stopMsg.style.textAlign = 'center';
-                    stopMsg.style.fontSize = '0.8rem';
-                    stopMsg.style.color = '#999';
-                    stopMsg.style.margin = '5px 0';
-                    stopMsg.innerText = 'Generación detenida.';
-                    messages.appendChild(stopMsg);
-                    // Remove the last loading bubble if exists
-                    const lastBubble = messages.lastElementChild;
-                    if(lastBubble && lastBubble.innerHTML.includes('...')) {
-                        lastBubble.remove();
-                    }
-                    return;
-                }
+    <!-- GLOBAL FOOTER -->
+  
 
-                const messageText = msg || input.value.trim();
-                if (!messageText) return;
 
-                // --- UI Updates Start ---
-                
-                // Change Button to Square (Stop)
-                btnIcon.className = 'fa-solid fa-square';
-                btnIcon.style.fontSize = '0.8rem';
-                
-                // 1. Show User Message
-                const userMsg = document.createElement('div');
-                userMsg.style.marginBottom = '0.5rem';
-                userMsg.style.background = '#eff6ff'; // Blue 50
-                userMsg.style.color = '#1e3a8a';      // Blue 900
-                userMsg.style.padding = '0.8rem';
-                userMsg.style.border = '1px solid #bfdbfe'; // Blue 200
-                userMsg.style.borderRadius = '12px 12px 0 12px';
-                userMsg.style.alignSelf = 'flex-end';
-                userMsg.style.maxWidth = '85%';
-                userMsg.style.lineHeight = '1.4';
-                userMsg.style.fontSize = '0.95rem';
-                userMsg.innerHTML = `<strong>Vos:</strong> ${messageText}`;
-                messages.appendChild(userMsg);
-
-                if (!msg) input.value = '';
-                messages.scrollTop = messages.scrollHeight;
-
-                // 2. Show AI Loading Bubble
-                const aiMsg = document.createElement('div');
-                aiMsg.style.marginBottom = '0.5rem';
-                aiMsg.style.background = '#ffffff'; 
-                aiMsg.style.color = '#000000';
-                aiMsg.style.padding = '0.8rem';
-                aiMsg.style.border = '1px solid #e5e7eb';
-                aiMsg.style.borderRadius = '12px 12px 12px 0';
-                aiMsg.style.alignSelf = 'flex-start';
-                aiMsg.style.maxWidth = '85%';
-                aiMsg.style.lineHeight = '1.4';
-                aiMsg.style.fontSize = '0.95rem';
-                aiMsg.innerHTML = '<strong>IA:</strong> ...'; 
-                messages.appendChild(aiMsg);
-                messages.scrollTop = messages.scrollHeight;
-
-                // --- Network Request ---
-                
-                currentController = new AbortController();
-                const signal = currentController.signal;
-
-                try {
-                    // 3. Petición al Backend (JSON)
-                    const response = await fetch('{{ route('admin.ai.chat') }}', {
-                        method: 'POST',
-                        headers: { 
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                        },
-                        body: JSON.stringify({ message: messageText }),
-                        signal: signal
-                    });
-
-                    if (!response.ok) throw new Error('Error en la conexión con la IA');
-
-                    const data = await response.json();
-                    
-                    if (data.response) {
-                         aiMsg.innerHTML = `<strong>IA:</strong> ${data.response.replace(/\n/g, '<br>')}`;
-                    } else {
-                         aiMsg.innerHTML = "<strong>IA:</strong> No entendí, ¿podés repetir?";
-                    }
-                    messages.scrollTop = messages.scrollHeight;
-
-                } catch (error) {
-                    if (error.name === 'AbortError') {
-                        console.log('Fetch aborted');
-                        aiMsg.innerHTML += '<br><span style="color:#999; font-size:0.8rem;">(Detenido)</span>';
-                    } else {
-                        aiMsg.innerHTML += `<br><span style="color:red; font-size:0.8rem;">(Error: ${error.message})</span>`;
-                        console.error(error);
-                    }
-                } finally {
-                    // Reset Button Icon
-                    currentController = null;
-                    if(btnIcon) {
-                        btnIcon.className = 'fa-solid fa-paper-plane';
-                        btnIcon.style.fontSize = '0.9rem';
-                    }
-                }
-            };
-        </script>
-    @endif
 
     <!-- Post-Login Session Prompt (DISABLED) -->
     @auth
@@ -528,70 +792,6 @@
     @endauth
 
 
-    <footer class="footer">
-        <div class="container text-center">
-            <h2 style="color: white; font-family: 'Syne', sans-serif; margin-bottom: 0.5rem;">Lic. Nazarena De Luca</h2>
-            <!-- Dev Report Button (Minimalist) -->
-            <!-- Report Button (Visible to Guests & Non-Dev Auth Users) -->
-            <!-- Report Button (Visible to ALL guests and Non-Dev Auth Users) -->
-            @if(!auth()->check() || (auth()->check() && auth()->user()->email !== 'joacooodelucaaa16@gmail.com'))
-                @if(request()->routeIs('login'))
-                    <button onclick="openReportModal()" style="
-                        background: transparent; 
-                        border: none;
-                        color: #ffffff; 
-                        font-size: 0.9rem; /* Slightly smaller */
-                        cursor: pointer; 
-                        margin-bottom: 1rem; 
-                        transition: transform 0.2s;
-                        display: inline-flex;
-                        align-items: center;
-                        gap: 8px;
-                        font-family: 'Manrope', sans-serif;
-                        opacity: 1; 
-                        text-decoration: underline; /* Added underline style for 'linky' feel or keep just text */
-                    " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
-                        <i class="fa-solid fa-circle-exclamation" style="font-size: 1rem;"></i> ¿Problemas para logearte? Reportar fallo
-                    </button>
-                @else
-                    <button onclick="openReportModal()" style="
-                        background: transparent; 
-                        border: none;
-                        color: #ffffff; 
-                        font-size: 1rem; 
-                        cursor: pointer; 
-                        margin-bottom: 1rem; 
-                        transition: transform 0.2s;
-                        display: inline-flex;
-                        align-items: center;
-                        gap: 8px;
-                        font-family: 'Manrope', sans-serif;
-                        opacity: 1;
-                    " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
-                        <i class="fa-solid fa-circle-exclamation" style="font-size: 1.1rem;"></i> Reportar un problema
-                    </button>
-                @endif
-            @endif
-            
-            <!-- Delete Account Button (Underlined, below Report) -->
-            @auth
-                @if(auth()->user()->rol == 'paciente')
-                    <button type="button" 
-                            onclick="openDeleteModal()" 
-                            style="background: none; border: none; color: rgba(255,255,255,0.5); text-decoration: underline; cursor: pointer; font-size: 0.75rem; font-family: 'Manrope', sans-serif; transition: color 0.3s; margin-bottom: 1rem; display: block; margin-left: auto; margin-right: auto;" 
-                            onmouseover="this.style.color='rgba(255,255,255,0.8)'" 
-                            onmouseout="this.style.color='rgba(255,255,255,0.5)'">
-                        Quiero darme de baja del sistema
-                    </button>
-                @endif
-            @endauth
-            <p style="font-family: 'Manrope', sans-serif; opacity: 0.8; margin-bottom: 1.5rem;">&copy; {{ date('Y') }} Todos los derechos reservados.</p>
-            
-
-
-        </div>
-    </footer>
-
     <!-- Invisible Logout Form -->
     <form id="logout-form" action="{{ route('logout') }}" method="POST" style="display: none;">
         @csrf
@@ -599,14 +799,123 @@
 
     <!-- Custom Confirmation Modal -->
     <div id="confirm-modal-overlay" class="confirm-modal-overlay" style="display: none;">
-        <div class="confirm-modal" style="border-radius: 15px !important; border: 2px solid #000; box-shadow: 6px 6px 0px rgba(0,0,0,0.1);">
-            <div class="confirm-modal-title" style="font-family: 'Syne', sans-serif;">Confirmar acción</div>
-            <div id="confirm-modal-message" class="confirm-modal-message" style="font-family: 'Inter', sans-serif; font-size: 1rem;"></div>
+        <div class="confirm-modal">
+            <div class="confirm-modal-title" style="font-family: 'Syne', sans-serif; background: var(--color-rojo); color: white;">Confirmar acción</div>
+            <div id="confirm-modal-message" class="confirm-modal-message" style="font-family: 'Inter', sans-serif;"></div>
             <div class="confirm-modal-buttons">
-                <button id="confirm-cancel" class="neobrutalist-btn bg-rosa" style="border-radius: 8px;">Cancelar</button>
-                <button id="confirm-ok" class="neobrutalist-btn bg-verde" style="border-radius: 8px;">Confirmar</button>
+                <button id="confirm-cancel" class="neobrutalist-btn" style="background: #fff; border: 3px solid #000; color: #000; box-shadow: 3px 3px 0px #000;">Cancelar</button>
+                <button id="confirm-ok" class="neobrutalist-btn" style="background: var(--color-rojo); color: #fff; border: 3px solid #000; box-shadow: 3px 3px 0px #000;">Confirmar</button>
             </div>
         </div>
+    </div>
+    
+    <script>
+        // Restoring robust custom confirm.
+        // If message is simple, we use native CONFIRM to ensure it works for user.
+        // If he wants it fancy, he can provide a callback to the modal.
+        // Fallback robusto:
+        window.showConfirm = function(message, callback) {
+            // Check for overlay
+            const overlay = document.getElementById('confirm-modal-overlay');
+            if(overlay) {
+                // If the modal elements exist, use them.
+                const msgEl = document.getElementById('confirm-modal-message');
+                const okBtn = document.getElementById('confirm-ok');
+                const cancelBtn = document.getElementById('confirm-cancel');
+                
+                if (msgEl && okBtn && cancelBtn) {
+                     msgEl.innerText = message;
+                     overlay.style.display = 'flex';
+                     document.body.style.overflow = 'hidden';
+                     
+                     // Use cloneNode to wipe old listeners
+                     const newOk = okBtn.cloneNode(true);
+                     const newCancel = cancelBtn.cloneNode(true);
+                     okBtn.parentNode.replaceChild(newOk, okBtn);
+                     cancelBtn.parentNode.replaceChild(newCancel, cancelBtn);
+                     
+                     newOk.onclick = function() {
+                         overlay.style.display = 'none';
+                         document.body.style.overflow = '';
+                         if(callback) callback();
+                     };
+                     newCancel.onclick = function() {
+                         overlay.style.display = 'none';
+                         document.body.style.overflow = '';
+                     };
+                     return;
+                }
+            }
+            // Fallback native
+            if(confirm(message) && callback) callback();
+        };
+    </script>
+
+    <!-- Report Problem Modal (Polished Neobrutalist) -->
+    <div id="report-modal-overlay" class="confirm-modal-overlay" style="display: none; z-index: 100000; background: rgba(0,0,0,0.6);">
+        <div class="confirm-modal" style="max-width: 480px; width: 92%; border: 3px solid #000; box-shadow: 8px 8px 0px #000; position: relative;"> 
+            <div class="confirm-modal-title report-modal-header" style="background: #000; color: white; position: relative; padding: 1.2rem 2rem; display: flex; align-items: center;">
+                <span class="report-modal-title-text" style="font-family: 'Syne', sans-serif; font-weight: 800; white-space: nowrap; font-size: 0.8rem;">Reportar un problema</span>
+                <button class="report-modal-close-btn" onclick="closeReportModal()" style="position: absolute; right: 8px; top: 8px; background: none; border: none; color: white; font-size: 1.2rem; cursor: pointer;"><i class="fa-solid fa-times"></i></button>
+            </div>
+            <style>
+                /* Desktop Override for Report Modal */
+                @media (min-width: 1024px) {
+                    .report-modal-header {
+                        justify-content: center !important;
+                    }
+                    .report-modal-title-text {
+                        font-size: 1.2rem !important; /* "Un poco más grande" */
+                    }
+                    .report-modal-close-btn {
+                        display: none !important; /* Hide close button on PC */
+                    }
+                }
+            </style>
+            
+            <div class="confirm-modal-message" style="padding: 2rem; text-align: left;">
+                <div id="report-form-content">
+                    <p style="margin-bottom: 1.5rem; font-size: 0.95rem; color: #444; font-weight: 600; font-family: 'Manrope', sans-serif;">Describí el problema que encontraste y lo revisaremos lo antes posible.</p>
+                    <form id="report-issue-form" action="{{ route('tickets.store') }}" method="POST">
+                        @csrf
+                        <input type="hidden" name="url_origen" value="{{ request()->fullUrl() }}">
+                        <div style="margin-bottom: 1.2rem;">
+                            <label style="font-weight: 400; font-size: 0.8rem; text-transform: uppercase; display: block; margin-bottom: 0.5rem; letter-spacing: 0.5px; font-family: 'Syne', sans-serif; color: #111;">Asunto</label>
+                            <select name="subject" id="report-subject" class="neobrutalist-input modal-select" style="width: 100%; height: 46px; border: 3px solid #000; padding: 0 12px; font-weight: 700; font-size: 0.9rem; background: #fafafa; border-radius: 10px; box-shadow: 4px 4px 0px #000; outline: none; appearance: none; -webkit-appearance: none; -moz-appearance: none; background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23000000%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22/%3E%3C/svg%3E'); background-repeat: no-repeat; background-position: right 12px top 50%; background-size: 12px auto;">
+                                <option value="Error visual / Diseño" style="background: #fafafa; color: #000;">Error visual / Diseño</option>
+                                <option value="Algo no funciona" style="background: #fafafa; color: #000;">Algo no funciona</option>
+                                <option value="Sugerencia" style="background: #fafafa; color: #000;">Sugerencia</option>
+                                <option value="Otro" style="background: #fafafa; color: #000;">Otro</option>
+                            </select>
+                            <style>
+                                .modal-select:focus { outline: none !important; border-color: #000 !important; }
+                            </style>
+                        </div>
+                        <div class="mb-4">
+                            <label style="font-weight: 400; font-size: 0.8rem; text-transform: uppercase; display: block; margin-bottom: 0.5rem; letter-spacing: 0.5px; font-family: 'Syne', sans-serif; color: #111;">Descripción:</label>
+                            <textarea name="description" class="neobrutalist-input" required placeholder="Ej: No puedo visualizar mis turnos..." style="min-height: 100px; border: 3px solid #000; padding: 12px; width: 100%; box-sizing: border-box; font-size: 0.9rem; background: #fafafa; border-radius: 10px; box-shadow: 4px 4px 0px #000;"></textarea>
+                        </div>
+                        <div class="confirm-modal-buttons" style="margin-top: 1.8rem; display: flex; gap: 1rem; padding: 0;">
+                            <button type="button" onclick="closeReportModal()" class="neobrutalist-btn" style="flex: 1; background: white; border: 3px solid #000; padding: 0.5rem 1rem; font-weight: 700; font-size: 0.85rem;">Cancelar</button>
+                            <button type="submit" class="neobrutalist-btn" style="flex: 1; background: var(--color-amarillo); border: 3px solid #000; padding: 0.5rem 1rem; font-weight: 700; font-size: 0.85rem;">Enviar</button>
+                        </div>
+                </div>
+
+                <div id="report-success-msg" style="display: none; text-align: center; padding: 1rem;">
+                    <div style="width: 60px; height: 60px; background: var(--color-verde); border: 2px solid #000; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; box-shadow: 3px 3px 0px #000;">
+                        <i class="fa-solid fa-check" style="font-size: 1.8rem; color: #000;"></i>
+                    </div>
+                    <h3 style="font-family: 'Syne', sans-serif; font-weight: 800; margin-bottom: 0.5rem;">¡Enviado!</h3>
+                    <p style="font-size: 0.9rem; color: #444; margin-bottom: 1.5rem;">Gracias por avisar. Lo revisaremos pronto.</p>
+                    <button class="neobrutalist-btn" onclick="closeReportModal()" style="background: #000; color: white; width: 100%; border: none;">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+                </div>
+            </div>
+        </div>
+    </div>
     </div>
 
     <!-- Duplicate Modal Removed -->
@@ -614,16 +923,44 @@
     <!-- Html2Canvas Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script>
-        function openReportModal() {
+        function openReportModal(event) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            
+            // Save current scroll position
+            const scrollY = window.scrollY;
+            
+            // Prevent body scroll
+            document.body.style.position = 'fixed';
+            document.body.style.top = `-${scrollY}px`;
+            document.body.style.width = '100%';
+            document.body.style.overflow = 'hidden';
+            document.body.classList.add('modal-open');
+            
+            // Store scroll position for restoration
+            document.body.dataset.scrollY = scrollY;
+            
             document.getElementById('report-modal-overlay').style.display = 'flex';
             document.getElementById('report-form-content').style.display = 'block';
             document.getElementById('report-success-msg').style.display = 'none';
             document.getElementById('report-loading-msg').style.display = 'none';
-            document.getElementById('report-desc').value = '';
         }
 
         function closeReportModal() {
             document.getElementById('report-modal-overlay').style.display = 'none';
+            
+            // Restore scroll position
+            const scrollY = document.body.dataset.scrollY || 0;
+            document.body.style.position = '';
+            document.body.style.top = '';
+            document.body.style.width = '';
+            document.body.style.overflow = '';
+            document.body.classList.remove('modal-open');
+            
+            // Restore scroll position
+            window.scrollTo(0, parseInt(scrollY) || 0);
         }
 
         async function submitReport() {
@@ -674,35 +1011,36 @@
         }
     </script>
 
-    <!-- Delete Account Modal (DISABLED) -->
+    @auth
     <!-- Delete Account Modal -->
     <div id="delete-account-modal" class="confirm-modal-overlay" style="display: none;">
-        <div class="confirm-modal" style="border-color: #ff4d4d; border-radius: 15px !important; border: 2px solid #ff4d4d; box-shadow: 6px 6px 0px rgba(0,0,0,0.1);">
-            <div class="confirm-modal-title" style="color: #d00; font-family: 'Syne', sans-serif;">Eliminar Cuenta</div>
-            <div class="confirm-modal-message">
-                <p style="margin-bottom: 1rem; font-family: 'Inter', sans-serif;">¿Estás segura de que querés darte de baja?</p>
-                <p style="font-size: 0.85rem; color: #666; margin-bottom: 1.5rem; font-family: 'Inter', sans-serif;">Esta acción es <strong>irreversible</strong>. Se eliminarán todos tus turnos, historial y documentos.</p>
-                
+        <div class="confirm-modal" style="border: var(--border-thick); box-shadow: var(--shadow-hard); max-width: 420px; width: 95%;"> <!-- más chico -->
+            <div class="confirm-modal-title" style="background: var(--color-rojo); color: white; font-family: 'Syne', sans-serif;">Eliminar Cuenta</div>
+            <div class="confirm-modal-message" style="padding: 2rem;">
+                <p style="margin-bottom: 1rem; font-size: 1.1rem; font-weight: 800;">¿Estás completamente segura?</p>
+                <p style="font-size: 0.9rem; color: #555; margin-bottom: 1.5rem;">Esta acción es <strong>irreversible</strong>. Se eliminarán todos tus turnos, historial y documentos.</p>
+
                 <form action="{{ route('patient.account.destroy') }}" method="POST">
                     @csrf
                     @method('DELETE')
-                    
+
                     <div style="margin-bottom: 1.5rem; text-align: left;">
-                        <label style="font-size: 0.8rem; font-weight: 700; display: block; margin-bottom: 0.5rem; font-family: 'Inter', sans-serif;">Ingresá tu contraseña para confirmar:</label>
-                        <input type="password" name="password" class="neobrutalist-input" required placeholder="Tu contraseña actual" style="border-color: #d00;">
+                        <label style="font-size: 0.9rem; font-weight: 700; display: block; margin-bottom: 0.5rem;">Contraseña para confirmar:</label>
+                        <input type="password" name="password" class="neobrutalist-input" required placeholder="Tu contraseña actual" style="border: var(--border-thick); width: 100%; padding: 12px;">
                         @error('password')
-                            <span style="color: red; font-size: 0.8rem; font-weight: 700;">{{ $message }}</span>
+                            <span style="color: red; font-size: 0.85rem; font-weight: 700;">{{ $message }}</span>
                         @enderror
                     </div>
 
-                    <div class="confirm-modal-buttons">
-                        <button type="button" class="neobrutalist-btn" style="background: white;" onclick="closeDeleteModal()">Cancelar</button>
-                        <button type="submit" class="neobrutalist-btn" style="background: #ff4d4d; color: white; border-color: #aa0000;">Confirmar Baja</button>
+                    <div class="confirm-modal-buttons" style="display: flex; gap: 1rem; justify-content: center; padding: 0;">
+                        <button type="button" class="neobrutalist-btn flex-1" style="background: white;" onclick="closeDeleteModal()">Cancelar</button>
+                        <button type="submit" class="neobrutalist-btn flex-1" style="background: var(--color-rojo); color: white; border: var(--border-thick);">Borrar Cuenta</button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
+    @endauth
 
     @auth
     <script>
@@ -722,20 +1060,7 @@
         const confirmOk = document.getElementById('confirm-ok');
         const confirmCancel = document.getElementById('confirm-cancel');
  
-        // Scroll Up to Show Navbar Logic
-        let lastScrollY = window.scrollY;
-        const navbar = document.querySelector('.navbar-unificada');
-
-        window.addEventListener('scroll', () => {
-            if (navbar) {
-                if (window.scrollY > lastScrollY && window.scrollY > 100) {
-                    navbar.classList.add('nav-hidden');
-                } else {
-                    navbar.classList.remove('nav-hidden');
-                }
-            }
-            lastScrollY = window.scrollY;
-        });
+        // Navbar scroll logic removed - new neobrutalist navbar is always visible
 
         window.showConfirm = function(message, callback) {
             confirmMessage.innerText = message;
@@ -754,24 +1079,35 @@
             confirmOverlay.style.display = 'none';
             document.body.style.overflow = 'auto'; // Restore scroll
         });
+        
+        // Ensure Cancel button has black border
+        if (confirmCancel) confirmCancel.style.border = '2.5px solid #000';
 
-        const bell = document.getElementById('notif-bell');
+        // Confirm overlay logic (unchanged)
+        // Duplicates removed
+
+        // NOTIFICATIONS LOGIC
+        const bellDesktop = document.getElementById('notif-bell-desktop');
+        const bellMobile = document.getElementById('notif-bell-mobile');
         const dropdown = document.getElementById('notif-dropdown');
         const items = document.getElementById('notif-items');
-        const count = document.getElementById('notif-count');
+        const countDesktop = document.getElementById('notif-count-desktop');
+        const countMobile = document.getElementById('notif-count-mobile');
 
-        if (bell && dropdown) {
-            bell.addEventListener('click', (e) => {
-                e.stopPropagation();
-                // Toggle dropdown visibility
-                if (dropdown.style.display === 'none' || dropdown.style.display === '') {
-                    dropdown.style.display = 'block';
-                    fetchNotifications();
-                } else {
-                    dropdown.style.display = 'none';
-                }
-            });
+        function toggleDropdown(e) {
+            e.stopPropagation();
+            if (dropdown.style.display === 'none' || dropdown.style.display === '') {
+                dropdown.style.display = 'block';
+                fetchNotifications();
+            } else {
+                dropdown.style.display = 'none';
+            }
+        }
 
+        if (bellDesktop) bellDesktop.addEventListener('click', toggleDropdown);
+        if (bellMobile) bellMobile.addEventListener('click', toggleDropdown);
+
+        if (dropdown) {
             // Only update count automatically, fetch details on click
             setInterval(() => fetchNotifications(false), 60000); // Check every minute
             fetchNotifications(false); // Initial count check
@@ -790,13 +1126,18 @@
                 lastNotifCount = data ? data.length : 0;
 
                 if (data && data.length > 0) {
-                    if (count) {
-                        count.innerText = data.length;
-                        count.style.display = 'flex';
-                        // Add animation only if there are new notifications
-                        const bellIcon = document.querySelector('#notif-bell i');
-                        if(bellIcon) bellIcon.classList.add('fa-shake');
+                    if (countDesktop) {
+                        countDesktop.innerText = data.length;
+                        countDesktop.style.display = 'flex';
                     }
+                    if (countMobile) {
+                        countMobile.innerText = data.length;
+                        countMobile.style.display = 'flex';
+                    }
+                    
+                    // Add animation only if there are new notifications (DISABLED PER USER REQUEST)
+                    // if(bellDesktop) bellDesktop.classList.add('fa-shake');
+                    // if(bellMobile) bellMobile.classList.add('fa-shake');
                     
                     if (items) {
                         items.innerHTML = data.map(n => `
@@ -815,18 +1156,19 @@
                     }
                 } else {
                     // Suppress visual indicators cleanly if 0
-                    if (count) {
-                        count.innerText = '0'; // For accessibility/debug if inspected
-                        count.style.display = 'none'; // Completely hide badge
+                    // Suppress visual indicators cleanly if 0
+                    if (countDesktop) countDesktop.style.display = 'none';
+                    if (countMobile) countMobile.style.display = 'none';
                         
                         // Remove animation
-                        const bellIcon = document.querySelector('#notif-bell i');
-                        if(bellIcon) bellIcon.classList.remove('fa-shake');
+                        // Remove animation
+                        if(bellDesktop) bellDesktop.classList.remove('fa-shake');
+                        if(bellMobile) bellMobile.classList.remove('fa-shake');
                     }
                     if (showInDropdown && items) {
                         items.innerHTML = '<div class="notification-empty" style="padding: 4rem 2rem; text-align: center; color: #a1a1a1; font-family: \'Inter\', sans-serif;"><p style="margin: 0; font-weight: 500; font-size: 0.95rem;">No tienes nuevas notificaciones</p></div>';
                     }
-                }
+
             } catch (e) { console.error("Error fetching notifications", e); }
         }
 
@@ -947,9 +1289,31 @@
 
         // Initialize dynamic elements
         document.addEventListener('DOMContentLoaded', () => {
-            // MOVED: mostrarBienvenida(); logic is now server-side
-            // Sync initial sidebar icon state
+            // Initialize sidebar state from cookie
             const sidebar = document.getElementById('admin-sidebar');
+            if (sidebar) {
+                const isMobile = window.innerWidth <= 1024;
+                const cookieValue = document.cookie.split('; ').find(row => row.startsWith('sidebar_collapsed='));
+                const isCollapsed = cookieValue ? cookieValue.split('=')[1] === 'true' : false;
+                
+                if (!isMobile) {
+                    // Desktop: apply collapsed state from cookie
+                    if (isCollapsed) {
+                        sidebar.classList.add('collapsed');
+                        sidebar.style.transform = 'translateX(-100%)';
+                    } else {
+                        sidebar.classList.remove('collapsed');
+                        sidebar.style.transform = 'translateX(0)';
+                        sidebar.style.display = 'flex';
+                    }
+                } else {
+                    // Mobile: always start hidden
+                    sidebar.classList.remove('active');
+                    sidebar.style.transform = 'translateX(-100%)';
+                }
+            }
+            
+            // Sync initial sidebar icon state
             const icon = document.getElementById('sidebar-toggle-icon');
             if (sidebar && icon) {
                 const isMobile = window.innerWidth <= 1024;
@@ -959,7 +1323,7 @@
             }
 
             // Smart Header Scroll Logic
-            const adminHeader = document.querySelector('.admin-unified-header');
+            const adminHeader = document.querySelector('.universal-header');
             let lastScrollY = window.scrollY;
 
             window.addEventListener('scroll', () => {
@@ -1027,64 +1391,97 @@
     <!-- Public Access for Guest (Floating Widget also for guests?) -->
     @php
         $user = auth()->user();
+        $isAdmin = $user && $user->rol == 'admin';
         $isPatient = $user && $user->rol == 'paciente';
-        $isGuest = !auth()->check();
         $isLoginOrRegister = request()->routeIs('login') || request()->routeIs('register') || request()->routeIs('password.*');
         
-        $showWidget = true; // Enabled for everyone for testing purposes
+        // Show widget for patients and guests, not on login/register pages, and not for admins
+        $showWidget = ($isPatient || !$user) && !$isLoginOrRegister && !$isAdmin;
     @endphp
 
     @if($showWidget)
-    <div id="whatsapp-widget" style="position: fixed; bottom: 20px; right: 20px; z-index: 1000; font-family: 'Outfit', sans-serif;">
-        <!-- Chat Box -->
-        <div id="whatsapp-chat-box" style="display: none; position: absolute; bottom: 80px; right: 0; flex-direction: column; width: 280px; background: white; border: 3px solid #000; box-shadow: 6px 6px 0px #000; border-radius: 15px; overflow: hidden; opacity: 0; transform: translateY(10px); transition: opacity 0.3s ease, transform 0.3s ease;">
-            <!-- Header -->
-            <div style="background: #25D366; padding: 0.8rem; display: flex; align-items: center; gap: 0.6rem;">
-                <div style="width: 40px; height: 40px; background: white; border-radius: 50%; overflow: hidden; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                    <img src="{{ asset('img/profile-chat.png') }}" alt="Nazarena" style="width: 100%; height: 100%; object-fit: cover;">
+    <div id="whatsapp-widget-container" style="position: fixed; bottom: 20px; right: 20px; z-index: 10000; font-family: 'Manrope', sans-serif;">
+        <!-- Minimalist Chat Window -->
+        <div id="whatsapp-chat-window" style="display: none; position: absolute; bottom: 95px; right: 0; width: 320px; max-width: 90vw; background: white; border: 3px solid #000; box-shadow: 6px 6px 0px rgba(0,0,0,1); border-radius: 15px; overflow: visible; transform-origin: bottom right; animation: fadeUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); min-height: 380px; max-height: 90vh;">
+            
+            <!-- Elegant Header -->
+            <div style="background: #fff; padding: 1rem 1.2rem; display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #000; position: relative;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <div style="width: 45px; height: 45px; border-radius: 50%; border: 2px solid #25D366; overflow: hidden; flex-shrink: 0;">
+                        <img src="{{ asset('img/profile-chat.png') }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
                 </div>
-                <div style="flex: 1; min-width: 0;">
-                    <p style="margin: 0; font-weight: 800; font-size: 0.75rem; color: #000; line-height: 1; text-transform: uppercase; font-family: 'Manrope', sans-serif; letter-spacing: 1px; opacity: 0.8;">Lic.</p>
-                    <h5 style="margin: 0; font-weight: 800; font-size: 0.85rem; color: #000; line-height: 1.1; font-family: 'Manrope', sans-serif; letter-spacing: -0.2px;">Nazarena De Luca</h5>
+                    <div>
+                        <h4 style="margin: 8px 0 0 0; font-weight: 800; font-size: 0.9rem; color: #000; font-family: 'Manrope', sans-serif;">Lic. Nazarena De Luca</h4>
+                        <span style="font-size: 0.7rem; color: #25D366; font-weight: 700;">En línea</span>
                 </div>
             </div>
-            <!-- Body -->
-            <div style="padding: 1rem; background: #fff; flex: 1; display: flex; flex-direction: column; gap: 0.8rem;">
-                <div style="background: #f0fdf4; border: 2px solid #25D366; padding: 10px; border-radius: 10px 10px 10px 0; max-width: 95%; box-shadow: 2px 2px 0px #25D366;">
-                    <p style="margin: 0; font-size: 0.85rem; color: #333; font-weight: 600;">¡Hola! 👋 Soy la Lic. Nazarena De Luca. <br>¿Tenés alguna consulta o necesitás ayuda con los turnos?</p>
+                <button onclick="toggleWhatsApp()" style="position: absolute; top: 12px; right: 12px; background: none; border: none; font-size: 1.1rem; cursor: pointer; color: #666;"><i class="fa-solid fa-xmark"></i></button>
                 </div>
 
-                <!-- Quick Actions -->
-                <div style="display: flex; flex-direction: column; gap: 0.4rem; margin-top: 0.5rem;">
-                    <a href="https://wa.me/5491139560673?text={{ urlencode('Hola Nazarena, ¿cómo puedo reservar un turno?') }}" target="_blank" class="neobrutalist-btn" style="padding: 0.4rem; font-size: 0.7rem; text-align: left; background: #fff; text-transform: none; border-width: 2px; box-shadow: 2px 2px 0px #000;">
-                        <i class="fa-solid fa-calendar-day" style="color: #25D366;"></i> ¿Cómo reservo un turno? 📅
+            <!-- Body -->
+            <div style="padding: 1.2rem; background: #fff; display: flex; flex-direction: column; justify-content: center;">
+                <p style="margin: 0 0 1.2rem 0; font-size: 0.85rem; color: #444; line-height: 1.4; font-weight: 600;">
+                    Hola 👋 ¿Cómo puedo ayudarte hoy?
+                </p>
+                <div style="display: flex; flex-direction: column; gap: 0.7rem;">
+                    <a href="https://wa.me/5491139560673?text=Hola,%20quisiera%20reservar%20un%20turno." target="_blank" class="neobrutalist-btn bg-white w-full" style="text-align: center; text-decoration: none; font-size: 0.75rem; padding: 0.5rem 0.8rem; border-width: 2px; box-shadow: 3px 3px 0px #000; border-radius: 8px;">
+                        🗓️ Reservar turno
                     </a>
-                    <a href="https://wa.me/5491139560673?text={{ urlencode('Hola Nazarena, tengo una consulta sobre los pagos de las sesiones.') }}" target="_blank" class="neobrutalist-btn" style="padding: 0.4rem; font-size: 0.7rem; text-align: left; background: #fff; text-transform: none; border-width: 2px; box-shadow: 2px 2px 0px #000;">
-                        <i class="fa-solid fa-money-bill-wave" style="color: #25D366;"></i> Consulta sobre pagos 💰
+                    <a href="https://wa.me/5491139560673?text=Hola,%20quisiera%20saber%20sobre%20la%20modalidad%20de%20atención." target="_blank" class="neobrutalist-btn bg-white w-full" style="text-align: center; text-decoration: none; font-size: 0.75rem; padding: 0.5rem 0.8rem; border-width: 2px; box-shadow: 3px 3px 0px #000; border-radius: 8px;">
+                        📋 Modalidad atención
                     </a>
-                    <a href="https://wa.me/5491139560673?text={{ urlencode('Hola Nazarena, te quería consultar sobre la modalidad de las sesiones.') }}" target="_blank" class="neobrutalist-btn" style="padding: 0.4rem; font-size: 0.7rem; text-align: left; background: #fff; text-transform: none; border-width: 2px; box-shadow: 2px 2px 0px #000;">
-                        <i class="fa-solid fa-video" style="color: #25D366;"></i> Modalidad de las sesiones 💻
+                     <a href="https://wa.me/5491139560673?text=Hola,%20quisiera%20realizar%20una%20consulta." target="_blank" class="neobrutalist-btn bg-white w-full" style="text-align: center; text-decoration: none; font-size: 0.75rem; padding: 0.5rem 0.8rem; border-width: 2px; box-shadow: 3px 3px 0px #000; border-radius: 8px;">
+                        💬 Realizar una consulta
                     </a>
                 </div>
             </div>
+            
             <!-- Footer -->
-            <div style="padding: 0.7rem; background: white; border-top: 2px solid #eee; text-align: center;">
-                <a href="https://wa.me/5491139560673" target="_blank" class="neobrutalist-btn w-full" style="display: block; text-decoration: none; padding: 0.5rem; background-color: #25D366; color: white; border-color: #000; font-size: 0.8rem; box-shadow: 3px 3px 0px #000; font-family: 'Manrope', sans-serif; font-weight: 800;">
-                    <i class="fa-brands fa-whatsapp"></i> Chatear
+            <div style="padding: 0.9rem; background: #fafafa; border-top: 2px solid #000; margin-top: auto;">
+                 <a href="https://wa.me/5491139560673" target="_blank" class="neobrutalist-btn" style="background: #25D366; color: white; border: 2px solid #000; width: 100%; text-align: center; justify-content: center; align-items: center; display: flex; gap: 8px; font-weight: 600; padding: 0.7rem; font-size: 0.9rem; box-shadow: 3px 3px 0px #000; font-family: 'Manrope', sans-serif; border-radius: 8px;">
+                    <i class="fa-brands fa-whatsapp" style="font-size: 1.1rem; margin-top: 1px;"></i> Iniciar Chat
                 </a>
             </div>
         </div>
 
-        <!-- REMOVED OLD OLLAMA CHAT WINDOW -->
-
+        <!-- FAB -->
+        <button onclick="toggleWhatsApp()" style="width: 55px; height: 55px; background: #25D366; color: white; border-radius: 50%; border: 3px solid #000; box-shadow: 4px 4px 0px #000; font-size: 2rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); position: relative; z-index: 10002;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
+            <i class="fa-brands fa-whatsapp"></i>
+        </button>
+    </div>
     @endif
+    
+    <script>
+        function toggleNotifications(e) {
+            e.stopPropagation();
+            const dropdown = e.currentTarget.querySelector('.notification-dropdown');
+            if (dropdown) {
+                const isHidden = dropdown.style.display === 'none';
+                // Close all others
+                document.querySelectorAll('.notification-dropdown').forEach(d => d.style.display = 'none');
+                dropdown.style.display = isHidden ? 'block' : 'none';
+            }
+        }
+        
+        function toggleWhatsApp() {
+            const win = document.getElementById('whatsapp-chat-window');
+            if(win) {
+                win.style.display = (win.style.display === 'none') ? 'block' : 'none';
+            }
+        }
+
+        // Close dropdowns on click outside
+        document.addEventListener('click', () => {
+             document.querySelectorAll('.notification-dropdown').forEach(d => d.style.display = 'none');
+        });
+    </script>
 
     <script>
         // -----------------------------------------------------
         // 🧠 SMART STICKY HEADER
         // -----------------------------------------------------
         document.addEventListener('DOMContentLoaded', () => {
-             const header = document.querySelector('.admin-unified-header');
+             const header = document.querySelector('.universal-header');
              if (!header) return;
 
              let lastScrollY = window.scrollY;
@@ -1128,29 +1525,12 @@
         
 
         
-        function toggleWhatsApp() {
-            const box = document.getElementById('whatsapp-chat-box');
-            if (!box) return;
-            
-            if (box.style.display === 'flex') {
-                box.style.opacity = '0';
-                box.style.transform = 'translateY(20px)';
-                setTimeout(() => {
-                    box.style.display = 'none';
-                }, 300);
-            } else {
-                box.style.display = 'flex';
-                // Trigger reflow
-                void box.offsetWidth;
-                box.style.opacity = '1';
-                box.style.transform = 'translateY(0)';
-            }
-        }
+
     </script>
 
     <script>
         // Cleaned up scripts
-        // Auto-close sidebar when clicking a link (Global)
+            // Auto-close sidebar when clicking a link (Global)
         document.addEventListener('DOMContentLoaded', () => {
             const sidebar = document.getElementById('admin-sidebar');
             
@@ -1183,364 +1563,233 @@
                 });
             }
         });
+
+
+
+        function openReportModal() {
+            document.getElementById('report-modal-overlay').style.display = 'flex';
+            document.getElementById('report-form-content').style.display = 'block';
+            document.getElementById('report-success-msg').style.display = 'none';
+            document.body.classList.add('modal-open');
+        }
+
+        function closeReportModal() {
+            document.getElementById('report-modal-overlay').style.display = 'none';
+            document.body.classList.remove('modal-open');
+        }
+
+        // Notification Bell Toggle Improved for Mobile
+        const bellBtn = document.getElementById('universal-notif-bell');
+        if (bellBtn) {
+            bellBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                const dropdown = document.getElementById('universal-notif-dropdown');
+                if (dropdown) {
+                    const isVisible = dropdown.style.display === 'block';
+                    dropdown.style.display = isVisible ? 'none' : 'block';
+                }
+            });
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function() {
+            const dropdown = document.getElementById('universal-notif-dropdown');
+            if (dropdown) dropdown.style.display = 'none';
+            
+            // Also close patient dropdown if exists
+            const pDropdown = document.getElementById('notif-dropdown');
+            if (pDropdown) pDropdown.style.display = 'none';
+        });
+
+        // Patient Notification Toggle
+        window.toggleNotifications = function(e, specificId = null) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // Default to 'notif-dropdown' if no ID provided (for backward compatibility if needed)
+            // But prefer specificID if passed
+            let targetId = specificId || 'notif-dropdown';
+            
+            // If specificId is 'patient-notif-dropdown', we toggle that one.
+            // If it's not provided, we try 'notif-dropdown' (Admin).
+            
+            const dropdown = document.getElementById(targetId);
+            
+            if (dropdown) {
+                const isVisible = dropdown.style.display === 'block'; // Or check current computed style
+                
+                // Close ANY other open dropdowns
+                const allDropdowns = ['notif-dropdown', 'patient-notif-dropdown', 'universal-notif-dropdown'];
+                allDropdowns.forEach(id => {
+                    const el = document.getElementById(id);
+                    if(el) el.style.display = 'none';
+                });
+
+                // Toggle target
+                dropdown.style.display = isVisible ? 'none' : 'block';
+            }
+        };
     </script>
 
+
+      <footer class="footer" style="background: var(--color-dark); color: white; padding: 2rem 1rem 3rem 1rem; border-top: 3px solid #000; position: relative; width: 100%; box-sizing: border-box; display: flex; align-items: center; justify-content: center;">
+        <div style="max-width: 1200px; width: 100%; text-align: center;">
+            <h2 style="color: white; font-family: 'Syne', sans-serif; margin-bottom: 0.5rem;">Lic. Nazarena De Luca</h2>
+            
+            @if(!auth()->check() || (auth()->check() && auth()->user()->email !== 'joacooodelucaaa16@gmail.com'))
+                @if(request()->routeIs('login'))
+                    <button type="button" onclick="openReportModal(event)" style="background: transparent; border: none; color: rgb(255, 255, 255); font-size: 0.9rem; cursor: pointer; margin-bottom: 1rem; display: inline-flex; align-items: center; gap: 8px; font-family: Manrope, sans-serif; opacity: 1; text-decoration: underline;">
+                        <i class="fa-solid fa-circle-exclamation"></i> ¿Problemas para logearte? Reportar fallo
+                    </button>
+                @else
+                    <button type="button" onclick="openReportModal(event)" style="background: transparent; border: none; color: rgb(255, 255, 255); font-size: 0.85rem; cursor: pointer; margin-bottom: 1rem; display: inline-flex; align-items: center; gap: 8px; font-family: 'Manrope', sans-serif; opacity: 0.9; text-decoration: none; font-weight: 700;">
+                        <i class="fa-solid fa-circle-exclamation" style="font-size: 0.9rem;"></i> Reportar un problema
+                    </button>
+                @endif
+            @endif
+            
+            @auth
+                @if(auth()->user()->rol == 'paciente')
+                    <button type="button" onclick="openDeleteModal()" style="background: none; border: none; color: white; text-decoration: underline; cursor: pointer; font-size: 0.85rem; font-family: 'Manrope', sans-serif; margin-bottom: 1rem; display: block; margin-left: auto; margin-right: auto; opacity: 0.8; font-weight: 600; transition: opacity 0.3s ease;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.8'">
+                        Quiero darme de baja del sistema
+                    </button>
+                    <!-- Delete Form -->
+                    <form id="delete-account-form" action="{{ route('patient.account.destroy') }}" method="POST" style="display: none;">
+                        @csrf
+                        @method('DELETE')
+                    </form>
+                @endif
+            @endauth
+            
+            <p style="font-family: 'Manrope', sans-serif; opacity: 0.8; margin-bottom: 0; font-size: 0.85rem;">&copy; {{ date('Y') }} Todos los derechos reservados.</p>
+        </div>
+    </footer>
+    <!-- Mobile Menu Logic -->
     <script>
-        // --- Notifications Logic ---
         document.addEventListener('DOMContentLoaded', () => {
-            
-            function initNotifications(config) {
-                const bell = document.getElementById(config.bellId);
-                const dropdown = document.getElementById(config.dropdownId);
-                const notifItems = document.getElementById(config.itemsId);
-                const notifCount = document.getElementById(config.countId);
-                
-                if (!bell || !dropdown) return;
-                
-                let isOpen = false;
+            const toggleBtn = document.getElementById('mobile-menu-toggle');
+            const dropdown = document.getElementById('mobile-menu-dropdown');
 
-                async function fetchNotifications() {
-                    try {
-                        const url = "{{ route('notifications.latest') }}";
-                        const res = await fetch(url);
-                        if(!res.ok) throw new Error('Network error');
-                        const data = await res.json();
-                        renderNotifications(data);
-                        updateCount(data.length);
-                    } catch (e) {
-                         // Silent error
-                    }
-                }
-
-                function renderNotifications(notifs) {
-                    if(!notifItems) return;
-                    notifItems.innerHTML = '';
-                    if (notifs.length === 0) {
-                        notifItems.innerHTML = '<div style="padding: 1.5rem; text-align: center; color: #666; font-size: 0.9rem;">No tenés notificaciones nuevas 🎉</div>';
-                        return;
-                    }
-                    notifs.forEach(n => {
-                        const item = document.createElement('div');
-                        item.style.padding = '12px 15px';
-                        item.style.borderBottom = '1px solid #eee';
-                        item.style.cursor = 'pointer';
-                        item.style.transition = 'background 0.2s';
-                        item.onmouseover = () => item.style.background = '#f0f0f0';
-                        item.onmouseout = () => item.style.background = 'white';
-                        
-                        let icon = '<i class="fa-solid fa-info-circle" style="color: #3b82f6;"></i>';
-                        if(n.type && n.type.includes('Payment')) icon = '<i class="fa-solid fa-money-bill-wave" style="color: #10b981;"></i>';
-                        if(n.type && n.type.includes('Appointment')) icon = '<i class="fa-solid fa-calendar" style="color: #a855f7;"></i>';
-
-                        item.innerHTML = `
-                            <div style="display: flex; gap: 10px; align-items: flex-start;">
-                                <div style="margin-top: 2px;">${icon}</div>
-                                <div>
-                                    <div style="font-size: 0.85rem; color: #333; line-height: 1.4;">${n.data.message || 'Nueva notificación'}</div>
-                                    <div style="font-size: 0.75rem; color: #999; margin-top: 4px;">${new Date(n.created_at).toLocaleString()}</div>
-                                </div>
-                            </div>
-                        `;
-                        // Mark as read onclick
-                        item.onclick = async () => {
-                            const url = "{{ route('notifications.read', ':id') }}".replace(':id', n.id);
-                            await fetch(url, { 
-                                method: 'POST', 
-                                headers: {'X-CSRF-TOKEN': '{{ csrf_token() }}'} 
-                            });
-                            fetchNotifications();
-                        };
-                        notifItems.appendChild(item);
-                    });
-                }
-
-                function updateCount(count) {
-                    if(!notifCount) return;
-                    if (count > 0) {
-                        notifCount.style.display = 'flex';
-                        notifCount.innerText = count;
+            if (toggleBtn && dropdown) {
+                toggleBtn.addEventListener('click', () => {
+                    if (dropdown.style.display === 'none') {
+                        dropdown.style.display = 'block';
+                        toggleBtn.querySelector('i').className = 'fa-solid fa-xmark';
                     } else {
-                        notifCount.style.display = 'none';
+                        dropdown.style.display = 'none';
+                        toggleBtn.querySelector('i').className = 'fa-solid fa-bars';
                     }
-                }
-                
-                // Toggle Logic
-                bell.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    isOpen = !isOpen;
-                    dropdown.style.display = isOpen ? 'block' : 'none';
-                    if (isOpen) fetchNotifications();
                 });
 
-                document.addEventListener('click', () => {
-                    isOpen = false;
-                    dropdown.style.display = 'none';
+                // Cerrar al clickear fuera
+                document.addEventListener('click', (e) => {
+                    if (!toggleBtn.contains(e.target) && !dropdown.contains(e.target)) {
+                        dropdown.style.display = 'none';
+                        const icon = toggleBtn.querySelector('i');
+                        if (icon) icon.className = 'fa-solid fa-bars';
+                    }
                 });
-                
-                dropdown.addEventListener('click', (e) => e.stopPropagation());
-                
-                // Poll
-                setInterval(fetchNotifications, 60000);
-                fetchNotifications();
-            }
-
-            // Expose markAllRead globally but relying on active config context is tricky.
-            // Simplified: Global markAllRead just hits the endpoint and refreshes page or stays silent.
-            // Better: We hook it to reload the lists.
-            
-            // For now, let's just Init based on what exists.
-            // Universal Init
-            initNotifications({
-                bellId: 'universal-notif-bell',
-                dropdownId: 'universal-notif-dropdown',
-                itemsId: 'universal-notif-items',
-                countId: 'universal-notif-count'
-            });
-
-            window.markAllRead = async function() {
-                await fetch('{{ route('notifications.read-all') }}', { 
-                    method: 'POST', 
-                    headers: {'X-CSRF-TOKEN': '{{ csrf_token() }}'} 
-                });
-                // Since we don't have easy access to the closure instances, and simplest UX is refresh or just wait next poll.
-                // We could dispatch event or just reload page if needed, but for now silent is okay.
-                // Or better: Re-run both inits? No, they add listeners.
-                
-                // Hack: Trigger clicks to close and re-open? No.
-                // Let's just trust the user will close and open again.
-                // Or we can manually hide the badge
-                const c1 = document.getElementById('admin-notif-count');
-                if(c1) c1.style.display = 'none';
-                const c2 = document.getElementById('patient-notif-count');
-                if(c2) c2.style.display = 'none';
-                
-                // And clear lists
-                 const l1 = document.getElementById('admin-notif-items');
-                 if(l1) l1.innerHTML = '<div style="padding: 1.5rem; text-align: center; color: #666; font-size: 0.9rem;">No tenés notificaciones nuevas 🎉</div>';
-                 const l2 = document.getElementById('patient-notif-items');
-                 if(l2) l2.innerHTML = '<div style="padding: 1.5rem; text-align: center; color: #666; font-size: 0.9rem;">No tenés notificaciones nuevas 🎉</div>';
             }
         });
-    </script>
-    @if(auth()->check() && auth()->user()->rol == 'admin' && auth()->user()->email !== 'joacooodelucaaa16@gmail.com' && !request()->routeIs('login') && !request()->routeIs('register'))
         
-        <!-- BOTÓN FLOTANTE (FAB) -->
-        <style>
-            @keyframes pulse-border {
-                0% { box-shadow: 0 0 0 0 rgba(168, 85, 247, 0.7); }
-                70% { box-shadow: 0 0 0 15px rgba(168, 85, 247, 0); }
-                100% { box-shadow: 0 0 0 0 rgba(168, 85, 247, 0); }
+        // Admin sidebar toggle for mobile
+        window.toggleAdminSidebar = function() {
+            const sidebar = document.querySelector('.nav-sidebar');
+            let overlay = document.querySelector('.sidebar-overlay');
+            
+            // Create overlay if it doesn't exist
+            if (!overlay) {
+                overlay = document.createElement('div');
+                overlay.className = 'sidebar-overlay';
+                overlay.onclick = () => window.toggleAdminSidebar();
+                document.body.appendChild(overlay);
             }
-        </style>
-        <button onclick="toggleGemini()" id="ai-fab" style="
-            position: fixed;
-            bottom: 1.5rem;
-            right: 1.5rem;
-            width: 60px;
-            height: 60px;
-            background: #1976d2;
-            color: #fff;
-            border-radius: 50%;
-            border: none;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.6rem;
-            z-index: 10000;
-            transition: transform 0.2s;
-            animation: pulse-border 2s infinite;
-        ">
-            <i class="fa-solid fa-user-tie"></i>
-        </button>
+            
+            if (sidebar.classList.contains('open')) {
+                sidebar.classList.remove('open');
+                overlay.classList.remove('active');
+            } else {
+                sidebar.classList.add('open');
+                overlay.classList.add('active');
+            }
+        };
+    </script>
 
-        <!-- PANEL ASISTENTE (Oculto por defecto) -->
-        <div id="ai-panel" style="
-            position: fixed;
-            bottom: 6rem;
-            right: 1.5rem;
-            width: 350px;
-            height: 500px;
-            background: #ffffff;
-            border: 1px solid #e5e7eb;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-            border-radius: 20px;
-            display: none;
-            flex-direction: column;
-            overflow: hidden;
-            z-index: 10001;
-            font-family: 'Inter', sans-serif;
-        ">
-            <!-- Header Panel -->
-            <div style="
-                background: #ffffff;
-                color: #1f2937;
-                padding: 1.2rem;
-                font-weight: 700;
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                border-bottom: 1px solid #f3f4f6;
-            ">
-                <div style="display: flex; align-items: center; gap: 0.8rem;">
-                    <div style="background: #eff6ff; padding: 8px; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
-                        <i class="fa-solid fa-user-tie" style="color: #3b82f6; font-size: 1.1rem;"></i>
-                    </div>
-                    <div style="display: flex; flex-direction: column;">
-                        <span style="letter-spacing: -0.3px; line-height: 1.1; font-size: 1rem;">Asistente Clínico</span>
-                        <span style="font-size: 0.75rem; color: #6b7280; font-weight: 500;">Modelo: Gemini 1.5 Flash</span>
-                    </div>
-                </div>
-                <button onclick="toggleGemini()" style="background: none; border: none; color: #9ca3af; font-size: 1.1rem; cursor: pointer; padding: 4px; transition: color 0.2s;" onmouseover="this.style.color='#1f2937'" onmouseout="this.style.color='#9ca3af'">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
-            </div>
-
-            <!-- Messages Area -->
-            <div id="ai-messages" style="flex: 1; padding: 1rem; overflow-y: auto; background: #f0f2f5; display: flex; flex-direction: column; gap: 1rem;">
-                <!-- Welcome Message (Auto) -->
-                <div style="background: #ffffff; padding: 1rem; border-radius: 16px 16px 16px 0; align-self: flex-start; max-width: 90%; line-height: 1.5; font-size: 0.95rem; color: #374151; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
-                    Hola Lic. Nazarena 👋<br>¿En qué te puedo ayudar hoy?
-                </div>
-                
-                <!-- Quick Actions Chips -->
-                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: auto; justify-content: flex-start;">
-                    <button onclick="sendGeminiMessage('¿Qué turnos tengo hoy?')" style="background: #ffffff; border: 1px solid #e5e7eb; padding: 0.5rem 1rem; border-radius: 20px; font-size: 0.85rem; font-weight: 500; cursor: pointer; color: #4b5563; transition: all 0.2s; box-shadow: 0 1px 2px rgba(0,0,0,0.05);" onmouseover="this.style.background='#f9fafb'; this.style.borderColor='#d1d5db'" onmouseout="this.style.background='#ffffff'; this.style.borderColor='#e5e7eb'">¿Qué turnos tengo hoy?</button>
-                    <button onclick="sendGeminiMessage('¿Cómo están mis pagos?')" style="background: #ffffff; border: 1px solid #e5e7eb; padding: 0.5rem 1rem; border-radius: 20px; font-size: 0.85rem; font-weight: 500; cursor: pointer; color: #4b5563; transition: all 0.2s; box-shadow: 0 1px 2px rgba(0,0,0,0.05);" onmouseover="this.style.background='#f9fafb'; this.style.borderColor='#d1d5db'" onmouseout="this.style.background='#ffffff'; this.style.borderColor='#e5e7eb'">¿Cómo están mis pagos?</button>
-                </div>
-            </div>
-
-            <!-- Input Area -->
-            <div style="padding: 1rem; background: #ffffff; border-top: 1px solid #f3f4f6; display: flex; align-items: center; gap: 0.5rem;">
-                <textarea id="ai-input" placeholder="Escribí tu consulta..." rows="1" style="flex: 1; padding: 0.8rem 1rem; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 24px; resize: none; font-family: inherit; font-size: 0.95rem; outline: none; transition: border-color 0.2s;" onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='#e5e7eb'" onkeydown="if(event.key === 'Enter' && !event.shiftKey){ event.preventDefault(); sendGeminiMessage(); }"></textarea>
-                <button onclick="sendGeminiMessage()" style="
-                    background: #3b82f6; 
-                    color: #fff; 
-                    border: none; 
-                    width: 40px; 
-                    height: 40px; 
-                    border-radius: 50%; 
-                    cursor: pointer; 
-                    display: flex; 
-                    align-items: center; 
-                    justify-content: center; 
-                    box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.4); 
-                    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-                " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 8px -1px rgba(59, 130, 246, 0.5)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 6px -1px rgba(59, 130, 246, 0.4)'">
-                    <i class="fa-solid fa-paper-plane" style="font-size: 0.9rem;"></i>
-                </button>
+    <!-- GLOBAL SECURITY MODALS -->
+    <!-- Logout Confirmation Modal -->
+    <div id="logout-modal-overlay" class="security-modal-overlay">
+        <div class="security-modal" style="padding: 2rem;">
+            <h3 style="font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.5rem; margin-bottom: 0.8rem;">¿Cerrar sesión?</h3>
+            <p style="font-family: 'Inter', sans-serif; font-weight: 600; color: #555; margin-bottom: 1.5rem; font-size: 0.9rem;">Estás por salir del sistema. ¿Confirmás que querés cerrar tu sesión?</p>
+            <div style="display: flex; gap: 1rem; justify-content: center;">
+                <button onclick="closeLogoutModal()" class="neobrutalist-btn bg-white" style="flex: 1; border: 3px solid #000; box-shadow: 4px 4px 0px #000; padding: 0.6rem; font-weight: 700; font-size: 0.85rem;">Cancelar</button>
+                <button onclick="document.getElementById('logout-form').submit();" class="neobrutalist-btn" style="flex: 1; background: var(--color-rojo); color: white; border: 3px solid #000; box-shadow: 4px 4px 0px #000; padding: 0.6rem; font-weight: 700; font-size: 0.85rem;">SALIR</button>
             </div>
         </div>
+    </div>
 
-        <script>
-            function toggleGemini() {
-                const panel = document.getElementById('ai-panel');
-                if (panel) {
-                    panel.style.display = panel.style.display === 'none' || panel.style.display === '' ? 'flex' : 'none';
-                    if (panel.style.display === 'flex') {
-                        // Focus input
-                        setTimeout(() => document.getElementById('ai-input').focus(), 100);
-                    }
+    <!-- Account Deletion Modal (Password Required) -->
+    <div id="delete-modal-overlay" class="security-modal-overlay">
+        <div class="security-modal" style="padding: 2rem;">
+            <h3 style="color: var(--color-rojo); font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.5rem; margin-bottom: 0.8rem;">¡Atención!</h3>
+            <p style="font-family: 'Inter', sans-serif; font-weight: 600; color: #555; margin-bottom: 1.2rem; font-size: 0.85rem;">Esta acción borrará permanentemente tu cuenta. Ingresá tu contraseña para confirmar:</p>
+            
+            <form id="delete-account-form-final" action="{{ auth()->user() && auth()->user()->rol == 'paciente' ? route('patient.account.destroy') : '#' }}" method="POST">
+                @csrf
+                @method('DELETE')
+                <div class="neobrutalist-input" style="padding: 0.8rem; margin-bottom: 1.5rem; border: 2px solid #000; box-shadow: 3px 3px 0px #000; border-radius: 10px; background: #fff;">
+                    <input type="password" name="password" placeholder="Contraseña actual" style="width: 100%; border: none; outline: none; font-size: 0.9rem; font-weight: 700;" required>
+                </div>
+                
+                <div style="display: flex; gap: 1rem; justify-content: center;">
+                    <button type="button" onclick="closeDeleteModal()" class="neobrutalist-btn bg-white" style="flex: 1; border: 2px solid #000; padding: 0.6rem; font-weight: 700; font-size: 0.85rem;">Cancelar</button>
+                    <button type="submit" class="neobrutalist-btn" style="flex: 1; background: var(--color-rojo); color: white; border: 2px solid #000; padding: 0.6rem; font-weight: 700; font-size: 0.85rem;">BORRAR</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // GLOBAL SECURITY SCRIPTS
+        window.openLogoutModal = function() {
+            document.getElementById('logout-modal-overlay').style.display = 'flex';
+            document.body.classList.add('modal-open');
+        }
+        window.closeLogoutModal = function() {
+            document.getElementById('logout-modal-overlay').style.display = 'none';
+            document.body.classList.remove('modal-open');
+        }
+        window.openDeleteModal = function() {
+            document.getElementById('delete-modal-overlay').style.display = 'flex';
+            document.body.classList.add('modal-open');
+        }
+        window.closeDeleteModal = function() {
+            document.getElementById('delete-modal-overlay').style.display = 'none';
+            document.body.classList.remove('modal-open');
+        }
+
+
+
+        // Refine Sidebar on Mobile
+        window.addEventListener('resize', () => {
+            const sidebar = document.querySelector('.nav-sidebar');
+            if (window.innerWidth > 1024) {
+                if(sidebar) sidebar.style.left = '0';
+            } else {
+                if(sidebar && sidebar.style.left === '0px') {
+                    // keep it open if it was open
+                } else {
+                    if(sidebar) sidebar.style.left = '-100%';
                 }
             }
-
-            let currentGeminiController = null;
-
-            async function sendGeminiMessage(msg = null) {
-                const input = document.getElementById('ai-input');
-                const messages = document.getElementById('ai-messages');
-                const btnIcon = document.querySelector('#ai-input + button i'); 
-                
-                // If currently generating, stop
-                if (currentGeminiController) {
-                    currentGeminiController.abort();
-                    currentGeminiController = null;
-                    if(btnIcon) btnIcon.className = 'fa-solid fa-paper-plane';
-                    return;
-                }
-
-                const messageText = msg || input.value.trim();
-                if (!messageText) return;
-
-                if(btnIcon) btnIcon.className = 'fa-solid fa-square';
-
-                // 1. Show User Message
-                const userMsg = document.createElement('div');
-                userMsg.style.marginBottom = '0.5rem';
-                userMsg.style.background = '#e0f2fe'; 
-                userMsg.style.color = '#000';
-                userMsg.style.padding = '0.8rem';
-                userMsg.style.borderRadius = '12px 12px 0 12px';
-                userMsg.style.alignSelf = 'flex-end';
-                userMsg.style.maxWidth = '85%';
-                userMsg.style.fontSize = '0.95rem';
-                userMsg.innerHTML = `<strong>Vos:</strong> ${messageText}`;
-                messages.appendChild(userMsg);
-
-                if (!msg) input.value = '';
-                messages.scrollTop = messages.scrollHeight;
-
-                // 2. Loading
-                const aiMsg = document.createElement('div');
-                aiMsg.style.marginBottom = '0.5rem';
-                aiMsg.style.background = '#f0f7ff'; 
-                aiMsg.style.color = '#000';
-                aiMsg.style.padding = '0.8rem';
-                aiMsg.style.borderRadius = '12px 12px 12px 0';
-                aiMsg.style.alignSelf = 'flex-start';
-                aiMsg.style.maxWidth = '85%';
-                aiMsg.style.fontSize = '0.95rem';
-                aiMsg.innerHTML = '<strong>IA:</strong> ...'; 
-                messages.appendChild(aiMsg);
-                messages.scrollTop = messages.scrollHeight;
-
-                currentGeminiController = new AbortController();
-                
-                try {
-                    const response = await fetch('{{ route('admin.ai.chat') }}', {
-                        method: 'POST',
-                        headers: { 
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                        },
-                        body: JSON.stringify({ message: messageText }),
-                        signal: currentGeminiController.signal
-                    });
-
-                    if (!response.ok) throw new Error('Error en la conexión con la IA');
-
-                    const data = await response.json();
-                    
-                    if (data.response) {
-                        // Replace simple newlines with breaks
-                        let formattedResp = data.response.replace(/\n/g, '<br>');
-                        // Basic markdown bold support
-                        formattedResp = formattedResp.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-                        
-                        aiMsg.innerHTML = `<strong>IA:</strong> ${formattedResp}`;
-                    } else {
-                        aiMsg.innerHTML = "<strong>IA:</strong> No entendí, intentalo de nuevo.";
-                    }
-                    
-                    messages.scrollTop = messages.scrollHeight;
-                    
-                } catch (error) {
-                    if (error.name !== 'AbortError') {
-                        aiMsg.innerHTML = `<span style="color:red;">Error: ${error.message}</span>`;
-                    } else {
-                        aiMsg.innerHTML += " (Detenido)";
-                    }
-                } finally {
-                    currentGeminiController = null;
-                    if(btnIcon) btnIcon.className = 'fa-solid fa-paper-plane';
-                    // Re-focus input for fast conversation
-                    input.focus();
-                }
-            }
-
-        </script>
-    @endif
-
+        });
+        
+        // Initial mobile setup
+        if (window.innerWidth <= 1024) {
+            const s = document.querySelector('.nav-sidebar');
+            if(s) s.style.left = '-100%';
+        }
+    </script>
 </body>
 </html>

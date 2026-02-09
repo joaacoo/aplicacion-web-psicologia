@@ -3,9 +3,9 @@
 @section('title', 'Ingreso - Tu Espacio Seguro')
 
 @section('content')
-<div class="flex justify-center items-center" style="min-height: auto; margin-top: 0.5rem; margin-bottom: 2rem; padding: 0.5rem;">
+<div class="flex justify-center items-center" style="min-height: auto; margin-top: 3rem; margin-bottom: 3rem; padding: 1.5rem;">
     <!-- Card matching Register: White background, same width constraints -->
-    <div class="neobrutalist-card" style="width: 100%; max-width: 500px; background: white;">
+    <div class="neobrutalist-card" style="width: 100%; max-width: 500px; background: white; border: 3px solid #000; box-shadow: 4px 4px 0px #000;">
         
         <!-- Removed Icon entirely as requested ("son pacientes") -->
 
@@ -15,7 +15,7 @@
 
         <form action="{{ route('login') }}" method="POST" class="w-full">
             @csrf
-
+            
             <div class="text-center mb-6">
                 <!-- Ensure this asset exists or is correct, user used asset('img/logo-nuevo.png') -->
                 <img src="{{ asset('img/logo-nuevo.png') }}" alt="Logo Lic. Nazarena De Luca" style="width: 100%; max-width: 200px; height: auto; margin: 0 auto;">
@@ -24,7 +24,6 @@
             <div class="mb-4">
                 <label for="email" style="font-weight: 700;">Email</label>
                 <input type="email" name="email" id="email" class="neobrutalist-input" required placeholder="nombre@ejemplo.com" value="{{ old('email') }}">
-
             </div>
 
             <div class="mb-4">
@@ -36,7 +35,6 @@
                 @error('password')
                     <span style="color: red; font-size: 1rem; font-weight: bold; display: block; margin-top: 0.5rem;">{{ $message }}</span>
                 @enderror
-                <!-- If the generic credentials error is not caught by specific fields, it might need to be displayed here manually if it comes as a general error bag item, but usually 'email' key catches it -->
             </div>
 
             <div class="px-6 flex items-center" style="margin-top: 0.5rem; margin-bottom: 0.5rem;">

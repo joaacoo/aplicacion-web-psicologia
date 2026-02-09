@@ -5,6 +5,72 @@
 
 @section('content')
 <style>
+    @media (max-width: 768px) {
+        /* Stack Filters */
+        div[style*="display: flex; flex-wrap: wrap"] {
+            flex-direction: column;
+            align-items: stretch !important;
+        }
+        div[style*="display: flex; flex-wrap: wrap"] > div {
+            width: 100%;
+        }
+        .filter-control {
+            width: auto; /* Let flex handle width */
+            flex: 1;    /* Share space */
+        }
+        /* Target the specific form */
+        form[action*="finanzas"] {
+            width: 100%;
+        }
+        
+        /* Stack Tabs */
+        .finance-tabs {
+            flex-direction: column;
+            border-bottom: none !important;
+            gap: 0.5rem;
+            margin-bottom: 2rem !important;
+        }
+        .tab-btn {
+            width: 100%;
+            text-align: center;
+            border: 2px solid #000 !important;
+            margin: 0 !important;
+            border-radius: 50px; /* Pill style on mobile for better touch */
+        }
+        .tab-btn.active {
+            border-bottom: 2px solid #000 !important;
+            transform: scale(1.02);
+        }
+        
+        /* Stack Grids */
+        div[style*="grid-template-columns"] {
+            grid-template-columns: 1fr !important; /* Force single column on all grids */
+            gap: 1.5rem !important;
+        }
+        
+        /* Adjust Chart height */
+        canvas {
+            max-height: 250px;
+        }
+        
+        /* Card Adjustments */
+        .neobrutalist-card {
+            padding: 1.2rem !important;
+        }
+    }
+    /* Safer Minmax for desktop */
+    .dashboard-grid {
+        display: grid; 
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); 
+        gap: 1rem; 
+        margin-bottom: 1.5rem;
+    }
+    .dashboard-grid {
+        display: grid; 
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); 
+        gap: 1rem; 
+        margin-bottom: 1.5rem;
+    }
     /* Tabs Styling */
     .finance-tabs {
         display: flex;
@@ -98,7 +164,7 @@
     }
 </style>
 
-<div style="padding: 1.5rem; max-width: 1400px; margin: 0 auto; margin-bottom: 40px;">
+<div style="padding: 1.5rem;">
 
     <!-- Top Bar: Title & Filters (Aligned) -->
     <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; margin-bottom: 2rem; gap: 1rem;">
@@ -125,17 +191,17 @@
             </a>
 
             <!-- Form -->
-            <form action="{{ route('admin.finanzas') }}" method="GET" style="display: flex; gap: 0.5rem; margin: 0; align-items: stretch;">
+            <form action="{{ route('admin.finanzas') }}" method="GET" style="display: flex; gap: 0.5rem; margin: 0; align-items: stretch; position: relative; z-index: 50;">
                 <!-- Fixed Width for Month Selector to show full name -->
-                <select name="month" class="neobrutalist-input filter-control" style="border: 2px solid #000; text-transform: capitalize; cursor: pointer; line-height: 1.2; font-size: 0.9rem; min-width: 150px;" onchange="showFinanceLoader(); this.form.submit()">
+                <select name="month" class="neobrutalist-input filter-control" style="border: 2px solid #000; text-transform: capitalize; cursor: pointer; line-height: 1.2; font-size: 0.9rem; min-width: 150px; border-radius: 8px; outline: none !important; box-shadow: none !important;" onfocus="this.style.borderColor='#000'" onblur="this.style.borderColor='#000'" onchange="showFinanceLoader(); this.form.submit()">
                     @foreach(range(1, 12) as $m)
                         <option value="{{ $m }}" {{ request('month', now()->month) == $m ? 'selected' : '' }}>
                             {{ ucfirst(\Carbon\Carbon::create(null, $m)->locale('es')->translatedFormat('F')) }}
                         </option>
                     @endforeach
                 </select>
-                <select name="year" class="neobrutalist-input filter-control" style="border: 2px solid #000; cursor: pointer; line-height: 1.2; font-size: 0.9rem;" onchange="showFinanceLoader(); this.form.submit()">
-                    @for($y = 2024; $y <= 2030; $y++)
+                <select name="year" class="neobrutalist-input filter-control" style="border: 2px solid #000; cursor: pointer; line-height: 1.2; font-size: 0.9rem; min-width: 120px; width: auto; margin-left: 5px; outline: none !important; box-shadow: none !important; border-radius: 8px;" onfocus="this.style.borderColor='#000'" onblur="this.style.borderColor='#000'" onchange="showFinanceLoader(); this.form.submit()">
+                    @for($y = 2026; $y <= 2030; $y++)
                         <option value="{{ $y }}" {{ request('year', now()->year) == $y ? 'selected' : '' }}>{{ $y }}</option>
                     @endfor
                 </select>
@@ -170,13 +236,12 @@
         <button class="tab-btn active" onclick="openTab(event, 'dashboard')">Dashboard</button>
         <button class="tab-btn" onclick="openTab(event, 'gastos')">Gastos</button>
         <button class="tab-btn" onclick="openTab(event, 'honorarios')">Salarios / Honorarios</button>
-        <button class="tab-btn" onclick="openTab(event, 'reportes')">Reportes</button>
     </div>
 
     <!-- TAB 1: DASHBOARD -->
     <div id="dashboard" class="tab-pane active">
         <!-- Section 1: KPIs -->
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+        <div class="dashboard-grid">
             
             <!-- Monthly Income -->
             <div class="neobrutalist-card" style="background: white; border: 3px solid #000; padding: 1.2rem; display: flex; flex-direction: column; gap: 0.5rem; box-shadow: 4px 4px 0px rgba(0,0,0,1);">
@@ -291,7 +356,7 @@
     
     <!-- TAB: GASTOS -->
     <div id="gastos" class="tab-pane">
-        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 2rem;">
+        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 2rem;" class="admin-finance-grid">
             
             <!-- Expenses List -->
             <div class="neobrutalist-card" style="background: white; border: 3px solid #000; padding: 1.5rem; box-shadow: 5px 5px 0px rgba(0,0,0,1);">

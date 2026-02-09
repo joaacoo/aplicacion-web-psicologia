@@ -3,21 +3,386 @@
 @section('title', 'Mi Portal - Lic. Nazarena De Luca')
 
 @section('content')
+<link rel="icon" type="image/jpeg" href="{{ asset('img/069b6f01-e0b6-4089-9e31-e383edf4ff62.jpg') }}">
+<style>
+    /* Ensure all neobrutalist elements have black borders */
+    .neobrutalist-card {
+        border: 3px solid #000 !important;
+        box-shadow: 4px 4px 0px #000 !important;
+    }
+    .neobrutalist-btn {
+        border: 3px solid #000 !important;
+        box-shadow: 3px 3px 0px #000 !important;
+    }
+    .neobrutalist-input {
+        border: 3px solid #000 !important;
+        box-shadow: 3px 3px 0px #000 !important;
+    }
+    .day-btn:not(.disabled) {
+        border: 3px solid #000 !important;
+        box-shadow: 3px 3px 0px #000 !important;
+    }
+    .time-pill:not(.disabled) {
+        border: 3px solid #000 !important;
+        box-shadow: 2px 2px 0px #000 !important;
+    }
+    .modality-btn {
+        border: 3px solid #000 !important;
+        box-shadow: 3px 3px 0px #000 !important;
+    }
+
+    /* Mobile Bottom Navigation */
+    @media (max-width: 1024px) {
+        .mobile-nav-bar { display: flex !important; }
+        
+        /* Turnos as Cards on Mobile */
+        #mis-turnos tr {
+            display: block;
+            border: 3px solid #000 !important; /* Stronger border */
+            box-shadow: none !important;      /* No shadow */
+            border-radius: 15px !important;
+            margin-bottom: 1.5rem !important;
+            background: #fff;
+            position: relative;
+        }
+        #mis-turnos thead {
+            display: none; /* Hide header on mobile */
+        }
+        #mis-turnos td {
+            display: block;
+            text-align: left;
+            padding: 0.8rem 1rem;
+            border-bottom: 1px solid #eee;
+        }
+        #mis-turnos td:last-child {
+            border-bottom: none;
+        }
+        /* Header style for the first cell (Date/Time) */
+        #mis-turnos td:nth-of-type(1) {
+            background: #f0f0f0;
+            border-bottom: 2px solid #000 !important;
+            border-radius: 12px 12px 0 0;
+            padding: 10px 15px !important;
+            font-weight: 800;
+        }
+    }
+</style>
+<style>
+    /* Mobile & Tablet (iPad) Cards for Turnos */
+    @media (max-width: 1024px) {
+        .mobile-nav-bar { display: flex !important; }
+        
+        #mis-turnos tr {
+            display: block;
+            border: 3px solid #000 !important;
+            box-shadow: none !important;
+            border-radius: 15px !important;
+            margin-bottom: 1.5rem !important;
+            background: #fff;
+            position: relative;
+        }
+        #mis-turnos thead { display: none; }
+        
+        /* Reset cell styles for card view */
+        #mis-turnos td {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            text-align: right;
+            padding: 0.8rem 1rem !important;
+            border-bottom: 1px solid #eee;
+        }
+        
+        #mis-turnos td:last-child { border-bottom: none; }
+        
+        /* Header style for the first cell (Date/Time) */
+        #mis-turnos td:nth-of-type(1) {
+            background: #f0f0f0;
+            border-bottom: 2px solid #000 !important;
+            border-radius: 12px 12px 0 0;
+            padding: 10px 15px !important;
+            font-weight: 800;
+            font-weight: 800;
+            display: block; /* Make date header block */
+            text-align: left;
+        }
+
+        /* iPad/Tablet specific styles for WhatsApp Widget */
+        #whatsapp-chat-window {
+            position: absolute; 
+            bottom: 95px; 
+            right: 0px; 
+            width: 320px; 
+            max-width: 90vw; 
+            background: white; 
+            border: 3px solid #000; 
+            box-shadow: 6px 6px 0px #000; 
+            border-radius: 15px; 
+            min-height: 380px; 
+            max-height: 90vh;
+            overflow: visible;
+        }
+        
+        /* Hide the 'Fecha' label override if needed, or keep it */
+        #mis-turnos td:nth-of-type(1):before { content: none !important; }
+    }
+
+    /* Mobile Phone Specific Adjustments for WhatsApp Widget */
+    @media (max-width: 480px) {
+        #whatsapp-chat-window {
+            width: 85vw !important;
+            max-width: 320px !important;
+            right: 0 !important; /* Reset to 0 to avoid cutting off right shadow */
+            bottom: 85px !important;
+            min-height: auto !important;
+            max-height: 80vh !important;
+            margin-right: 5px !important; /* Small margin to see the shadow fully */
+        }
+
+        #whatsapp-chat-window > div:nth-child(2) { /* Body content */
+             overflow-y: auto !important;
+             max-height: 55vh !important;
+        }
+    }
+</style>
+
+<!-- Top-Down Menu Overlay (Replaces Bottom Nav) -->
+<div id="patient-overlay" onclick="togglePatientMenu()" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(168, 226, 250, 0.3); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); z-index: 9998; transition: all 0.3s ease;"></div>
+
+<div id="patient-top-menu" style="display: flex; flex-direction: column; position: fixed; top: -150%; left: 0; width: 100%; background: white; border-bottom: 4px solid #000; z-index: 9999; padding: 1.5rem 1rem 2rem; transition: transform 0.4s cubic-bezier(0.165, 0.84, 0.44, 1); gap: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
+    
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; padding: 0 0.5rem;">
+        <span style="font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.2rem; text-transform: uppercase;">Menú de Paciente</span>
+        <button onclick="togglePatientMenu()" style="background: none; border: none; font-size: 1.8rem; cursor: pointer; color: #000;"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+
+    <nav style="display: flex; flex-direction: column; gap: 10px;">
+        <a href="#" onclick="togglePatientMenu(); window.scrollTo({top: 0, behavior: 'smooth'}); return false;" class="menu-chip" style="background: var(--color-celeste);">
+            <i class="fa-solid fa-calendar-plus"></i> <span>Reservar Turno</span>
+        </a>
+        <a href="#mis-turnos-section" onclick="togglePatientMenu()" class="menu-chip" style="background: var(--color-lila);">
+            <i class="fa-solid fa-clock-rotate-left"></i> <span>Mis Turnos y Pagos</span>
+        </a>
+        <a href="#materiales" onclick="togglePatientMenu()" class="menu-chip" style="background: var(--color-amarillo);">
+            <i class="fa-solid fa-folder-open"></i> <span>Mi Biblioteca</span>
+        </a>
+    </nav>
+</div>
+
+<style>
+    /* Estilo de las píldoras del menú */
+    .menu-chip {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 0.6rem 1rem; /* Even smaller padding */
+        border: 3px solid #000;
+        border-radius: 50px; 
+        text-decoration: none;
+        color: #000;
+        font-weight: 400;
+        font-size: 0.8rem; /* Smaller font size */
+        font-family: 'Syne', sans-serif;
+        box-shadow: 4px 4px 0px #000;
+        transition: all 0.2s;
+    }
+    .menu-chip:active {
+        transform: translate(2px, 2px);
+        box-shadow: 0px 0px 0px #000;
+    }
+    .menu-chip i { font-size: 1.3rem; width: 25px; text-align: center; }
+
+    /* Estado abierto */
+    #patient-top-menu.active {
+        transform: translateY(150%); /* Lo baja desde el top */
+    }
+    
+    /* Mobile Override: Ensure menu works */
+    @media (max-width: 768px) {
+        #patient-top-menu.active {
+            top: 0 !important; /* Force top 0 when active */
+            transform: none !important; /* Use top transition instead */
+        }
+    }
+</style>
+
+<script>
+function togglePatientMenu() {
+    const menu = document.getElementById('patient-top-menu');
+    const overlay = document.getElementById('patient-overlay');
+    const logoutBtnHeader = document.querySelector('.header-logout-form'); // Seleccionamos el form del botón salir
+
+    const isOpen = menu.classList.contains('active');
+
+    if (isOpen) {
+        menu.classList.remove('active');
+        menu.style.top = '-150%';
+        overlay.style.display = 'none';
+        document.body.style.overflow = '';
+        
+        // Mostrar botón del header
+        if(logoutBtnHeader) logoutBtnHeader.classList.remove('hidden-btn');
+    } else {
+        menu.classList.add('active');
+        menu.style.top = '0'; // Slide down
+        overlay.style.display = 'block';
+        document.body.style.overflow = 'hidden';
+        
+        // Ocultar botón del header con transición
+        if(logoutBtnHeader) logoutBtnHeader.classList.add('hidden-btn');
+    }
+}
+</script>
+
 <!-- Block 1: User Provided Patient Dashboard Content -->
-<div class="container mt-16" style="min-height: 80vh; padding-top: 1rem; padding-bottom: 3rem;">
-    <link rel="stylesheet" href="{{ asset('css/whatsapp_widget.css') }}">
-    <div id="top"></div>
-    <div class="flex gap-4" style="flex-wrap: wrap;">
+<div class="container mt-16" style="padding-top: 1rem;">
+    <style>
+        @media (min-width: 769px) {
+            .container.mt-16 {
+                margin-top: 0 !important;
+                padding-top: 2rem !important;
+                padding-left: 1rem !important;
+                padding-right: 1rem !important;
+                padding-bottom: 40px !important;
+            }
+            @media (min-width: 1024px) {
+                .flex.gap-4 > div:first-child { flex: 1.6 !important; }
+                .flex.gap-4 > div:last-child { flex: 1 !important; }
+                #booking { max-width: 920px !important; width: 100% !important; }
+            }
+        }
+    </style>
+    <style>
+        @media (max-width: 768px) {
+            .container.mt-16 {
+                padding-top: 1rem !important;
+                margin-top: 0 !important;
+                padding-bottom: 3rem !important;
+            }
+        }
         
-        <!-- Left Column: New Appointment Stepper -->
-        <div style="flex: 1; min-width: 320px;">
-            <!-- Next Session Card (Top) -->
-        
-        <div id="booking" class="neobrutalist-card" style="margin-bottom: 4rem;">
+        /* Tablet and iPad optimizations */
+        @media (min-width: 769px) and (max-width: 1024px) {
+            .container.mt-16 {
+                padding: 2rem 2rem 3rem !important;
+            }
             
+            .dashboard-flex-container {
+                flex-direction: column !important;
+                gap: 2rem !important;
+            }
+            
+            #booking, #mis-turnos-section {
+                min-width: 100% !important;
+                width: 100% !important;
+            }
+            
+            /* Reduce booking section bottom margin */
+            .booking-section {
+                margin-bottom: 1rem !important;
+                padding-bottom: 1.5rem !important;
+            }
+            
+            .days-grid {
+                grid-template-columns: repeat(7, 1fr) !important;
+            }
+            
+            /* More spacing for table on iPad */
+            #mis-turnos table td,
+            #mis-turnos table th {
+                padding: 0.8rem !important;
+            }
+            
+            /* Stretch table to full width on iPad */
+            #mis-turnos table {
+                width: 100% !important;
+            }
+            
+            /* WhatsApp button adjustment for iPad */
+            #whatsapp-widget-container {
+                bottom: 2rem !important;
+                right: 2rem !important;
+            }
+        }
+        
+        /* Landscape phone optimization */
+        @media (max-height: 600px) and (orientation: landscape) {
+            .container.mt-16 {
+                padding-top: 0.5rem !important;
+                padding-bottom: 1rem !important;
+            }
+            
+            #patient-top-menu {
+                padding: 1rem !important;
+            }
+            
+            .menu-chip {
+                padding: 0.4rem 0.8rem !important;
+                font-size: 0.75rem !important;
+            }
+            
+            #mis-turnos {
+                padding: 1.5rem !important;
+            }
+            
+            .booking-section {
+                margin-top: 3.5rem !important;
+                padding-top: 1.5rem !important;
+            }
+        }
+        
+        .days-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)) !important;
+            gap: 0.5rem;
+        }
+        @media (min-width: 1024px) {
+             .flex.gap-4 > div:first-child { flex: 1.2 !important; }
+             .flex.gap-4 > div:last-child { flex: 1 !important; }
+        }
+    </style>
+    <link rel="stylesheet" href="{{ asset('css/whatsapp_widget.css') }}">
+    <style>
+        .dashboard-flex-container {
+            gap: 3rem;
+            flex-wrap: wrap;
+            align-items: stretch;
+            margin-top: 30px;
+        }
+        @media (max-width: 768px) {
+            .dashboard-flex-container {
+                margin-top: 10px !important;
+                gap: 2rem;
+            }
+        }
+    </style>
+
+@section('content')
+<div class="dashboard-flex-container flex">
+    
+    <!-- Left Column: New Appointment Stepper -->
+    <div style="flex: 1.5; min-width: 350px; display: flex; flex-direction: column;">
+        <div id="booking" class="neobrutalist-card booking-section" style="margin-bottom: 4rem; padding-bottom: 3rem; flex: 1;">
+            <style>
+                @media (max-width: 768px) {
+                    .booking-section {
+                        margin-top: 2rem !important;
+                        padding-top: 1.5rem !important;
+                    }
+                }
+            </style>
             <!-- Feedback de Errores -->
-                            
-            <h3 class="mb-4"><i class="fa-solid fa-calendar-plus"></i> Reservar Nuevo Turno</h3>
+            @if ($errors->any())
+                <div class="alert alert-error mb-4">
+                    <ul>
+                        @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+            
+            <h3 class="mb-4" style="font-family: 'Syne', sans-serif; font-weight: 700; white-space: nowrap;"><i class="fa-solid fa-calendar-plus"></i> Reservar Nuevo Turno</h3>
                 
                 <div class="stepper-container">
                     <!-- Step Indicators -->
@@ -122,82 +487,143 @@
         </div>
 
         <!-- Right Column: My Appointments -->
-        <div style="flex: 2; min-width: 300px;">
+    <div id="mis-turnos-section" style="flex: 2.5; min-width: 300px;">
+        
+        <style>
+            /* Hide mobile labels on desktop */
+            .mobile-label {
+                display: none;
+            }
             
-
-            <style>
-                @media (max-width: 768px) {
-                    #mis-turnos { padding: 1rem !important; }
-                    #mis-turnos h3 { font-size: 1rem; }
-                    
-                    /* Mobile Card View for Table */
-                    #mis-turnos table, #mis-turnos thead, #mis-turnos tbody, #mis-turnos th, #mis-turnos td, #mis-turnos tr { 
-                        display: block; 
-                    }
-                    
-                    #mis-turnos thead tr { 
-                        position: absolute;
-                        top: -9999px;
-                        left: -9999px;
-                    }
-                    
-                    #mis-turnos tr { border-bottom: 3px solid #000 !important; margin-bottom: 1rem; background: #fff; padding: 10px; border: 2px solid #eee; border-radius: 8px; }
-                    
-                    #mis-turnos td { 
-                        border: none !important;
-                        position: relative;
-                        padding-left: 50% !important; 
-                        text-align: right;
-                        padding-top: 5px !important;
-                        padding-bottom: 5px !important;
-                        min-height: 30px;
-                    }
-                    
-                    #mis-turnos td:before { 
-                        position: absolute;
-                        top: 6px;
-                        left: 10px;
-                        width: 45%; 
-                        padding-right: 10px; 
-                        white-space: nowrap;
-                        text-align: left;
-                        font-weight: 800;
-                        color: #666;
-                    }
-                    
-                    /* Labels */
-                    #mis-turnos td:nth-of-type(1):before { content: "Fecha"; }
-                    #mis-turnos td:nth-of-type(2):before { content: "Estado"; }
-                    #mis-turnos td:nth-of-type(3):before { content: "Pago"; }
-                    #mis-turnos td:nth-of-type(4):before { content: "Acciones"; }
-
-                    /* Modified Date Style: Black and Smaller */
-                    #mis-turnos td:nth-of-type(1) { 
-                        font-weight: 800; 
-                        font-size: 0.95rem !important; /* Smaller size */
-                        color: #666 !important; /* Grey/Black tone as requested (user mentioned "gris" then "change to black", let's use dark grey #333 for readability or #000) */
-                        color: #111 !important;
-                    }
-                }
-            </style>
-            <div id="mis-turnos" class="neobrutalist-card">
-                <h3 class="no-select" style="background: var(--color-lila); display: inline-block; padding: 0.2rem 0.5rem; border: 3px solid #2D2D2D;">Mis Turnos y Pagos</h3>
+            @media (max-width: 1024px) {
+                #mis-turnos { padding: 1.5rem !important; }
+                #mis-turnos h3 { font-size: 1.1rem; margin-bottom: 0.5rem !important; } /* Reduced margin */
                 
-                <div style="overflow-x: auto;">
-                    <table style="width: 100%; border-collapse: collapse; margin-top: 1rem;">
-                        <thead>
-                            <tr style="border-bottom: 3px solid #2D2D2D;">
-                                <th style="text-align: left; padding: 0.5rem;">Fecha</th>
-                                <th style="text-align: left; padding: 0.5rem;">Estado Turno</th>
-                                <th style="text-align: left; padding: 0.5rem;">Pago</th>
-                                <th style="text-align: left; padding: 0.5rem;">Acciones</th>
-                            </tr>
-                        </thead>
+                /* Fix button clipping */
+                .neobrutalist-btn { margin: 5px !important; }
+                .flex.justify-between { flex-wrap: wrap; gap: 10px; }
+                     
+                /* Mobile Card View for Table */
+                #mis-turnos table, #mis-turnos thead, #mis-turnos tbody, #mis-turnos th, #mis-turnos td, #mis-turnos tr { 
+                    display: block; 
+                }
+                
+                #mis-turnos thead tr { 
+                    position: absolute;
+                    top: -9999px;
+                    left: -9999px;
+                }
+                
+                #mis-turnos tr { border-bottom: 3px solid #000 !important; margin-bottom: 1rem; background: #fff; padding: 10px; border: 2px solid #eee; border-radius: 8px; }
+                
+                #mis-turnos td { 
+                    border: none !important;
+                    position: relative;
+                    padding-left: 50% !important; 
+                    text-align: right;
+                    padding-top: 5px !important;
+                    padding-bottom: 5px !important;
+                    min-height: 30px;
+                }
+                
+                #mis-turnos td:before { 
+                    position: absolute;
+                    top: 6px;
+                    left: 10px;
+                    width: 45%; 
+                    padding-right: 10px; 
+                    white-space: nowrap;
+                    text-align: left;
+                    font-weight: 800;
+                    color: #666;
+                }
+                
+                /* Labels */
+                /* Labels */
+                #mis-turnos td:nth-of-type(1):before { content: "Turno:"; } /* Changed to "Turno:" for clarity */
+                #mis-turnos td:nth-of-type(2):before { content: "Estado:"; }
+                #mis-turnos td:nth-of-type(3):before { content: "Pago:"; }
+                #mis-turnos td:nth-of-type(4):before { content: "Acciones:"; }
+
+                /* Modified Date Style: Black and Smaller */
+                #mis-turnos td:nth-of-type(1) { 
+                    font-weight: 800; 
+                    font-size: 0.95rem !important;
+                    color: #111 !important;
+                }
+                
+                /* Align content properly */
+                #mis-turnos td {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding-left: 10px !important;
+                    text-align: right;
+                }
+                
+                /* Show mobile label only on mobile */
+                .mobile-label {
+                    display: inline !important;
+                    position: absolute;
+                    left: 10px;
+                    top: 12px;
+                    font-weight: 800 !important;
+                    color: #111 !important;
+                }
+                
+                #mis-turnos td:before {
+                    position: static;
+                    font-weight: 700;
+                    color: #666;
+                }
+
+                /* 4. Improve Actions Column for Mobile */
+                #mis-turnos td:nth-of-type(4) {
+                    flex-direction: column !important;
+                    align-items: stretch !important; /* Full width children */
+                    gap: 10px !important;
+                    text-align: left !important;
+                    padding-top: 15px !important;
+                    padding-bottom: 15px !important;
+                }
+                
+                #mis-turnos td:nth-of-type(4):before {
+                    content: "Acciones:" !important;
+                    display: block !important;
+                    margin-bottom: 5px;
+                    font-size: 0.85rem; /* Smaller font size as requested */
+                    color: #000 !important;
+                    font-family: 'Inter', sans-serif !important;
+                    font-weight: 800 !important;
+                    text-decoration: none !important;
+                }
+                
+                #mis-turnos td:nth-of-type(4) .neobrutalist-btn {
+                    width: 100% !important;
+                    text-align: center !important;
+                    margin: 0 !important;
+                    display: block;
+                }
+            }
+        </style>
+            <div id="mis-turnos" class="neobrutalist-card" style="width: 100% !important; max-width: 100% !important; padding: 2.5rem 1.5rem !important; background: white; border: 3px solid #000; box-shadow: 8px 8px 0px #000;">
+            <h3 class="no-select" style="background: var(--color-lila); display: inline-block; padding: 0.5rem 1rem; border: 3px solid #000; font-size: 1.4rem; margin-bottom: 1.5rem; box-shadow: 4px 4px 0px #000; font-family: 'Syne', sans-serif; font-weight: 700; white-space: nowrap;">Mis Turnos y Pagos</h3>
+            
+            <div style="overflow-x: auto; width: 100%;">
+                <table style="width: 100%; border-collapse: collapse; margin-top: 1rem; font-family: 'Inter', sans-serif;">
+                    <thead>
+                        <tr style="border-bottom: 3px solid #000;">
+                            <th style="text-align: left; padding: 0.5rem; font-weight: 800;">Fecha</th>
+                            <th style="text-align: left; padding: 0.5rem; font-weight: 800;">Estado Turno</th>
+                            <th style="text-align: left; padding: 0.5rem; font-weight: 800;">Pago</th>
+                            <th style="text-align: left; padding: 0.5rem; font-weight: 800;">Acciones</th>
+                        </tr>
+                    </thead>
                         <tbody>
                             @if(isset($appointments) && $appointments->count() > 0)
                                 @foreach($appointments as $appt)
                                     <tr style="border-bottom: 1px solid #2D2D2D;">
-                                        <td style="padding: 0.5rem;">{{ $appt->fecha_hora->format('d/m H:i') }}</td>
+                                        <td style="padding: 0.5rem; white-space: nowrap;"><span class="mobile-label" style="font-weight: 700; color: #666; margin-right: 8px;">Fecha:</span>{{ $appt->fecha_hora->format('d/m H:i') }}</td>
                                         <td style="padding: 0.5rem;">
                                             <span style="font-weight: bold; color: {{ $appt->estado == 'cancelado' ? 'red' : 'green' }}">
                                                 {{ ucfirst($appt->estado) }}
@@ -236,30 +662,30 @@
             </div>
 
             <!-- Biblioteca de Materiales (NEW) -->
-            <div id="materiales" class="neobrutalist-card" style="margin-top: 2rem;">
-                <h3 style="margin-bottom: 1.5rem; border-bottom: 3px solid #000; padding-bottom: 0.5rem;"><i class="fa-solid fa-folder-open"></i> Mi Biblioteca de Materiales</h3>
-                
-                @if(isset($resources) && $resources->count() > 0)
-                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1.5rem;">
+        <div id="materiales" class="neobrutalist-card" style="margin-top: 2rem; padding: 2.5rem !important; border: 3px solid #000; box-shadow: 8px 8px 0px #000; background: white;">
+            <h3 style="margin-bottom: 1.5rem; border-bottom: 4px solid #000; padding-bottom: 0.8rem; font-size: 1.4rem; font-family: 'Syne', sans-serif; font-weight: 700;"><i class="fa-solid fa-folder-open"></i> Mi Biblioteca de Materiales</h3>
+            
+                @if(isset($resources) && count($resources) > 0)
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 2rem;">
                         @foreach($resources as $res)
-                        <div class="neobrutalist-card" style="background: white; border-width: 3px; padding: 1.2rem; display: flex; flex-direction: column; justify-content: space-between; height: 100%;">
+                        <div class="neobrutalist-card" style="background: white; border-width: 4px; padding: 2rem; display: flex; flex-direction: column; justify-content: space-between; height: 100%; box-shadow: 6px 6px 0px #000 !important;">
                             <div>
-                                <div style="font-size: 2rem; margin-bottom: 0.5rem; color: var(--color-celeste);">
+                                <div style="font-size: 2.5rem; margin-bottom: 1rem; color: var(--color-celeste);">
                                     <i class="fa-solid fa-file-lines"></i>
                                 </div>
-                                <h4 style="margin: 0 0 0.5rem 0; font-weight: 900; line-height: 1.2;">{{ $res->title }}</h4>
+                                <h4 style="margin: 0 0 0.8rem 0; font-weight: 900; line-height: 1.2; font-size: 1.2rem;">{{ $res->title }}</h4>
                                 @if($res->description)
-                                    <p style="font-size: 0.85rem; color: #555; margin-bottom: 1rem;">{{ $res->description }}</p>
+                                    <p style="font-size: 0.95rem; color: #555; margin-bottom: 1.5rem;">{{ $res->description }}</p>
                                 @endif
                             </div>
-                            <a href="{{ route('resources.download', $res->id) }}" class="neobrutalist-btn bg-amarillo w-full text-center" style="font-size: 0.85rem; padding: 10px;">
+                            <a href="{{ route('resources.download', $res->id) }}" class="neobrutalist-btn bg-amarillo w-full text-center" style="font-size: 1rem; padding: 12px; font-weight: 800;">
                                 <i class="fa-solid fa-download"></i> Descargar
                             </a>
                         </div>
                         @endforeach
                     </div>
                 @else
-                    <div style="text-align: center; padding: 2rem; background: #f9f9f9; border: 2px dashed #ccc; border-radius: 10px;">
+                    <div style="text-align: center; padding: 2rem; background: #f9f9f9; border: 2px dashed #ccc; border-radius: 10px; font-family: 'Inter', sans-serif;">
                         <p style="color: #666; font-weight: 700;">No hay materiales compartidos todavía.</p>
                     </div>
                 @endif
@@ -268,11 +694,21 @@
     </div>
         <!-- Custom Alert Modal (Cartel) -->
         <div id="alert-modal-overlay" class="confirm-modal-overlay" style="display: none; align-items: center; justify-content: center; background: rgba(0,0,0,0.7);">
-            <div class="confirm-modal" style="max-width: 400px; padding: 2rem; border: 5px solid #000; box-shadow: 10px 10px 0px #000; border-radius: 20px;">
-                <div class="confirm-modal-title" style="color: #000; font-size: 1.5rem; margin-bottom: 1rem; font-weight: 900;">¡Atención!</div>
-                <div id="alert-modal-message" class="confirm-modal-message" style="font-weight: 700; font-size: 1rem; margin-bottom: 1.5rem; color: #333; letter-spacing: 0;"></div>
-                <div style="display: flex; justify-content: center;">
-                    <button onclick="closeAlert()" class="neobrutalist-btn bg-amarillo" style="padding: 5px 20px; font-weight: 800; font-size: 0.75rem; letter-spacing: 0; min-width: 100px;">ENTENDIDO</button>
+            <div class="confirm-modal" style="max-width: 400px; padding: 0 !important; border: 5px solid #000; box-shadow: 10px 10px 0px #000; border-radius: 20px;">
+                <div style="background-color: var(--color-celeste); padding: 1rem; border-bottom: 5px solid #000; text-align: center;">
+                    <h3 style="margin: 0; font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.5rem;">¡ATENCIÓN!</h3>
+                </div>
+
+                <div style="padding: 2rem; text-align: center;">
+                    <p id="alert-modal-message" style="font-family: 'Manrope', sans-serif; font-weight: 700; margin-bottom: 1.5rem;">
+                        Primero debes seleccionar un día para continuar.
+                    </p>
+
+                    <div style="display: flex; justify-content: center;">
+                        <button onclick="closeAlert()" class="neobrutalist-btn bg-amarillo" style="min-width: 120px; margin-top: 0;">
+                            ENTENDIDO
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -626,14 +1062,7 @@ $blockedDays = $blockedDays ?? [];
             else ind.classList.remove('active');
         });
 
-        // Ocultar la barra de navegación al cambiar de paso
-        const navbar = document.querySelector('.navbar-unificada');
-        if (navbar) {
-            navbar.classList.add('nav-hidden');
-            setTimeout(() => {
-                navbar.classList.remove('nav-hidden');
-            }, 1500); // Mostrar nuevamente después de 1.5 segundos
-        }
+        // Navbar scroll removed - neobrutalist navbar is always visible
 
         if (step === 4) {
             document.getElementById('final_date').value = selectedDay + ' ' + selectedTime;
@@ -665,247 +1094,86 @@ $blockedDays = $blockedDays ?? [];
     initStepper();
 
     function confirmDeleteAccount() {
-        window.showConfirm('¿Estás completamente seguro de que quieres darte de baja? Esta acción es irreversible y se borrarán todos tus datos.', function() {
-            if (confirm('Confirmación final: ¿Realmente quieres borrar tu cuenta?')) {
-                document.getElementById('delete-account-form').submit();
-            }
-        });
+        window.openDeleteModal();
     }
 </script>
-<!-- WhatsApp Widget -->
-<div id="whatsapp-widget-container">
-    <div id="whatsapp-chat-window">
-        <div class="wa-header">
-            <img src="{{ asset('img/profile-chat.png') }}" alt="Nazarena" class="wa-profile-pic">
-            <div class="wa-info">
-                <h4>Lic. Nazarena De Luca</h4>
-                <p>Normalmente responde en 1 hora</p>
-            </div>
-            <div style="margin-left: auto; cursor: pointer;" onclick="toggleWhatsApp()">
-                <i class="fa-solid fa-times"></i>
-            </div>
-        </div>
-        <div class="wa-body">
-            <div class="wa-message-bubble">
-                ¡Hola! 👋 Soy Nazarena. <br>¿En qué puedo ayudarte hoy?
-            </div>
-            
-            <div class="wa-quick-replies">
-                <a href="https://wa.me/5491139560673?text=Hola,%20quisiera%20reservar%20un%20turno." target="_blank" class="wa-chip">
-                    📅 Quiero reservar un turno
-                </a>
-                <a href="https://wa.me/5491139560673?text=Hola,%20tengo%20una%20consulta%20sobre%20los%20pagos." target="_blank" class="wa-chip">
-                    💸 Consulta sobre pagos
-                </a>
-                <a href="https://wa.me/5491139560673?text=Hola,%20quisiera%20saber%20más%20sobre%20la%20modalidad%20virtual." target="_blank" class="wa-chip">
-                    💻 Consulta modalidad virtual
-                </a>
-            </div>
-        </div>
-        <div class="wa-footer">
-            <a href="https://wa.me/5491139560673" target="_blank" class="wa-btn-main">
-                <i class="fa-brands fa-whatsapp"></i> Chatear (11 3956-0673)
-            </a>
-        </div>
-    </div>
+<!-- Patient Sidebar Navigation (Replaces Bottom Nav) -->
+<div id="patient-overlay" onclick="togglePatientSidebar()" style="
+    display: none; 
+    position: fixed; 
+    top: 0; 
+    left: 0; 
+    width: 100%; 
+    height: 100%; 
+    background: rgba(103, 58, 183, 0.4); /* Lila transparente */
+    backdrop-filter: blur(8px); 
+    -webkit-backdrop-filter: blur(8px); 
+    z-index: 10000; 
+    transition: all 0.4s ease;
+"></div>
+
+<div id="patient-sidebar" style="position: fixed; top: 0; left: -300px; width: 280px; height: 100%; background: white; border-right: 5px solid #000; z-index: 10001; transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; padding: 2rem 1.5rem; box-shadow: 15px 0px 0px rgba(0,0,0,0.1);">
     
-    <div id="whatsapp-float-btn" onclick="toggleWhatsApp()">
-        <i class="fa-brands fa-whatsapp"></i>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2.5rem;">
+        <span style="font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.2rem; text-transform: uppercase;">Menú</span>
+        <button onclick="togglePatientSidebar()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer;"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+
+    <nav style="display: flex; flex-direction: column; gap: 1rem;">
+        <a href="#booking" onclick="togglePatientSidebar()" class="sidebar-link" style="background: var(--color-celeste);">
+            <i class="fa-solid fa-calendar-plus"></i> Reservar Turno
+        </a>
+        <a href="#mis-turnos-section" onclick="togglePatientSidebar()" class="sidebar-link" style="background: var(--color-lila);">
+            <i class="fa-solid fa-clock-rotate-left"></i> Mis Turnos
+        </a>
+        <a href="#materiales" onclick="togglePatientSidebar()" class="sidebar-link" style="background: var(--color-amarillo);">
+            <i class="fa-solid fa-folder-open"></i> Materiales
+        </a>
+    </nav>
+
+    <div style="margin-top: auto; padding-top: 2rem; border-top: 2px dashed #000;">
+        <button onclick="openLogoutModal()" style="width: 100%; padding: 1rem; background: #fee2e2; border: 3px solid #000; border-radius: 12px; color: #e11d48; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;">
+            <i class="fa-solid fa-right-from-bracket"></i> CERRAR SESIÓN
+        </button>
     </div>
 </div>
 
 <style>
-    /* Mobile Optimization for WhatsApp Widget to open from left or fit better */
-    @media (max-width: 768px) {
-        #whatsapp-chat-window {
-            bottom: 80px; 
-            right: 0; /* Align to viewport edge */
-            left: 0;  /* Align to viewport edge */
-            margin: 0 auto; /* Center horizontally */
-            transform-origin: bottom center; 
-            width: 90%; /* Max width relative to screen */
-            max-width: 350px; /* Safe cap */
-            z-index: 10000;
-        }
-        #whatsapp-chat-window.active {
-            transform: scale(1);
-        }
+    .sidebar-link {
+        text-decoration: none;
+        color: #000;
+        font-weight: 800;
+        padding: 1.2rem;
+        border: 3px solid #000;
+        border-radius: 15px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 1rem;
+        transition: transform 0.2s;
+    }
+    .sidebar-link i { font-size: 1.2rem; width: 25px; text-align: center; color: #000; }
+    .sidebar-link:active { transform: scale(0.95); }
+    
+    #patient-sidebar.open {
+        left: 0 !important;
     }
 </style>
 
 <script>
-    function toggleWhatsApp() {
-        const chatWindow = document.getElementById('whatsapp-chat-window');
-        if (chatWindow.style.display === 'flex') {
-            chatWindow.classList.remove('active');
-            setTimeout(() => {
-                chatWindow.style.display = 'none';
-            }, 300);
+    function togglePatientSidebar() {
+        const sidebar = document.getElementById('patient-sidebar');
+        const overlay = document.getElementById('patient-overlay');
+        
+        if (sidebar.classList.contains('open')) {
+            sidebar.classList.remove('open');
+            overlay.style.display = 'none';
+            document.body.style.overflow = ''; 
         } else {
-            chatWindow.style.display = 'flex';
-            // Force reflow
-            void chatWindow.offsetWidth;
-            chatWindow.classList.add('active');
+            sidebar.classList.add('open');
+            overlay.style.display = 'block';
+            document.body.style.overflow = 'hidden'; 
         }
-    }
-</script>
-</div>
-
-<!-- Block 2: User Provided Manage Modal Content (Appended) -->
-<!-- Manage Patient Modal -->
-<div id="manageModal" class="confirm-modal-overlay" style="display: none;">
-    <div class="confirm-modal" style="max-width: 550px; width: 90%;">
-        <div class="confirm-modal-title" id="manageTitle">Gestionar Paciente</div>
-        <div class="confirm-modal-message" style="text-align: left;">
-            
-            <!-- Disassociate Section (Moved Up and Renamed) -->
-            <div style="margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 3px dashed #000;">
-                <h4 style="margin-bottom: 0.5rem;">Dar de Baja al Paciente</h4>
-                <p style="font-size: 0.85rem; margin-bottom: 1rem; color: #555;">Si el tratamiento terminó o el paciente dejó de asistir, podés desasociarlo aquí.</p>
-                
-                <form id="manage-delete-form" method="POST">
-                    @csrf
-                    @method('DELETE')
-                    <div class="mb-4">
-                        <label style="font-size: 0.8rem; font-weight: 700;">Motivo de la baja (opcional):</label>
-                        <textarea name="motivo" placeholder="Ej: Fin del tratamiento..." class="neobrutalist-input" style="min-height: 80px; font-size: 0.9rem; padding: 10px;"></textarea>
-                    </div>
-                    <button type="button" class="neobrutalist-btn w-full" style="background: #000; color: white; font-size: 0.9rem;" 
-                            onclick="confirmDisassociate()">
-                        Confirmar Baja
-                    </button>
-                </form>
-            </div>
-
-            <!-- Contact Section -->
-            <div style="margin-bottom: 2rem;">
-                <h4 style="margin-bottom: 0.5rem; border-bottom: 2px solid #000; display: inline-block;">Datos de Contacto & Enlaces</h4>
-                
-                <div style="background: #f9f9f9; padding: 1rem; border: 2px solid #000; margin-bottom: 1rem;">
-                    <p><strong>Email:</strong> <span id="manageEmail"></span></p>
-                    <p><strong>Teléfono:</strong> <span id="managePhone"></span></p>
-                    
-                    <!-- Meet Link Form -->
-                    <form id="manage-link-form" method="POST" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px dashed #ccc;">
-                        @csrf
-                        <label style="font-size: 0.8rem; font-weight: 700;">Link de Google Meet (Único):</label>
-                        <div style="display: flex; gap: 0.5rem; margin-top: 5px;">
-                            <input type="url" name="meet_link" id="manageMeetLink" class="neobrutalist-input" placeholder="https://meet.google.com/..." style="flex: 1; font-size: 0.85rem; padding: 8px;">
-                            <button type="submit" class="neobrutalist-btn bg-celeste" style="padding: 0 15px; font-size: 0.8rem;">
-                                <i class="fa-solid fa-save"></i>
-                            </button>
-                        </div>
-                    </form>
-                </div>
-
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem;">
-                    <a id="manageMailBtn" href="#" class="neobrutalist-btn text-center" style="background: var(--color-amarillo); font-size: 0.85rem;">
-                        <i class="fa-solid fa-envelope"></i> Enviar Mail
-                    </a>
-                    <a id="manageWhatsAppBtn" href="#" target="_blank" class="neobrutalist-btn text-center" style="background: #25D366; color: white; border-color: #000; font-size: 0.85rem;">
-                        <i class="fa-brands fa-whatsapp"></i> WhatsApp
-                    </a>
-                </div>
-            </div>
-
-            <!-- Classification Section -->
-            <div style="margin-bottom: 2rem; padding: 1.5rem; border: 3px solid #000; background: #fffbe6; box-shadow: 6px 6px 0px #000; border-radius: 15px;">
-                <h3 style="margin-bottom: 0.5rem; font-size: 1.2rem;">Clasificación de Paciente</h3>
-                <p style="font-size: 0.9rem; margin-bottom: 1.5rem; color: #333; font-weight: 500;">
-                    ¿Este paciente es nuevo o ya es frecuente? (Los frecuentes no necesitan subir comprobante).
-                </p>
-                <form id="manage-type-form" method="POST">
-                    @csrf
-                    <div style="display: flex; gap: 1rem; margin-bottom: 0.5rem;">
-                        <button type="submit" name="tipo_paciente" value="nuevo" id="btnTypeNuevo" class="neobrutalist-btn flex-1" style="font-size: 1rem; padding: 15px; background: white;">NUEVO</button>
-                        <button type="submit" name="tipo_paciente" value="frecuente" id="btnTypeFrecuente" class="neobrutalist-btn flex-1" style="font-size: 1rem; padding: 15px; background: white;">FRECUENTE</button>
-                    </div>
-                </form>
-
-
-
-                <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 2px dashed #000;">
-                    <form id="manage-reminder-form" method="POST">
-                        @csrf
-                        <button type="submit" class="neobrutalist-btn w-full" style="background: var(--color-lila); font-size: 0.9rem; padding: 12px;">
-                            <i class="fa-solid fa-bell"></i> Enviar Recordatorio por Mail
-                        </button>
-                    </form>
-                </div>
-            </div>
-
-        </div>
-        <div class="confirm-modal-buttons" style="margin-top: 2rem;">
-            <button onclick="closeManageModal()" class="neobrutalist-btn w-full" style="background: white;">Cerrar</button>
-        </div>
-    </div>
-</div>
-
-<script>
-    let currentPatientId = null;
-    let currentPatientName = '';
-
-    function closeManageModal() {
-        document.getElementById('manageModal').style.display = 'none';
-        document.body.style.overflow = 'auto';
-    }
-
-    function openManageModal(id, name, email, phone, type, meetLink) {
-        currentPatientId = id;
-        currentPatientName = name;
-        
-        document.getElementById('manageTitle').innerText = 'Gestionar: ' + name;
-        document.getElementById('manageEmail').innerText = email;
-        document.getElementById('managePhone').innerText = phone;
-        document.getElementById('manageMailBtn').href = 'mailto: ' + email;
-        
-        const btnNuevo = document.getElementById('btnTypeNuevo');
-        const btnFrecuente = document.getElementById('btnTypeFrecuente');
-        
-        btnNuevo.style.background = (type === 'nuevo') ? 'var(--color-amarillo)' : 'white';
-        btnNuevo.style.borderWidth = (type === 'nuevo') ? '4px' : '2px';
-        
-        btnFrecuente.style.background = (type === 'frecuente') ? 'var(--color-verde)' : 'white';
-        btnFrecuente.style.borderWidth = (type === 'frecuente') ? '4px' : '2px';
-
-        const wpBtn = document.getElementById('manageWhatsAppBtn');
-        if (phone && phone !== 'No registrado') {
-            const cleanPhone = phone.replace(/[^0-9]/g, '');
-            // Construct message with link
-            const meetUrl = meetLink ? meetLink : '[Link Pendiente]';
-            const message = `Hola ${name.split(' ')[0]}, te envío el link para nuestra sesión de hoy: ${meetUrl}`;
-            
-            wpBtn.href = `https://wa.me/${cleanPhone}/?text=${encodeURIComponent(message)}`;
-            wpBtn.setAttribute('data-base-href', `https://wa.me/${cleanPhone}`);
-            wpBtn.style.display = 'flex';
-            wpBtn.style.alignItems = 'center';
-            wpBtn.style.justifyContent = 'center';
-        } else {
-            wpBtn.style.display = 'none';
-        }
-        
-        // Populate and Action for Meet Link
-        const linkInput = document.getElementById('manageMeetLink');
-        linkInput.value = meetLink || '';
-        document.getElementById('manage-link-form').action = '/admin/patients/' + id + '/update-link';
-
-        document.getElementById('manage-delete-form').action = '/admin/patients/' + id;
-        document.getElementById('manage-type-form').action = '/admin/patients/' + id + '/update-type';
-        document.getElementById('manage-reminder-form').action = '/admin/patients/' + id + '/send-reminder';
-        
-        document.getElementById('manageModal').style.display = 'flex';
-        document.body.style.overflow = 'hidden';
-    }
-
-    function confirmDisassociate() {
-        window.showConfirm('¿Estás segura de que querés desasociar permanentemente a ' + currentPatientName + '? Se borrarán todos sus turnos y pagos vinculados.', function() {
-            const verification = prompt('Para confirmar la baja definitiva de ' + currentPatientName + ', por favor escribí "ELIMINAR" debajo:');
-            if (verification === 'ELIMINAR') {
-                document.getElementById('manage-delete-form').submit();
-            } else {
-                alert('Acción cancelada. El texto no coincidía.');
-            }
-        });
     }
 </script>
 @endsection

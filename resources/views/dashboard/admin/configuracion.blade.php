@@ -498,4 +498,46 @@
         document.body.style.overflow = 'auto';
     }
 </script>
+
+<style>
+    /* Mobile Optimizations */
+    @media (max-width: 768px) {
+        /* Remove table borders on mobile */
+        table {
+            border: none !important;
+            box-shadow: none !important;
+        }
+        
+        /* Container with table - remove border */
+        div[style*="border: 3px solid #000"][style*="overflow-y: auto"] {
+            border: 1px solid #000 !important;
+            box-shadow: 2px 2px 0px #000 !important;
+            margin-left: 0 !important;
+            margin-right: 0 !important;
+        }
+        
+        /* Grid containers - add padding */
+        div[style*="display: grid"][style*="grid-template-columns"] {
+            padding-left: 1rem !important;
+            padding-right: 1rem !important;
+            gap: 1rem !important;
+        }
+        
+        /* Form containers with colored backgrounds */
+        div[style*="background: #fdfdfd"],
+        div[style*="background: #e0f2f1"],
+        div[style*="background: var(--color-amarillo)"],
+        div[style*="background: var(--color-celeste)"],
+        div[style*="background: white"][style*="border: 3px solid #000"] {
+            margin-left: 0 !important;
+            margin-right: 0 !important;
+        }
+        
+        /* Scroll panels */
+        .scroll-panel {
+            border: 1px solid #000 !important;
+        }
+    }
+</style>
+
 @endsection

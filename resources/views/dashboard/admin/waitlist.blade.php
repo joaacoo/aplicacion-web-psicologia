@@ -12,7 +12,39 @@
         </div>
         
         <div style="overflow-x: auto;">
-            <table style="width: 100%; border-collapse: collapse; background: white; border: 3px solid #000; box-shadow: 6px 6px 0px #000;">
+            <style>
+                @media (max-width: 768px) {
+                    .waitlist-table {
+                        border: none !important;
+                        box-shadow: none !important;
+                    }
+                    .waitlist-table thead { display: none; }
+                    .waitlist-table tr {
+                        display: block;
+                        border: 3px solid #000 !important;
+                        margin-bottom: 1rem;
+                        border-radius: 12px;
+                        padding: 1rem;
+                    }
+                    .waitlist-table td {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        padding: 0.5rem 0 !important;
+                        border: none !important;
+                        border-bottom: 1px solid #eee !important;
+                    }
+                    .waitlist-table td:last-child { border-bottom: none !important; }
+                    .waitlist-table td:before {
+                        content: attr(data-label);
+                        font-weight: 800;
+                        color: #666;
+                        text-transform: uppercase;
+                        font-size: 0.75rem;
+                    }
+                }
+            </style>
+            <table class="waitlist-table" style="width: 100%; border-collapse: collapse; background: white; border: 3px solid #000; box-shadow: 6px 6px 0px #000;">
                 <thead>
                     <tr style="background: #000; color: #fff;">
                         <th style="padding: 0.8rem; text-align: left;">Fecha/Hora</th>
@@ -25,7 +57,7 @@
                 <tbody>
                     @forelse($waitlist ?? [] as $entry)
                         <tr style="border-bottom: 2px solid #000;">
-                            <td style="padding: 0.8rem; font-weight: 700;">
+                            <td data-label="Fecha/Hora" style="padding: 0.8rem; font-weight: 700;">
                                 @if($entry->fecha_especifica)
                                     {{ \Carbon\Carbon::parse($entry->fecha_especifica)->format('d/m') }}
                                 @else
@@ -35,13 +67,13 @@
                                     - {{ \Carbon\Carbon::parse($entry->hora_inicio)->format('H:i') }} hs
                                 @endif
                             </td>
-                            <td style="padding: 0.8rem; font-weight: 900;">{{ $entry->name }}</td>
-                            <td style="padding: 0.8rem;">
+                            <td data-label="Paciente" style="padding: 0.8rem; font-weight: 900;">{{ $entry->name }}</td>
+                            <td data-label="Teléfono" style="padding: 0.8rem;">
                                 <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $entry->phone) }}" target="_blank" style="color: #25D366; font-weight: 800; text-decoration: none;">
                                     <i class="fa-brands fa-whatsapp"></i> {{ $entry->phone }}
                                 </a>
                             </td>
-                            <td style="padding: 0.8rem;">
+                            <td data-label="Preferencia" style="padding: 0.8rem;">
                                 <div style="display: flex; flex-direction: column; gap: 0.3rem;">
                                     <span style="background: var(--color-celeste); padding: 2px 8px; border: 2px solid #000; border-radius: 6px; font-size: 0.75rem; font-weight: 800; width: fit-content; text-transform: uppercase;">
                                         {{ $entry->modality }}
@@ -51,7 +83,7 @@
                                     </div>
                                 </div>
                             </td>
-                            <td style="padding: 0.8rem; text-align: right;">
+                            <td data-label="Acciones" style="padding: 0.8rem; text-align: right;">
                                 <form id="delete-waitlist-{{ $entry->id }}" action="{{ route('admin.waitlist.destroy', $entry->id) }}" method="POST" style="margin:0;">
                                     @csrf
                                     @method('DELETE')

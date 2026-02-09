@@ -2,6 +2,7 @@
 <html>
 <head>
     <title>Test Page</title>
+    <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}?v=2">
 </head>
 <body>
     <h1>Server is working</h1>

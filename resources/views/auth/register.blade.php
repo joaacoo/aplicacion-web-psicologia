@@ -3,8 +3,8 @@
 @section('title', 'Registro - Lic. Nazarena De Luca')
 
 @section('content')
-<div class="flex justify-center items-center" style="min-height: auto; margin-top: 0.5rem; margin-bottom: 2rem; padding: 0.5rem;">
-    <div class="neobrutalist-card" style="width: 100%; max-width: 500px; background: white;">
+<div class="flex justify-center items-center" style="min-height: auto; margin-top: 0.5rem; margin-bottom: 2rem; padding: 1.5rem;">
+    <div class="neobrutalist-card" style="width: 100%; max-width: 500px; background: white; border: 3px solid #000; box-shadow: 4px 4px 0px #000;">
         
         <h2 class="text-center" style="margin-bottom: 1.2rem; font-size: 2.2rem;">Crear Cuenta</h2>
 

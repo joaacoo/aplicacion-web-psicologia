@@ -99,4 +99,100 @@
         document.getElementById('proofModal').classList.remove('active');
         document.body.style.overflow = 'auto';
     }
+
+    // Manage Patient Modal Logic
+    window.openManageModal = function(id, name, email, phone, type, meetLink, customPrice) {
+        // Set Basic Info
+        document.getElementById('manageNameHighlight').innerText = name;
+        document.getElementById('manageEmail').innerText = email;
+        
+        // Meet Link
+        const meetInput = document.getElementById('manageMeetLink');
+        if(meetInput) meetInput.value = meetLink || '';
+
+        // Contact Buttons
+        const mailBtn = document.getElementById('manageMailBtn');
+        if(mailBtn) mailBtn.href = 'mailto:' + email;
+
+        const waBtn = document.getElementById('manageWhatsAppBtn');
+        if(waBtn) {
+            let cleanPhone = phone.replace(/[^0-9]/g, '');
+            waBtn.href = 'https://wa.me/' + cleanPhone;
+        }
+
+        // Honorarios / Custom Price
+        const chkPrice = document.getElementById('chkCustomPrice');
+        const inputPrice = document.getElementById('inputCustomPrice');
+        const containerPrice = document.getElementById('customPriceContainer');
+        const btnUpdate = document.getElementById('btnUpdateHonorario');
+
+        if(customPrice && customPrice > 0) {
+            if(chkPrice) chkPrice.checked = true;
+            if(inputPrice) inputPrice.value = customPrice;
+            if(containerPrice) containerPrice.style.display = 'block';
+            if(btnUpdate) btnUpdate.style.display = 'block';
+        } else {
+            if(chkPrice) chkPrice.checked = false;
+            if(inputPrice) inputPrice.value = '';
+            if(containerPrice) containerPrice.style.display = 'none';
+            if(btnUpdate) btnUpdate.style.display = 'none';
+        }
+
+        // Set Form Actions
+        // Assuming your routes are set up like /admin/patients/{id}/...
+        const baseUrl = '/admin/patients/' + id; // Fixed to match actual Laravel routes
+        
+        const linkForm = document.getElementById('manage-link-form');
+        if(linkForm) linkForm.action = baseUrl + '/update-meet';
+        
+        const typeForm = document.getElementById('manage-type-form');
+        if(typeForm) typeForm.action = baseUrl + '/update-type';
+
+        const honorarioForm = document.getElementById('manage-honorario-form');
+        if(honorarioForm) honorarioForm.action = baseUrl + '/update-honorario';
+
+        const disassociateForm = document.getElementById('manage-disassociate-form');
+        if(disassociateForm) disassociateForm.action = baseUrl + '/disassociate';
+
+        // Show Modal
+        const modal = document.getElementById('manageModal');
+        if(modal) {
+            modal.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+            
+            // Scroll modal content to top
+            const modalMessage = modal.querySelector('.confirm-modal-message');
+            if(modalMessage) {
+                modalMessage.scrollTop = 0;
+            }
+        }
+    };
+
+    window.closeManageModal = function() {
+        const modal = document.getElementById('manageModal');
+        if(modal) {
+            modal.style.display = 'none';
+            document.body.style.overflow = '';
+        }
+    };
+
+    window.toggleCustomPrice = function() {
+        const chk = document.getElementById('chkCustomPrice');
+        const container = document.getElementById('customPriceContainer');
+        const btnUpdate = document.getElementById('btnUpdateHonorario');
+        
+        if(chk && container) {
+            const isChecked = chk.checked;
+            container.style.display = isChecked ? 'block' : 'none';
+            if(btnUpdate) {
+                btnUpdate.style.display = isChecked ? 'block' : 'none';
+            }
+        }
+    };
+
+    window.confirmDisassociate = function() {
+        if(confirm('¿Estás seguro que querés dar de baja a este paciente de tu lista activa?')) {
+            document.getElementById('manage-disassociate-form').submit();
+        }
+    };
 </script>

@@ -4,7 +4,112 @@
 
 
 @section('content')
-<div id="agenda"></div>
+<div class="admin-content-wrapper" style="padding: 2rem; max-width: 1400px; margin: 0 auto; margin-bottom: 40px;">
+    
+    <!-- Welcome Text -->
+    <div style="margin-bottom: 2rem;">
+        <h1 id="bienvenida-text" class="welcome-text" style="font-weight: 700; color: #000; font-family: 'Syne', sans-serif; letter-spacing: -0.5px; text-shadow: 2px 2px 0px rgba(0,0,0,0.1); margin-top: 0;">
+            ¡Buen día&nbsp;☀️, {{ auth()->user()->nombre }}! Hoy alguien va a sentirse comprendido gracias a vos.&nbsp;🌟
+        </h1>
+        <style>
+            .welcome-text {
+                font-size: 1.8rem;
+            }
+            @media (max-width: 768px) {
+                .welcome-text {
+                    font-size: 1.2rem !important; /* Smaller as requested */
+                    line-height: 1.3 !important;
+                    margin-bottom: 1rem !important;
+                    margin-top: 0 !important;
+                }
+                /* Target the parent container to reduce padding on mobile */
+                .admin-content-wrapper {
+                    padding: 1rem !important;
+                }
+            }
+        </style>
+    </div>
+    
+    <!-- Finance Stats Grid -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 2rem; margin-bottom: 3rem;">
+        
+        <!-- Ingresos del Mes Card -->
+        <a href="{{ route('admin.finanzas') }}" style="text-decoration: none; color: inherit; display: block; background: var(--color-verde); border: 3px solid rgb(0, 0, 0); border-radius: 12px; padding: 2rem; box-shadow: rgba(0, 0, 0, 0.1) 8px 8px 0px; transition: transform 0.2s ease 0s, box-shadow 0.2s ease 0s; transform: none;" onmouseover="this.style.transform='translate(-2px,-2px)'; this.style.boxShadow='10px 10px 0px rgba(0,0,0,0.1)'" onmouseout="this.style.transform='none'; this.style.boxShadow='8px 8px 0px rgba(0,0,0,0.1)'">
+            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1.5rem;">
+                <div>
+                    <p style="margin: 0; color: #666; font-size: 0.9rem; font-weight: 600; text-transform: uppercase;">Ingresos Mes</p>
+                    <h2 style="margin: 0.5rem 0 0 0; font-size: 2rem; font-weight: 900; color: #000; font-family: 'Inter', 'Manrope', monospace; letter-spacing: -1px;">${{ number_format($ingresosMes ?? 0, 0, ',', '.') }}</h2>
+                </div>
+                <div style="background: white; width: 50px; height: 50px; border-radius: 50%; border: 2px solid #000; display: flex; align-items: center; justify-content: center;">
+                    <i class="fa-solid fa-money-bill-wave" style="font-size: 1.2rem; color: #000;"></i>
+                </div>
+            </div>
+            <div style="color: #000; font-weight: 700; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 0.5rem;">
+                Ver finanzas <i class="fa-solid fa-arrow-right"></i>
+            </div>
+        </a>
+
+        <!-- Pagos Pendientes Card -->
+        <a href="{{ route('admin.finanzas') }}" style="text-decoration: none; color: inherit; display: block; background: var(--color-rosa); border: 3px solid rgb(0, 0, 0); border-radius: 12px; padding: 2rem; box-shadow: rgba(0, 0, 0, 0.1) 10px 10px 0px; transition: transform 0.2s ease 0s, box-shadow 0.2s ease 0s; transform: translate(-2px, -2px);" onmouseover="this.style.transform='translate(-2px,-2px)'; this.style.boxShadow='10px 10px 0px rgba(0,0,0,0.1)'" onmouseout="this.style.transform='none'; this.style.boxShadow='8px 8px 0px rgba(0,0,0,0.1)'">
+            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1.5rem;">
+                <div>
+                    <p style="margin: 0; color: #666; font-size: 0.9rem; font-weight: 600; text-transform: uppercase;">Por Cobrar</p>
+                    <h2 style="margin: 0.5rem 0 0 0; font-size: 2rem; font-weight: 900; color: #000; font-family: 'Inter', 'Manrope', monospace; letter-spacing: -1px;">${{ number_format($porCobrar ?? 0, 0, ',', '.') }}</h2>
+                </div>
+                <div style="background: white; width: 50px; height: 50px; border-radius: 50%; border: 2px solid #000; display: flex; align-items: center; justify-content: center;">
+                    <i class="fa-solid fa-hand-holding-dollar" style="font-size: 1.4rem; color: #000;"></i>
+                </div>
+            </div>
+            <div style="color: #000; font-weight: 700; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 0.5rem;">
+                Gestionar cobros <i class="fa-solid fa-arrow-right"></i>
+            </div>
+        </a>
+
+        <!-- Pacientes Nuevos Card -->
+        <a href="{{ route('admin.pacientes') }}" style="text-decoration: none; color: inherit; display: block; background: var(--color-amarillo); border: 3px solid rgb(0, 0, 0); border-radius: 12px; padding: 2rem; box-shadow: rgba(0, 0, 0, 0.1) 8px 8px 0px; transition: transform 0.2s ease 0s, box-shadow 0.2s ease 0s; transform: none;" onmouseover="this.style.transform='translate(-2px,-2px)'; this.style.boxShadow='10px 10px 0px rgba(0,0,0,0.1)'" onmouseout="this.style.transform='none'; this.style.boxShadow='8px 8px 0px rgba(0,0,0,0.1)'">
+            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1.5rem;">
+                <div>
+                    <p style="margin: 0; color: #666; font-size: 0.9rem; font-weight: 600; text-transform: uppercase;">Pacientes Nuevos</p>
+                    <h2 style="margin: 0.5rem 0 0 0; font-size: 2.5rem; font-weight: 900; color: #000; font-family: 'Inter', 'Manrope', monospace; letter-spacing: -2px;">{{ $nuevosPacientes ?? 0 }}</h2>
+                </div>
+                <div style="background: white; width: 50px; height: 50px; border-radius: 50%; border: 2px solid #000; display: flex; align-items: center; justify-content: center;">
+                    <i class="fa-solid fa-user-plus" style="font-size: 1.2rem; color: #000;"></i>
+                </div>
+            </div>
+            <div style="color: #000; font-weight: 700; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 0.5rem;">
+                Ver pacientes <i class="fa-solid fa-arrow-right"></i>
+            </div>
+        </a>
+
+        <!-- Sesiones Facturadas Card -->
+        <a href="{{ route('admin.agenda') }}" style="text-decoration: none; color: inherit; display: block; background: var(--color-celeste); border: 3px solid #000; border-radius: 12px; padding: 2rem; box-shadow: 8px 8px 0px rgba(0,0,0,0.1); transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translate(-2px,-2px)'; this.style.boxShadow='10px 10px 0px rgba(0,0,0,0.1)'" onmouseout="this.style.transform='none'; this.style.boxShadow='8px 8px 0px rgba(0,0,0,0.1)'">
+            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1.5rem;">
+                <div>
+                    <p style="margin: 0; color: #666; font-size: 0.9rem; font-weight: 600; text-transform: uppercase;">Sesiones</p>
+                    <h2 style="margin: 0.5rem 0 0 0; font-size: 2.5rem; font-weight: 900; color: #000; font-family: 'Inter', 'Manrope', monospace; letter-spacing: -2px;">{{ $sesionesMes ?? 0 }}</h2>
+
+                </div>
+                <div style="background: white; width: 50px; height: 50px; border-radius: 50%; border: 2px solid #000; display: flex; align-items: center; justify-content: center;">
+                    <i class="fa-solid fa-chart-line" style="font-size: 1.2rem; color: #000;"></i>
+                </div>
+            </div>
+            <div style="color: #000; font-weight: 700; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 0.5rem;">
+                Ver agenda <i class="fa-solid fa-arrow-right"></i>
+            </div>
+        </a>
+    </div>
+
+    @if(isset($todayAppointments) && $todayAppointments->count() == 0)
+        <!-- Empty State for Today -->
+        <div style="background: white; border: 3px solid #000; border-radius: 12px; padding: 3rem 2rem; text-align: center; margin-bottom: 2rem; box-shadow: 8px 8px 0px rgba(0,0,0,0.1); display: flex; flex-direction: column; align-items: center; justify-content: center;">
+            <div style="background: #e6fffa; border-radius: 50%; width: 80px; height: 80px; display: flex; align-items: center; justify-content: center; margin-bottom: 1.5rem; border: 2px solid #000;">
+                <i class="fa-solid fa-check" style="font-size: 2.5rem; color: #000;"></i>
+            </div>
+            <h3 style="margin: 0 0 0.5rem 0; color: #000; font-size: 1.2rem; font-weight: 700; font-family: 'Syne', sans-serif;">Todo al día</h3>
+            <p style="margin: 0; color: #666; font-size: 0.95rem; font-weight: 500;">No hay turnos programados para hoy.</p>
+        </div>
+    @endif
+</div>
 <div class="flex flex-col gap-8">
     
     <!-- Admin Next Session Widget -->
@@ -1727,4 +1832,46 @@
         }
     });
 </script>
+
+<style>
+    /* Mobile Optimizations */
+    @media (max-width: 768px) {
+        /* Remove table borders on mobile */
+        table {
+            border: none !important;
+            box-shadow: none !important;
+        }
+        
+        /* Container with table - reduce border */
+        div[style*="border: 3px solid #000"][style*="overflow-y: auto"],
+        div[style*="border: 3px solid #000"][style*="overflow-x: auto"] {
+            border: 1px solid #000 !important;
+            box-shadow: 2px 2px 0px #000 !important;
+        }
+        
+        /* Grid containers - add padding */
+        div[style*="display: grid"][style*="grid-template-columns"] {
+            padding-left: 1rem !important;
+            padding-right: 1rem !important;
+            gap: 1rem !important;
+        }
+        
+        /* Neobrutalist cards */
+        .neobrutalist-card {
+            margin-left: 1rem !important;
+            margin-right: 1rem !important;
+        }
+        
+        /* Form containers with colored backgrounds */
+        div[style*="background: #fdfdfd"],
+        div[style*="background: #e0f2f1"],
+        div[style*="background: var(--color-amarillo)"],
+        div[style*="background: var(--color-celeste)"],
+        div[style*="background: white"][style*="border: 3px solid #000"] {
+            margin-left: 0 !important;
+            margin-right: 0 !important;
+        }
+    }
+</style>
+
 @endsection

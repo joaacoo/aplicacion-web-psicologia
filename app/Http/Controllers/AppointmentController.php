@@ -61,6 +61,9 @@ class AppointmentController extends Controller
     {
         $appointment = Appointment::findOrFail($id);
         
+        // Authorization check - only admin can confirm
+        $this->authorize('confirm', $appointment);
+        
         // [FINANCE] Lock price at confirmation to preserve history
         $honorario = 0;
         if ($appointment->user && $appointment->user->paciente) {
@@ -90,6 +93,9 @@ class AppointmentController extends Controller
     public function cancel($id)
     {
         $appointment = Appointment::findOrFail($id);
+        
+        // Authorization check - admin or owner can cancel
+        $this->authorize('cancel', $appointment);
         $appointment->update(['estado' => 'cancelado']);
 
         // Notificar al Paciente por DB

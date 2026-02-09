@@ -3,7 +3,7 @@
 @section('title', 'Nueva Contraseña - Tu Espacio Seguro')
 
 @section('content')
-<div class="flex justify-center items-center" style="min-height: 70vh;">
+<div class="flex justify-center items-center" style="min-height: auto; margin-top: 3rem; margin-bottom: 3rem; padding: 1.5rem;">
     <div class="neobrutalist-card" style="width: 100%; max-width: 500px; background: white;">
         
         <h2 class="text-center" style="margin-bottom: 0.5rem; font-size: 2.2rem;">Nueva Contraseña</h2>

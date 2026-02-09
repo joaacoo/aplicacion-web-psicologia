@@ -1,11 +1,11 @@
 @extends('layouts.app')
 
 @section('title', 'Developer - Admin')
+@section('hide_sidebar', true)
 @section('header_title', 'Panel de Desarrollador')
 @section('content')
 <div style="padding: 2rem; font-family: 'Inter', sans-serif;">
     
-    <!-- Header -->
     <!-- Header -->
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
         <div>
@@ -80,6 +80,10 @@
             </button>
             <button onclick="testAI()" class="dev-action-btn" style="padding: 0.5rem 1rem; border-radius: 8px; border: 1px solid #e5e7eb; background: white; cursor: pointer; font-size: 0.85rem; font-weight: 600; color: #3b82f6;">
                 <i class="fa-solid fa-robot" style="margin-right: 5px;"></i> Testear IA
+            </button>
+            <!-- Report Button (Modified) -->
+            <button type="button" onclick="openReportModal(event)" style="background: transparent; border: none; color: #000; font-size: 0.85rem; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; font-family: 'Manrope', sans-serif; font-weight: 700; padding: 0.5rem 1rem; border: 1px solid #e5e7eb; border-radius: 8px;">
+                <i class="fa-solid fa-circle-exclamation" style="font-size: 0.9rem;"></i> Reportar un problema
             </button>
         </div>
         <script>
@@ -248,7 +252,6 @@
 
     </div>
 
-</div>
 </div>
 
 <script>

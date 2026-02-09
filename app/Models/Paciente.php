@@ -5,9 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+use Illuminate\Database\Eloquent\SoftDeletes;
+
 class Paciente extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $table = 'pacientes';
 
@@ -16,7 +18,6 @@ class Paciente extends Model
         'tipo_paciente',
         'honorario_pactado',
         'precio_personalizado', // New column
-        'notas_vinculo',
         'telefono',
     ];
 

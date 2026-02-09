@@ -4,9 +4,239 @@
 @section('header_title', 'Agenda Mensual')
 
 @section('content')
-<div style="padding: 2rem; max-width: 1400px; margin: 0 auto; margin-bottom: 40px;"> <!-- Added margin-bottom to prevent cut-off -->
-    <!-- Header: Compact -->
+<style>
+    /* Estilo inspirado en Apple Calendar iOS + Clean Design */
+    .calendar-container {
+        background: white;
+        /* Removed border and heavy shadow as requested */
+        border: none;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.05); /* Soft shadow instead */
+        margin-bottom: 2rem;
+    }
 
+    .calendar-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1.5rem;
+        background: white; /* Changed to white for cleaner look */
+        color: #000;
+        border-bottom: 1px solid #eee;
+    }
+
+    .calendar-header h2 {
+        font-size: 1.8rem;
+        margin: 0;
+        text-transform: capitalize;
+        font-family: 'Inter', sans-serif;
+        font-weight: 700;
+    }
+
+    .calendar-header .nav-btn {
+        background: transparent;
+        border: 1px solid #eee;
+        border-radius: 50%;
+        color: #000;
+        font-size: 1.2rem;
+        cursor: pointer;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+    }
+    
+    .calendar-header .nav-btn:hover {
+        background: #f5f5f5;
+    }
+    
+    .calendar-header a.nav-btn {
+        text-decoration: none;
+    }
+
+    .calendar-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 0; /* Seamless grid */
+        background: #fff;
+    }
+
+    .calendar-day-header {
+        background: #fff;
+        color: #666;
+        padding: 1rem 0.5rem;
+        text-align: center;
+        font-weight: 600;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        border-bottom: 1px solid #eee;
+    }
+
+    .calendar-day {
+        background: white;
+        min-height: 140px; /* Taller cells */
+        padding: 0.8rem;
+        text-align: left; /* Less centered, more standard */
+        position: relative;
+        cursor: pointer;
+        transition: background 0.2s;
+        border-right: 1px solid #f0f0f0;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .calendar-day:hover {
+        background: #f9f9f9;
+        z-index: 1;
+    }
+
+    /* Remove right border for last column */
+    .calendar-day:nth-child(7n) {
+        border-right: none;
+    }
+
+    .calendar-day.other-month {
+        background: #fafafa;
+        color: #ccc;
+    }
+
+    .calendar-day.today {
+        background: #fff;
+    }
+    
+    .calendar-day.today .day-number {
+        background: #ff3b30;
+        color: white;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+    }
+
+    .day-number {
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin-bottom: 8px;
+        display: inline-block;
+        width: 32px;
+        height: 32px;
+        line-height: 32px;
+        text-align: center;
+    }
+
+    .event-dots {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+
+    .event-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+    }
+
+    .event-dot.internal { background: var(--color-celeste); }
+    .event-dot.external { background: #ff9500; }
+    .event-dot.blocked { background: #ff3b30; }
+
+    /* ICS Section Mobile Styling */
+    .ics-sync-section {
+        background: #fff;
+        border: 2px solid #000; /* Kept border here as it's separate */
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 4px 4px 0 #000;
+    }
+
+    @media (max-width: 768px) {
+        .calendar-container {
+            border-radius: 0; /* Full bleed on mobile maybe? or small radius */
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-left: 0; 
+            margin-right: 0;
+            width: 100%;
+            border: 1px solid #eee;
+        }
+
+        .calendar-header h2 {
+            font-size: 1.3rem;
+        }
+        
+        /* Enable horizontal scroll on mobile if needed, or stick to stacked? 
+           User liked "que se vean todos los dias bien". 
+           Let's try a responsive grid that doesn't squash too much.
+        */
+        .calendar-grid {
+            /* On mobile, maybe show less days? No, standard is 7 cols or list view. 
+               User liked the grid but "todos los dias bien".
+               Let's ensure minimum width.
+            */
+            grid-template-columns: repeat(7, minmax(40px, 1fr)); 
+        }
+
+        .calendar-day {
+            min-height: 80px;
+            padding: 0.3rem;
+        }
+        
+        .day-number {
+            font-size: 0.9rem;
+            width: 24px;
+            height: 24px;
+            line-height: 24px;
+        }
+        
+        .event-dot {
+            width: 6px;
+            height: 6px;
+        }
+
+        /* Refined Mobile ICS */
+        .ics-sync-section {
+            padding: 1.5rem !important;
+            margin-bottom: 2rem !important;
+        }
+        
+        .ics-row-desktop {
+            flex-direction: column !important;
+            gap: 1.2rem !important;
+            align-items: stretch !important;
+        }
+        
+        .ics-input-group-mobile {
+            flex-direction: column !important;
+            gap: 0.8rem !important;
+        }
+
+        .ics-input-group-mobile input {
+            width: 100% !important;
+            height: 52px !important;
+        }
+
+        .ics-input-group-mobile button {
+            width: 100% !important;
+            height: 52px !important;
+            justify-content: center !important;
+        }
+
+        .ics-row-desktop > div {
+            width: 100% !important;
+        }
+
+        .ics-row-desktop form {
+            min-width: 0 !important;
+        }
+    }
+</style>
+
+<div style="padding: 2rem; width: 98%; margin: 0 auto; margin-bottom: 40px;">
 
     @if(session('status'))
         <div class="alert alert-success" style="margin-bottom: 1.5rem;">
@@ -14,106 +244,42 @@
         </div>
     @endif
 
-    <!-- Calendar Controls with Filters Inside -->
-    <div style="background: white; border: 3px solid #000; border-radius: 12px; box-shadow: 8px 8px 0px rgba(0,0,0,0.1); padding: 1.5rem; margin-bottom: 2rem; overflow: hidden;"> 
-    <!-- Calendar Controls with Filters Inside -->
-    <div style="background: white; border: 3px solid #000; border-radius: 12px; box-shadow: 8px 8px 0px rgba(0,0,0,0.1); padding: 1.5rem; margin-bottom: 2rem; overflow: hidden;"> 
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; gap: 1rem; flex-wrap: wrap;">
-            
-            <!-- Left Side: Title & Navigation -->
-            <div style="display: flex; align-items: center; gap: 1rem;">
-                <h2 style="font-size: 1.8rem; font-weight: 700; font-family: 'Inter', sans-serif; text-transform: capitalize; margin: 0;">
-                    {{ $currentDate->locale('es')->isoFormat('MMMM YYYY') }}
-                </h2>
-                
-                <div style="display: flex; gap: 5px;">
-                    @php
-                        $isJan2026 = $currentDate->year == 2026 && $currentDate->month == 1;
-                        $prevRoute = $isJan2026 ? '#' : route('admin.agenda', ['month' => $currentDate->copy()->subMonth()->month, 'year' => $currentDate->copy()->subMonth()->year]);
-                        $prevStyle = 'padding: 0.5rem; background: white; border: 2px solid #000; box-shadow: 2px 2px 0px #000; cursor: pointer; text-decoration: none; color: #000; display: flex; align-items: center; justify-content: center; width: 38px; height: 38px;';
-                        if ($isJan2026) {
-                            $prevStyle .= ' opacity: 0.5; cursor: not-allowed; pointer-events: none;';
-                        }
-                    @endphp
-                    <a href="{{ $prevRoute }}" class="neobrutalist-btn" style="{{ $prevStyle }}" title="Mes Anterior">
-                        <i class="fa-solid fa-chevron-left"></i>
-                    </a>
-                    <a href="{{ route('admin.agenda', ['month' => $currentDate->copy()->addMonth()->month, 'year' => $currentDate->copy()->addMonth()->year]) }}" class="neobrutalist-btn" style="padding: 0.5rem; background: white; border: 2px solid #000; box-shadow: 2px 2px 0px #000; cursor: pointer; text-decoration: none; color: #000; display: flex; align-items: center; justify-content: center; width: 38px; height: 38px;" title="Mes Siguiente">
-                        <i class="fa-solid fa-chevron-right"></i>
-                    </a>
-                </div>
-            </div>
-            
-            <!-- Right Side: Actions & Filters -->
-            <div style="display: flex; gap: 1rem; align-items: center; justify-content: flex-end; white-space: nowrap; flex-wrap: wrap;">
-                 <a href="{{ route('admin.agenda') }}" class="neobrutalist-btn" style="background: #f0f0f0; border: 2px solid #000; color: #000; font-size: 0.9rem; padding: 0 1.2rem; height: 42px; display: flex; align-items: center; text-decoration: none; font-weight: 700;">
-                    Mes Actual
-                 </a>
+    <div class="calendar-container">
+        <!-- Header estilo Apple -->
+        <div class="calendar-header">
+            @php
+                $prev = $currentDate->copy()->subMonth();
+                $minAllowed = \Carbon\Carbon::create(2026, 1, 1);
+            @endphp
 
-                 <form action="{{ route('admin.calendar.sync') }}" method="POST" style="margin: 0; display: flex; align-items: center; height: 42px;">
-                    @csrf
-                    <button type="submit" class="neobrutalist-btn" style="background: white; border: 2px solid #ea4335; color: #ea4335; font-size: 0.9rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.5rem 1rem; height: 42px; box-shadow: 2px 2px 0px rgba(0,0,0,0.1);">
-                        <i class="fa-brands fa-google"></i> <span class="d-none d-md-inline">Sincronizar</span>
-                    </button>
-                </form>
+            @if($prev->lt($minAllowed))
+                <button class="nav-btn" disabled aria-disabled="true" title="No se puede retroceder más">&lt;</button>
+            @else
+                <a href="{{ route('admin.agenda', ['month' => $prev->month, 'year' => $prev->year]) }}" class="nav-btn">&lt;</a>
+            @endif
 
-                 <form action="{{ route('admin.agenda') }}" method="GET" style="display: flex; gap: 0.5rem; margin: 0; align-items: center; height: 42px;">
-                    <select name="month" class="neobrutalist-input" style="padding: 0.5rem 0.8rem; border: 2px solid #000; height: 42px; min-width: 140px; margin-bottom: 0;" onchange="this.form.submit()">
-                        @foreach(range(1, 12) as $m)
-                            <option value="{{ $m }}" {{ request('month', $currentDate->month) == $m ? 'selected' : '' }}>
-                                {{ \Carbon\Carbon::create(null, $m)->locale('es')->isoFormat('MMMM') }}
-                            </option>
-                        @endforeach
-                    </select>
-                    <select name="year" class="neobrutalist-input" style="padding: 0.5rem 0.8rem; border: 2px solid #000; height: 42px; margin-bottom: 0;" onchange="this.form.submit()">
-                        @for($y = 2025; $y <= 2030; $y++)
-                            <option value="{{ $y }}" {{ request('year', $currentDate->year) == $y ? 'selected' : '' }}>{{ $y }}</option>
-                        @endfor
-                    </select>
-                 </form>
-            </div>
+            <h2>{{ $currentDate->locale('es')->isoFormat('MMMM YYYY') }}</h2>
+
+            @php $next = $currentDate->copy()->addMonth(); @endphp
+            <a href="{{ route('admin.agenda', ['month' => $next->month, 'year' => $next->year]) }}" class="nav-btn">&gt;</a>
         </div>
 
-        <!-- Google Private Link Input (Below header) -->
-        <div style="background: #fff; border: 2px solid #000; border-radius: 12px; padding: 1rem; margin-bottom: 2rem; display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
-             <i class="fa-solid fa-link" style="color: #666;"></i>
-             <span style="font-weight: 700; font-size: 0.9rem;">Link Privado (ICS):</span>
-             
-             <form action="{{ route('admin.calendar.google-url') }}" method="POST" style="margin: 0; display: flex; align-items: center; flex: 1; gap: 0.5rem;">
-                @csrf
-                <div style="position: relative; display: flex; align-items: center; flex: 1;">
-                    <input type="password" name="google_calendar_url" class="neobrutalist-input" 
-                           value="{{ auth()->user()->google_calendar_url }}" 
-                           placeholder="Pegar link privado (ICS)..." 
-                           style="padding: 0.5rem 0.8rem; width: 100%; font-size: 0.9rem; height: 42px; margin: 0; border: 2px solid #000; border-right: none;"
-                           autocomplete="off">
-                    <button type="submit" class="neobrutalist-btn bg-amarillo" style="height: 38px; padding: 0 0.5rem; font-size: 0.8rem; border-left: none; display: flex; align-items: center; gap: 5px;">
-                        <i class="fa-solid fa-save"></i> Guardar
-                    </button>
-                </div>
-            </form>
-            <a href="https://support.google.com/calendar/answer/37648?hl=es#zippy=%2Cobtener-la-direcci%C3%B3n-secreta-en-formato-ical" target="_blank" style="font-size: 0.8rem; color: #555; text-decoration: underline; display: flex; align-items: center; gap: 4px;" title="Ver cómo obtener el link secreto">
-                <i class="fa-regular fa-circle-question"></i> ¿Cómo obtener mi link?
-            </a>
-        </div>
-
-        <!-- Calendar Grid -->
         <div class="calendar-grid">
-            <!-- Days Header -->
-            <div class="calendar-day-header">Lun</div>
-            <div class="calendar-day-header">Mar</div>
-            <div class="calendar-day-header">Mié</div>
-            <div class="calendar-day-header">Jue</div>
-            <div class="calendar-day-header">Vie</div>
-            <div class="calendar-day-header">Sáb</div>
-            <div class="calendar-day-header">Dom</div>
+            <!-- Headers días -->
+            <div class="calendar-day-header">L</div>
+            <div class="calendar-day-header">M</div>
+            <div class="calendar-day-header">X</div>
+            <div class="calendar-day-header">J</div>
+            <div class="calendar-day-header">V</div>
+            <div class="calendar-day-header">S</div>
+            <div class="calendar-day-header">D</div>
 
+            <!-- Días del mes -->
             @php
                 $startOfMonth = $currentDate->copy()->startOfMonth();
                 $endOfMonth = $currentDate->copy()->endOfMonth();
                 $startOfWeek = $startOfMonth->copy()->startOfWeek();
                 $endOfWeek = $endOfMonth->copy()->endOfWeek();
-                
                 $day = $startOfWeek->copy();
             @endphp
 
@@ -122,59 +288,36 @@
                     $isCurrentMonth = $day->month == $currentDate->month;
                     $isToday = $day->isToday();
                     $dayStr = $day->format('Y-m-d');
-                    // Format date for display in details
                     $dayDisplay = $day->locale('es')->isoFormat('dddd D [de] MMMM');
                     
-                    // Filter events for this day
+                    // Re-implement filtering logic
                     $dayAppointments = $appointments->filter(function($app) use ($dayStr) {
                          return \Carbon\Carbon::parse($app->fecha_hora)->format('Y-m-d') == $dayStr;
                     });
                     
-                    $dayExternalEvents = $externalEvents->filter(function($evt) use ($day) {
+                    $dayExternal = $externalEvents->filter(function($evt) use ($day) {
                         return $evt->start_time->startOfDay()->lte($day) && $evt->end_time->endOfDay()->gte($day);
                     });
-                    $dayBlocked = $blockedDays->firstWhere('date', $dayStr);
-                    $esFeriado = $dayBlocked !== null;
-                    $nombreFeriado = $dayBlocked ? $dayBlocked->reason : '';
+                    
+                    $isBlocked = $blockedDays->firstWhere('date', $dayStr);
                 @endphp
 
-                <div class="calendar-day {{ $isCurrentMonth ? '' : 'other-month' }} {{ $isToday ? 'today' : '' }}" onclick="showDayDetails('{{ $dayStr }}', '{{ $dayDisplay }}')" style="{{ $esFeriado ? 'background: #fff5f5;' : '' }}">
+                <div class="calendar-day {{ $isCurrentMonth ? '' : 'other-month' }} {{ $isToday ? 'today' : '' }}" onclick="showDayDetails('{{ $dayStr }}', '{{ $dayDisplay }}')">
                     <div class="day-number">{{ $day->day }}</div>
-                    
-                    @if($esFeriado)
-                        <div style="font-size: 0.65rem; background: #ff4d4d; color: white; padding: 2px 4px; border-radius: 4px; margin-bottom: 4px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                            <i class="fa-solid fa-umbrella-beach"></i> {{ $nombreFeriado }}
-                        </div>
-                    @endif
-                    
-                    <div class="events-container">
-                        <!-- Internal Appointments -->
-                        @foreach($dayAppointments as $app)
-                            <div class="event-pill internal" title="{{ $app->user->nombre }} - {{ \Carbon\Carbon::parse($app->fecha_hora)->format('H:i') }}">
-                                <span class="time">{{ \Carbon\Carbon::parse($app->fecha_hora)->format('H:i') }}</span>
-                                <span class="title">{{ Str::limit($app->user->nombre, 10) }}</span>
-                            </div>
-                        @endforeach
-
-                        <!-- Google Calendar Events -->
-                        @foreach($dayExternalEvents as $evt)
-                            <div class="event-pill external" title="{{ $evt->summary }}">
-                                <span class="time"><i class="fa-brands fa-google" style="font-size: 0.6rem;"></i></span>
-                                <span class="title">{{ Str::limit($evt->summary ?? 'Evento', 12) }}</span>
-                            </div>
-                        @endforeach
+                    <div class="event-dots">
+                        @if($isBlocked)<span class="event-dot blocked"></span>@endif
+                        @if($dayAppointments->count() > 0)<span class="event-dot internal"></span>@endif
+                        @if($dayExternal->count() > 0)<span class="event-dot external"></span>@endif
                     </div>
                 </div>
 
-                @php
-                    $day->addDay();
-                @endphp
+                @php $day->addDay(); @endphp
             @endwhile
         </div>
     </div>
 
-    <!-- Day Details Section (Hidden by default, shown via JS) -->
-    <div id="day-details-section" style="display: none; background: white; border: 3px solid #000; border-radius: 12px; box-shadow: 8px 8px 0px rgba(0,0,0,0.1); padding: 2rem; margin-bottom: 2rem;">
+    <!-- Day Details Section (Moved up) -->
+    <div id="day-details-section" style="display: none; background: white; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); padding: 2.5rem; margin-bottom: 2.5rem; border: 1px solid #eee;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
             <h2 id="details-title" style="font-size: 1.5rem; font-weight: 700; font-family: 'Inter', sans-serif; margin: 0; color: #000;"></h2>
             <button onclick="closeDayDetails()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #999;">
@@ -203,107 +346,73 @@
         </div>
     </div>
 
-    <!-- Google Calendar Sync Removed -->
+    <!-- ICS Sync Section (Refined) -->
+    <div class="ics-sync-section" style="margin-top: 1rem; background: #fff; border-radius: 16px; padding: 2.5rem; box-shadow: 0 10px 30px rgba(0,0,0,0.08); margin-bottom: 3rem; width: 100%; box-sizing: border-box;">
+        <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem; justify-content: center;">
+            <div style="background: #f8f9fa; width: 50px; height: 50px; border-radius: 12px; display: flex; align-items: center; justify-content: center; border: 1.5px solid #eee;">
+                <i class="fa-solid fa-link" style="color: #6366f1; font-size: 1.4rem;"></i>
+            </div>
+            <div style="text-align: left;">
+                <h3 style="margin: 0; font-size: 1.3rem; font-weight: 800; font-family: 'Syne', sans-serif; color: #1a1a1a;">Sincronización Externa</h3>
+                <p style="margin: 0; font-size: 0.9rem; color: #666; font-family: 'Manrope', sans-serif;">Conectá tu Google Calendar mediante el link privado ICS.</p>
+            </div>
+        </div>
+
+        <div class="ics-row-desktop" style="display: flex; gap: 2rem; align-items: flex-end; justify-content: center; max-width: 1000px; margin: 0 auto; width: 100%;">
+            <!-- Form Group -->
+            <form action="{{ route('admin.calendar.google-url') }}" method="POST" style="flex: 2; display: flex; flex-direction: column; gap: 0.8rem; width: 100%;">
+                @csrf
+                <label style="font-size: 0.85rem; font-weight: 700; text-transform: uppercase; color: #888; margin-left: 4px; letter-spacing: 0.5px;">Link Privado (ICS)</label>
+                <div class="ics-input-group-mobile" style="display: flex; gap: 0.75rem; width: 100%;">
+                    <input type="password" name="google_calendar_url" class="neobrutalist-input" value="{{ auth()->user()->google_calendar_url ?? '' }}" 
+                           placeholder="Pegar link privado (ICS)..." 
+                           style="flex: 1; margin-bottom: 0; height: 56px; border-radius: 14px; font-size: 1rem; box-shadow: none; border: 2px solid #eee; background: #fcfcfc; width: 100%;"
+                           autocomplete="off">
+                    <button type="submit" class="neobrutalist-btn bg-amarillo" style="height: 56px; padding: 0 2rem; border-radius: 14px; display: flex; align-items: center; gap: 10px; box-shadow: 4px 4px 0px #000; flex-shrink: 0;">
+                        <i class="fa-solid fa-save"></i>
+                        <span class="btn-text">Guardar</span>
+                    </button>
+                </div>
+            </form>
+
+            <!-- Sync Button -->
+            <div style="flex: 1; display: flex; flex-direction: column; gap: 0.8rem; width: 100%;">
+                <form action="{{ route('admin.calendar.sync') }}" method="POST" style="margin: 0; width: 100%;">
+                    @csrf
+                    <button type="submit" class="neobrutalist-btn" style="width: 100%; height: 56px; background: white; border: 2px solid #ea4335; color: #ea4335; border-radius: 14px; display: flex; align-items: center; justify-content: center; gap: 0.8rem; box-shadow: 4px 4px 0px #000;">
+                        <i class="fa-brands fa-google" style="font-size: 1.3rem;"></i>
+                        <span style="font-weight: 700;">Sincronizar ahora</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div style="margin-top: 2.5rem; padding-top: 1.5rem; border-top: 1px solid #f0f0f0; text-align: center;">
+            <a href="https://support.google.com/calendar/answer/37648?hl=es#zippy=%2Cobtener-la-direcci%C3%B3n-secreta-en-formato-ical" target="_blank" 
+               class="google-help-link"
+               style="font-size: 0.9rem; color: #666; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; font-weight: 600; padding: 0.8rem 1.2rem; border-radius: 12px; transition: all 0.2s; background: #f8f9fa; border: 1.5px solid #eee;"
+               onmouseover="this.style.background='#eee'; this.style.color='#000'; this.style.borderColor='#ccc'"
+               onmouseout="this.style.background='#f8f9fa'; this.style.color='#666'; this.style.borderColor='#eee'">
+                <i class="fa-regular fa-circle-question" style="font-size: 1.1rem;"></i>
+                <span>¿Cómo obtener mi link privado de Google Calendar?</span>
+            </a>
+        </div>
+        <style>
+            @media (max-width: 600px) {
+                .google-help-link {
+                    flex-direction: column;
+                    text-align: center;
+                    padding: 1rem !important;
+                    width: 100%;
+                    box-sizing: border-box;
+                }
+                .google-help-link span {
+                    white-space: normal;
+                }
+            }
+        </style>
+    </div>
 </div>
-
-<style>
-    .calendar-grid {
-        display: grid;
-        grid-template-columns: repeat(7, 1fr);
-        gap: 1px; /* Borders via gap */
-        background: #e0e0e0;
-        border: 2px solid #000;
-        border-radius: 8px;
-        overflow: hidden;
-    }
-    
-    .calendar-day-header {
-        background: #f8f8f8;
-        padding: 10px;
-        text-align: center;
-        font-weight: 700;
-        font-family: 'Manrope', sans-serif;
-        text-transform: uppercase;
-        font-size: 0.8rem;
-        letter-spacing: 1px;
-    }
-
-    .calendar-day {
-        background: white;
-        min-height: 120px;
-        padding: 8px;
-        position: relative;
-        transition: background 0.2s;
-        cursor: pointer;
-    }
-
-    .calendar-day:hover {
-        background: #fafafa;
-    }
-
-    .calendar-day.other-month {
-        background: #f4f4f4;
-        color: #aaa;
-    }
-
-    .calendar-day.today {
-        background: #fffbeb; /* Light yellow for today */
-    }
-    
-    .calendar-day.today .day-number {
-        background: var(--color-amarillo);
-        color: #000;
-        width: 24px;
-        height: 24px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: 800;
-    }
-
-    .day-number {
-        font-weight: 600;
-        font-size: 0.9rem;
-        margin-bottom: 5px;
-        color: #333;
-    }
-
-    .events-container {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-    }
-
-    .event-pill {
-        padding: 2px 6px;
-        border-radius: 4px;
-        font-size: 0.7rem;
-        display: flex;
-        align-items: center;
-        gap: 4px;
-        white-space: nowrap;
-        overflow: hidden;
-    }
-
-    .event-pill.internal {
-        background: var(--color-celeste);
-        border: 1px solid rgba(0,0,0,0.1);
-        color: #000;
-        font-weight: 600;
-    }
-
-    .event-pill.external {
-        background: #fff0f0;
-        border: 1px solid #ea4335;
-        color: #ea4335;
-    }
-    
-    .event-pill .time {
-        opacity: 0.7;
-        font-size: 0.65rem;
-    }
-</style>
 
 <script>
     // JS Data objects for appointments and events to populate details without AJAX for speed
@@ -379,12 +488,22 @@
             noExternal.style.display = 'block';
         }
         
-        // Scroll to details
-        document.getElementById('day-details-section').scrollIntoView({ behavior: 'smooth' });
+        // Scroll to details with offset for header
+        const element = document.getElementById('day-details-section');
+        const headerOffset = 100;
+        const elementPosition = element.getBoundingClientRect().top;
+        const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+
+        window.scrollTo({
+            top: offsetPosition,
+            behavior: "smooth"
+        });
     }
 
     function closeDayDetails() {
         document.getElementById('day-details-section').style.display = 'none';
+        // Scroll back to absolute top as requested
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 </script>
 @endsection

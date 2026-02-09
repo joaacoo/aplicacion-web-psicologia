@@ -4,12 +4,26 @@
 @section('header_title', 'Gestión de Pacientes')
 
 @section('content')
-<div class="flex flex-col gap-8">
+<link rel="icon" type="image/jpeg" href="{{ asset('img/069b6f01-e0b6-4089-9e31-e383edf4ff62.jpg') }}">
+<div class="flex flex-col gap-8 admin-content-padding">
+    <style>
+        @media (max-width: 768px) {
+            .admin-content-padding {
+                padding-left: 15px !important;
+                padding-right: 15px !important;
+                box-sizing: border-box;
+            }
+            .patients-table {
+                border: none !important;
+                box-shadow: none !important;
+            }
+        }
+    </style>
     <!-- Listado de Pacientes -->
     <div class="neobrutalist-card" style="background: white; margin-bottom: 4rem;">
         <h3><i class="fa-solid fa-users"></i> Listado de Pacientes Registrados</h3>
         <div style="overflow-x: auto;">
-            <table style="width: 100%; border-collapse: collapse; margin-top: 1rem; background: white; border: 3px solid #000; box-shadow: 6px 6px 0px #000;">
+            <table class="patients-table" style="width: 100%; border-collapse: collapse; margin-top: 1rem; background: white; border: 3px solid #000; box-shadow: 6px 6px 0px #000;">
                 <thead>
                     <tr style="background: #000; color: #fff; border-bottom: 3px solid #fff;">
                         <th style="padding: 0.8rem; text-align: left;">Nombre</th>
@@ -34,8 +48,7 @@
                             <td data-label="Turnos" style="padding: 0.8rem; text-align: center;">{{ $patient->turnos_count ?? $patient->turnos()->count() }}</td>
                             <td style="padding: 0.8rem; text-align: right;">
                                 <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
-                            <button class="neobrutalist-btn no-select bg-amarillo" style="padding: 0.2rem 0.6rem; font-size: 0.7rem;" 
-                            <button class="neobrutalist-btn no-select bg-amarillo" style="padding: 0.2rem 0.6rem; font-size: 0.7rem;" 
+                            <button class="neobrutalist-btn no-select bg-amarillo" style="padding: 0.2rem 0.6rem; font-size: 0.7rem;"
                                     onclick="openManageModal('{{ $patient->id }}', '{{ $patient->nombre }}', '{{ $patient->email }}', '{{ $patient->telefono ?? 'No registrado' }}', '{{ $patient->tipo_paciente }}', '{{ $patient->meet_link }}', '{{ $patient->paciente->precio_personalizado ?? 0 }}')">
                                         Gestionar
                                     </button>

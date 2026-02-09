@@ -4,6 +4,24 @@
 @section('header_title', 'Biblioteca de Archivos')
 
 @section('content')
+<style>
+    @media (max-width: 768px) {
+        .admin-library-grid {
+            grid-template-columns: 1fr !important;
+            gap: 1.5rem !important;
+        }
+        /* Better mobile spacing */
+        .admin-library-grid > div {
+            padding: 1rem !important;
+        }
+        table {
+            font-size: 0.8rem !important;
+        }
+        th, td {
+            padding: 0.4rem !important;
+        }
+    }
+</style>
 <div class="flex flex-col gap-8">
     <!-- Gestión de Materiales (Biblioteca) -->
     <div class="neobrutalist-card" style="background: white; margin-bottom: 2rem;">
@@ -11,7 +29,7 @@
             <h3 style="margin: 0; font-size: 1.5rem;"><i class="fa-solid fa-folder-open"></i> Biblioteca de Materiales</h3>
         </div>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; flex-wrap: wrap;">
+        <div class="admin-library-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; flex-wrap: wrap;">
             <!-- Form Upload -->
             <div style="background: #f9f9f9; padding: 1.5rem; border: 3px solid #000; border-radius: 10px;">
                 <h4 style="margin-top:0;">Cargar nuevo material</h4>
@@ -39,7 +57,7 @@
             </div>
 
             <!-- List Materials -->
-            <div style="overflow-y: auto; max-height: 400px;">
+            <div style="overflow-y: auto; overflow-x: auto; max-height: 400px;">
                 <h4 style="margin-top:0;">Archivos subidos</h4>
                 <table style="width: 100%; border-collapse: collapse; background: white; border: 2px solid #000;">
                     <thead>

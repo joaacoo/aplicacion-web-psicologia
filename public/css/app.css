@@ -236,3 +236,73 @@ h3.special-font {
     text-align: center;
     border-top: var(--border-thick);
 }
+
+/* ========================================
+   MOBILE OPTIMIZATIONS
+   ======================================== */
+
+@media (max-width: 768px) {
+
+    /* Remove table borders on mobile */
+    table {
+        border: none !important;
+        box-shadow: none !important;
+    }
+
+    /* Add padding to main containers to prevent edge touching */
+    .workspace-container,
+    .admin-content-wrapper {
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+    }
+
+    /* Add margin to neobrutalist cards */
+    .neobrutalist-card {
+        margin-left: 0.5rem !important;
+        margin-right: 0.5rem !important;
+    }
+
+    /* Grid containers - add padding */
+    div[style*="display: grid"] {
+        padding-left: 0.5rem !important;
+        padding-right: 0.5rem !important;
+    }
+
+    /* Specific grid items - prevent edge touching */
+    div[style*="grid-template-columns"]>div {
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+    }
+
+    /* Tables inside overflow containers */
+    div[style*="overflow-x: auto"] {
+        margin-left: 0.5rem !important;
+        margin-right: 0.5rem !important;
+    }
+
+    /* Ensure stats grid has proper spacing */
+    .stats-grid {
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+    }
+
+    /* Form containers and cards with specific backgrounds */
+    div[style*="background: #fdfdfd"],
+    div[style*="background: #e0f2f1"],
+    div[style*="background: var(--color-amarillo)"],
+    div[style*="background: var(--color-celeste)"] {
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+    }
+
+    /* Scroll panels */
+    .scroll-panel {
+        border: 1px solid #000 !important;
+    }
+
+    /* Welcome text adjustments */
+    .welcome-text {
+        padding-left: 0.5rem !important;
+        padding-right: 0.5rem !important;
+    }
+}

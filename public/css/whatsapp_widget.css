@@ -1,175 +1,35 @@
 /* WhatsApp Widget Styles */
-#whatsapp-widget-container {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    z-index: 9999;
-    font-family: 'Outfit', sans-serif;
-}
-
-#whatsapp-float-btn {
-    width: 60px;
-    height: 60px;
-    background-color: #25D366;
-    color: white;
-    border-radius: 50%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: 30px;
-    border: 3px solid #2D2D2D;
-    box-shadow: 3px 3px 0 #2D2D2D;
-    z-index: 1000;
-    transition: transform 0.3s, opacity 0.3s, visibility 0.3s;
-    opacity: 1;
-    visibility: visible;
-    cursor: pointer;
-}
-
-#whatsapp-float-btn:hover {
-    transform: scale(1.05);
-}
-
-#whatsapp-float-btn i {
-    color: white;
-    font-size: 30px;
-}
-
 #whatsapp-chat-window {
-    position: absolute;
-    bottom: 90px;
-    right: 0;
-    width: 350px;
-    height: 450px;
-    background: white;
-    border-radius: 20px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
-    overflow: hidden;
-    display: none;
-    flex-direction: column;
-    opacity: 0;
-    visibility: hidden;
-    /* Added for transition */
-    transform: translateY(20px);
-    transition: opacity 0.3s ease, transform 0.3s ease, visibility 0.3s;
-    border: 3px solid #2D2D2D;
-    /* Consistent border */
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    z-index: 9999;
 }
 
-#whatsapp-chat-window.active {
-    opacity: 1;
-    visibility: visible;
-    transform: translateY(0);
-}
+/* Mobile Styles */
+@media (max-width: 768px) {
+    #whatsapp-chat-window {
+        width: 280px !important;
+        /* Smaller width */
+        min-height: 300px !important;
+        /* Smaller height */
+        right: 15px !important;
+        bottom: 80px !important;
+        /* Higher to avoid footer/navbar overlap */
+        max-width: 85vw !important;
+        transform-origin: bottom right;
+    }
 
-.wa-header {
-    background: #075E54;
-    padding: 15px;
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    color: white;
-}
+    #whatsapp-chat-window h4 {
+        font-size: 0.95rem !important;
+    }
 
-.wa-profile-pic {
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 2px solid white;
-}
+    #whatsapp-chat-window .neobrutalist-btn {
+        font-size: 0.9rem !important;
+        padding: 0.75rem 1rem !important;
+    }
 
-.wa-info h4 {
-    margin: 0;
-    font-size: 1rem;
-    font-weight: 700;
-}
-
-.wa-info p {
-    margin: 0;
-    font-size: 0.75rem;
-    opacity: 0.9;
-}
-
-.wa-body {
-    padding: 20px;
-    background: #e5ddd5;
-    background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png');
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    flex: 1;
-    /* Fill remaining space */
-    overflow-y: auto;
-}
-
-.wa-message-bubble {
-    background: white;
-    padding: 10px 15px;
-    border-radius: 0 15px 15px 15px;
-    font-size: 0.9rem;
-    color: #111;
-    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);
-    width: fit-content;
-    max-width: 90%;
-}
-
-.wa-quick-replies {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    margin-top: 10px;
-}
-
-.wa-chip {
-    background: white;
-    border: 1px solid #128C7E;
-    color: #128C7E;
-    padding: 8px 12px;
-    border-radius: 20px;
-    font-size: 0.85rem;
-    cursor: pointer;
-    text-align: center;
-    transition: all 0.2s;
-    text-decoration: none;
-    display: block;
-}
-
-.wa-chip:hover {
-    background: #128C7E;
-    color: white;
-}
-
-.wa-footer {
-    padding: 15px;
-    background: white;
-    border-top: 1px solid #eee;
-    display: flex;
-    justify-content: center;
-}
-
-.wa-btn-main {
-    background: #25D366;
-    color: white;
-    text-decoration: none;
-    padding: 10px 20px;
-    border-radius: 30px;
-    font-weight: bold;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-    transition: transform 0.2s;
-}
-
-.wa-btn-main:hover {
-    transform: scale(1.05);
-}
-
-/* Update Grid */
-.days-grid {
-    display: grid !important;
-    grid-template-columns: repeat(4, 1fr) !important;
-    /* Changed from default 3 (implied) to 4 */
-    gap: 10px;
+    #whatsapp-chat-window img {
+        width: 100% !important;
+        height: 100% !important;
+        object-fit: cover;
+    }
 }

@@ -138,10 +138,11 @@
         }
         
         if (nextBtn) {
-             // Optional: Hide next button if on last page or empty
-             if (currentPage >= totalPages || totalRows === 0) {
-                 nextBtn.disabled = true; // Or hide it too if preferred
+             // [MODIFIED] Hide next button if on last page or if there's only 1 page
+             if (currentPage >= totalPages || totalPages === 1) {
+                 nextBtn.style.display = 'none'; // Using display none to completely hide it
              } else {
+                 nextBtn.style.display = 'inline-block';
                  nextBtn.disabled = false;
              }
         }
