@@ -31,73 +31,141 @@
     </div>
     
     <!-- Finance Stats Grid -->
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 2rem; margin-bottom: 3rem;">
-        
-        <!-- Ingresos del Mes Card -->
-        <a href="{{ route('admin.finanzas') }}" style="text-decoration: none; color: inherit; display: block; background: var(--color-verde); border: 3px solid rgb(0, 0, 0); border-radius: 12px; padding: 2rem; box-shadow: rgba(0, 0, 0, 0.1) 8px 8px 0px; transition: transform 0.2s ease 0s, box-shadow 0.2s ease 0s; transform: none;" onmouseover="this.style.transform='translate(-2px,-2px)'; this.style.boxShadow='10px 10px 0px rgba(0,0,0,0.1)'" onmouseout="this.style.transform='none'; this.style.boxShadow='8px 8px 0px rgba(0,0,0,0.1)'">
-            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1.5rem;">
+    <!-- Finance Stats Grid -->
+    <div class="stats-grid">
+            
+        <a href="{{ route('admin.finanzas') }}" class="stat-card card-verde">
+            <div class="card-header">
                 <div>
-                    <p style="margin: 0; color: #666; font-size: 0.9rem; font-weight: 600; text-transform: uppercase;">Ingresos Mes</p>
-                    <h2 style="margin: 0.5rem 0 0 0; font-size: 2rem; font-weight: 900; color: #000; font-family: 'Inter', 'Manrope', monospace; letter-spacing: -1px;">${{ number_format($ingresosMes ?? 0, 0, ',', '.') }}</h2>
+                    <p class="card-label">Ingresos Mes</p>
+                    <h2 class="card-value">{{ $monthlyIncome ?? 0 }}</h2>
                 </div>
-                <div style="background: white; width: 50px; height: 50px; border-radius: 50%; border: 2px solid #000; display: flex; align-items: center; justify-content: center;">
-                    <i class="fa-solid fa-money-bill-wave" style="font-size: 1.2rem; color: #000;"></i>
+                <div class="card-icon-circle">
+                    <i class="fa-solid fa-money-bill-wave"></i>
                 </div>
             </div>
-            <div style="color: #000; font-weight: 700; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 0.5rem;">
+            <div class="card-footer">
                 Ver finanzas <i class="fa-solid fa-arrow-right"></i>
             </div>
         </a>
 
-        <!-- Pagos Pendientes Card -->
-        <a href="{{ route('admin.finanzas') }}" style="text-decoration: none; color: inherit; display: block; background: var(--color-rosa); border: 3px solid rgb(0, 0, 0); border-radius: 12px; padding: 2rem; box-shadow: rgba(0, 0, 0, 0.1) 10px 10px 0px; transition: transform 0.2s ease 0s, box-shadow 0.2s ease 0s; transform: translate(-2px, -2px);" onmouseover="this.style.transform='translate(-2px,-2px)'; this.style.boxShadow='10px 10px 0px rgba(0,0,0,0.1)'" onmouseout="this.style.transform='none'; this.style.boxShadow='8px 8px 0px rgba(0,0,0,0.1)'">
-            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1.5rem;">
+        <a href="{{ route('admin.finanzas') }}#honorarios" class="stat-card card-rosa">
+            <div class="card-header">
                 <div>
-                    <p style="margin: 0; color: #666; font-size: 0.9rem; font-weight: 600; text-transform: uppercase;">Por Cobrar</p>
-                    <h2 style="margin: 0.5rem 0 0 0; font-size: 2rem; font-weight: 900; color: #000; font-family: 'Inter', 'Manrope', monospace; letter-spacing: -1px;">${{ number_format($porCobrar ?? 0, 0, ',', '.') }}</h2>
+                    <p class="card-label">Por Cobrar</p>
+                    <h2 class="card-value">{{ $pendingIncome }}</h2>
                 </div>
-                <div style="background: white; width: 50px; height: 50px; border-radius: 50%; border: 2px solid #000; display: flex; align-items: center; justify-content: center;">
-                    <i class="fa-solid fa-hand-holding-dollar" style="font-size: 1.4rem; color: #000;"></i>
+                <div class="card-icon-circle">
+                    <i class="fa-solid fa-hand-holding-dollar"></i>
                 </div>
             </div>
-            <div style="color: #000; font-weight: 700; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 0.5rem;">
+            <div class="card-footer">
                 Gestionar cobros <i class="fa-solid fa-arrow-right"></i>
             </div>
         </a>
 
-        <!-- Pacientes Nuevos Card -->
-        <a href="{{ route('admin.pacientes') }}" style="text-decoration: none; color: inherit; display: block; background: var(--color-amarillo); border: 3px solid rgb(0, 0, 0); border-radius: 12px; padding: 2rem; box-shadow: rgba(0, 0, 0, 0.1) 8px 8px 0px; transition: transform 0.2s ease 0s, box-shadow 0.2s ease 0s; transform: none;" onmouseover="this.style.transform='translate(-2px,-2px)'; this.style.boxShadow='10px 10px 0px rgba(0,0,0,0.1)'" onmouseout="this.style.transform='none'; this.style.boxShadow='8px 8px 0px rgba(0,0,0,0.1)'">
-            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1.5rem;">
+        <a href="{{ route('admin.pacientes') }}" class="stat-card card-amarillo">
+            <div class="card-header">
                 <div>
-                    <p style="margin: 0; color: #666; font-size: 0.9rem; font-weight: 600; text-transform: uppercase;">Pacientes Nuevos</p>
-                    <h2 style="margin: 0.5rem 0 0 0; font-size: 2.5rem; font-weight: 900; color: #000; font-family: 'Inter', 'Manrope', monospace; letter-spacing: -2px;">{{ $nuevosPacientes ?? 0 }}</h2>
+                    <p class="card-label">Pacientes Nuevos</p>
+                    <h2 class="card-value">{{ $newPatientsCount ?? 0 }}</h2>
                 </div>
-                <div style="background: white; width: 50px; height: 50px; border-radius: 50%; border: 2px solid #000; display: flex; align-items: center; justify-content: center;">
-                    <i class="fa-solid fa-user-plus" style="font-size: 1.2rem; color: #000;"></i>
+                <div class="card-icon-circle">
+                    <i class="fa-solid fa-user-plus"></i>
                 </div>
             </div>
-            <div style="color: #000; font-weight: 700; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 0.5rem;">
+            <div class="card-footer">
                 Ver pacientes <i class="fa-solid fa-arrow-right"></i>
             </div>
         </a>
 
-        <!-- Sesiones Facturadas Card -->
-        <a href="{{ route('admin.agenda') }}" style="text-decoration: none; color: inherit; display: block; background: var(--color-celeste); border: 3px solid #000; border-radius: 12px; padding: 2rem; box-shadow: 8px 8px 0px rgba(0,0,0,0.1); transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translate(-2px,-2px)'; this.style.boxShadow='10px 10px 0px rgba(0,0,0,0.1)'" onmouseout="this.style.transform='none'; this.style.boxShadow='8px 8px 0px rgba(0,0,0,0.1)'">
-            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1.5rem;">
+        <a href="{{ route('admin.agenda') }}" class="stat-card card-celeste">
+            <div class="card-header">
                 <div>
-                    <p style="margin: 0; color: #666; font-size: 0.9rem; font-weight: 600; text-transform: uppercase;">Sesiones</p>
-                    <h2 style="margin: 0.5rem 0 0 0; font-size: 2.5rem; font-weight: 900; color: #000; font-family: 'Inter', 'Manrope', monospace; letter-spacing: -2px;">{{ $sesionesMes ?? 0 }}</h2>
-
+                    <p class="card-label">Sesiones</p>
+                    <h2 class="card-value">{{ $sessionsCount ?? 0 }}</h2>
                 </div>
-                <div style="background: white; width: 50px; height: 50px; border-radius: 50%; border: 2px solid #000; display: flex; align-items: center; justify-content: center;">
-                    <i class="fa-solid fa-chart-line" style="font-size: 1.2rem; color: #000;"></i>
+                <div class="card-icon-circle">
+                    <i class="fa-solid fa-chart-line"></i>
                 </div>
             </div>
-            <div style="color: #000; font-weight: 700; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 0.5rem;">
+            <div class="card-footer">
                 Ver agenda <i class="fa-solid fa-arrow-right"></i>
             </div>
         </a>
     </div>
+
+    <style>
+        .stats-grid {
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); 
+            gap: 2rem; 
+            margin-bottom: 3rem;
+        }
+        .stat-card {
+            text-decoration: none; 
+            color: inherit; 
+            display: block; 
+            border: 3px solid rgb(0, 0, 0); 
+            border-radius: 12px; 
+            padding: 2rem; 
+            box-shadow: rgba(0, 0, 0, 0.1) 8px 8px 0px; 
+            transition: transform 0.2s ease 0s, box-shadow 0.2s ease 0s; 
+            transform: none;
+        }
+        .stat-card:hover {
+            transform: translate(-2px,-2px);
+            box-shadow: 10px 10px 0px rgba(0,0,0,0.1);
+        }
+        .card-verde { background: var(--color-verde); }
+        .card-rosa { background: var(--color-rosa); }
+        .card-amarillo { background: var(--color-amarillo); }
+        .card-celeste { background: var(--color-celeste); }
+
+        .card-header {
+            display: flex; 
+            justify-content: space-between; 
+            align-items: start; 
+            margin-bottom: 1.5rem;
+        }
+        .card-label {
+            margin: 0; 
+            color: #666; 
+            font-size: 0.9rem; 
+            font-weight: 600; 
+            text-transform: uppercase;
+        }
+        .card-value {
+            margin: 0.5rem 0 0 0; 
+            font-size: 2rem; 
+            font-weight: 900; 
+            color: #000; 
+            font-family: 'Inter', 'Manrope', monospace; 
+            letter-spacing: -1px;
+        }
+        .card-icon-circle {
+            background: white; 
+            width: 50px; 
+            height: 50px; 
+            border-radius: 50%; 
+            border: 2px solid #000; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+        }
+        .card-icon-circle i {
+            font-size: 1.2rem; 
+            color: #000;
+        }
+        .card-footer {
+            color: #000; 
+            font-weight: 700; 
+            font-size: 0.9rem; 
+            display: inline-flex; 
+            align-items: center; 
+            gap: 0.5rem;
+        }
+    </style>
 
     @if(isset($todayAppointments) && $todayAppointments->count() == 0)
         <!-- Empty State for Today -->

@@ -789,16 +789,76 @@
             @endauth
 
             <main class="container mt-16" style="flex: 1; min-height: auto; padding-top: @auth 90px; @else 3rem; @endauth padding-bottom: 3rem; width: 100%; max-width: 1400px; margin: 0 auto;">
+                    {{-- Flash Messages (Floating Toast Style) --}}
                     @if(session('success'))
-                    <div class="alert alert-success">
-                            {{ session('success') }}
+                        <div id="flash-message-success" class="flash-toast" style="position: fixed; top: 100px; right: 20px; z-index: 99999; background: #10b981; color: white; padding: 1rem 1.5rem; border-radius: 12px; border: 3px solid #000; box-shadow: 6px 6px 0px #000; font-weight: 700; font-family: 'Manrope', sans-serif; font-size: 0.95rem; max-width: 400px; animation: slideInRight 0.3s ease-out;">
+                            <div style="display: flex; align-items: center; gap: 0.8rem;">
+                                <i class="fa-solid fa-circle-check" style="font-size: 1.3rem;"></i>
+                                <span>{{ session('success') }}</span>
+                            </div>
                         </div>
+                        <script>
+                            setTimeout(() => {
+                                const toast = document.getElementById('flash-message-success');
+                                if (toast) {
+                                    toast.style.animation = 'slideOutRight 0.3s ease-in';
+                                    setTimeout(() => toast.remove(), 300);
+                                }
+                            }, 10000); // Auto-dismiss after 10 seconds
+                        </script>
                     @endif
+                    
                     @if(session('error'))
-                    <div class="alert alert-error">
-                            {{ session('error') }}
+                        <div id="flash-message-error" class="flash-toast" style="position: fixed; top: 100px; right: 20px; z-index: 99999; background: #ef4444; color: white; padding: 1rem 1.5rem; border-radius: 12px; border: 3px solid #000; box-shadow: 6px 6px 0px #000; font-weight: 700; font-family: 'Manrope', sans-serif; font-size: 0.95rem; max-width: 400px; animation: slideInRight 0.3s ease-out;">
+                            <div style="display: flex; align-items: center; gap: 0.8rem;">
+                                <i class="fa-solid fa-circle-xmark" style="font-size: 1.3rem;"></i>
+                                <span>{{ session('error') }}</span>
+                            </div>
                         </div>
+                        <script>
+                            setTimeout(() => {
+                                const toast = document.getElementById('flash-message-error');
+                                if (toast) {
+                                    toast.style.animation = 'slideOutRight 0.3s ease-in';
+                                    setTimeout(() => toast.remove(), 300);
+                                }
+                            }, 10000); // Auto-dismiss after 10 seconds
+                        </script>
                     @endif
+
+                    <style>
+                        @keyframes slideInRight {
+                            from {
+                                transform: translateX(400px);
+                                opacity: 0;
+                            }
+                            to {
+                                transform: translateX(0);
+                                opacity: 1;
+                            }
+                        }
+                        
+                        @keyframes slideOutRight {
+                            from {
+                                transform: translateX(0);
+                                opacity: 1;
+                            }
+                            to {
+                                transform: translateX(400px);
+                                opacity: 0;
+                            }
+                        }
+                        
+                        /* Mobile adjustments */
+                        @media (max-width: 768px) {
+                            .flash-toast {
+                                right: 10px !important;
+                                left: 10px !important;
+                                max-width: calc(100% - 20px) !important;
+                                top: 80px !important;
+                            }
+                        }
+                    </style>
 
                     @yield('content')
                 </main>
@@ -987,9 +1047,13 @@
                                         color: #000000 !important;
                                         border: 3px solid #000 !important;
                                         border-radius: 10px !important;
-                                        padding: 0 12px !important;
                                         font-weight: 700 !important;
                                         opacity: 1 !important;
+                                        
+                                        /* INCREASED HEIGHT FOR MOBILE */
+                                        padding: 16px 12px !important;
+                                        min-height: 56px !important;
+                                        height: auto !important;
                                         
                                         /* Custom Arrow SVG */
                                         background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e") !important;

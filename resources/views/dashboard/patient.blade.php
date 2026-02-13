@@ -30,6 +30,16 @@
         border: 3px solid #000 !important;
         box-shadow: 3px 3px 0px #000 !important;
     }
+    
+    .disabled-btn {
+        opacity: 0.5 !important;
+        pointer-events: none !important;
+        cursor: not-allowed !important;
+        background: #e5e7eb !important;
+        box-shadow: none !important;
+        border-color: #9ca3af !important;
+        color: #9ca3af !important;
+    }
 
     /* Mobile Bottom Navigation */
     @media (max-width: 1024px) {
@@ -166,6 +176,9 @@
         </a>
         <a href="#materiales" onclick="togglePatientMenu()" class="menu-chip" style="background: var(--color-amarillo);">
             <i class="fa-solid fa-folder-open"></i> <span>Mi Biblioteca</span>
+        </a>
+        <a href="#documentos" onclick="togglePatientMenu()" class="menu-chip" style="background: #bae6fd;">
+            <i class="fa-solid fa-file-contract"></i> <span>Mis Documentos</span>
         </a>
     </nav>
 </div>
@@ -350,7 +363,18 @@ function togglePatientMenu() {
             align-items: stretch;
             margin-top: 30px;
         }
+        .booking-column {
+            flex: 0 0 350px;
+            width: 350px;
+            display: flex;
+            flex-direction: column;
+        }
         @media (max-width: 768px) {
+            .booking-column {
+                flex: 1;
+                width: 100%;
+                min-width: 100%;
+            }
             .dashboard-flex-container {
                 margin-top: 10px !important;
                 gap: 2rem;
@@ -362,7 +386,7 @@ function togglePatientMenu() {
 <div class="dashboard-flex-container flex">
     
     <!-- Left Column: New Appointment Stepper -->
-    <div style="flex: 1.5; min-width: 350px; display: flex; flex-direction: column;">
+    <div class="booking-column">
         <div id="booking" class="neobrutalist-card booking-section" style="margin-bottom: 4rem; padding-bottom: 3rem; flex: 1;">
             <style>
                 @media (max-width: 768px) {
@@ -406,7 +430,7 @@ function togglePatientMenu() {
                             </div>
                             <div class="flex justify-between mt-8">
                                 <span></span>
-                                <button type="button" class="neobrutalist-btn bg-celeste" onclick="nextStep(2)" id="next-1">Siguiente</button>
+                                <button type="button" class="neobrutalist-btn bg-celeste disabled-btn" onclick="nextStep(2)" id="next-1">Siguiente</button>
                             </div>
                         </div>
 
@@ -418,7 +442,7 @@ function togglePatientMenu() {
                             </div>
                             <div class="flex justify-between mt-12">
                                 <button type="button" class="neobrutalist-btn bg-lila" onclick="prevStep(1)">Atrás</button>
-                                <button type="button" class="neobrutalist-btn bg-celeste" onclick="nextStep(3)" id="next-2">Siguiente</button>
+                                <button type="button" class="neobrutalist-btn bg-celeste disabled-btn" onclick="nextStep(3)" id="next-2">Siguiente</button>
                             </div>
                         </div>
 
@@ -439,7 +463,7 @@ function togglePatientMenu() {
                             
                             <div class="flex justify-between mt-12">
                                 <button type="button" class="neobrutalist-btn bg-lila" onclick="prevStep(2)">Atrás</button>
-                                <button type="button" class="neobrutalist-btn bg-celeste" onclick="nextStep(4)" id="next-3">Siguiente</button>
+                                <button type="button" class="neobrutalist-btn bg-celeste disabled-btn" onclick="nextStep(4)" id="next-3">Siguiente</button>
                             </div>
                         </div>
 
@@ -477,9 +501,11 @@ function togglePatientMenu() {
                                 <button type="button" class="neobrutalist-btn bg-verde" onclick="confirmReserve()">Confirmar Turno</button>
                             </div>
                         </div>
-                        <!-- Live Summary -->
-                        <div id="booking-summary" style="margin-top: 1.5rem; padding: 1rem; background: #f8f8f8; border: 2px dashed #ccc; border-radius: 10px; display: none; font-weight: 700; color: #333;">
-                            <i class="fa-solid fa-calendar-check"></i> <span id="summary-text">Reserva para...</span>
+<!-- Live Summary (Always visible layout) -->
+                        <div id="booking-summary-container" style="min-height: 80px; margin-top: 1.5rem;">
+                            <div id="booking-summary" style="padding: 1rem; background: #f8f8f8; border: 2px dashed #ccc; border-radius: 10px; visibility: hidden; font-weight: 700; color: #333;">
+                                <i class="fa-solid fa-calendar-check"></i> <span id="summary-text">Reserva para...</span>
+                            </div>
                         </div>
 
                     </form>
@@ -651,7 +677,7 @@ function togglePatientMenu() {
                                             @endif
                                         </td>
                                     </tr>
-                                @endforeach
+                                    @endforeach
                             @else
                                 <tr>
                                     <td colspan="4" style="text-align: center; padding: 1rem;">No tenés turnos registrados.</td>
@@ -663,34 +689,73 @@ function togglePatientMenu() {
             </div>
 
             <!-- Biblioteca de Materiales (NEW) -->
-        <div id="materiales" class="neobrutalist-card" style="margin-top: 2rem; padding: 2.5rem !important; border: 3px solid #000; box-shadow: 8px 8px 0px #000; background: white;">
-            <h3 style="margin-bottom: 1.5rem; border-bottom: 4px solid #000; padding-bottom: 0.8rem; font-size: 1.4rem; font-family: 'Syne', sans-serif; font-weight: 700;"><i class="fa-solid fa-folder-open"></i> Mi Biblioteca de Materiales</h3>
+        <!-- Mis Documentos (Inline) -->
+        <!-- Mis Documentos (Inline) -->
+        <div id="documentos" class="neobrutalist-card" style="margin-top: 2rem; padding: 2.5rem !important; border: 3px solid #000; box-shadow: 8px 8px 0px #000; background: white;">
+            <h3 style="margin-bottom: 1.5rem; border-bottom: 4px solid #000; padding-bottom: 0.8rem; font-size: 1.4rem; font-family: 'Syne', sans-serif; font-weight: 700;">
+                <i class="fa-solid fa-file-contract"></i> Mis Documentos
+            </h3>
             
-                @if(isset($resources) && count($resources) > 0)
-                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 2rem;">
-                        @foreach($resources as $res)
-                        <div class="neobrutalist-card" style="background: white; border-width: 4px; padding: 2rem; display: flex; flex-direction: column; justify-content: space-between; height: 100%; box-shadow: 6px 6px 0px #000 !important;">
-                            <div>
-                                <div style="font-size: 2.5rem; margin-bottom: 1rem; color: var(--color-celeste);">
-                                    <i class="fa-solid fa-file-lines"></i>
-                                </div>
-                                <h4 style="margin: 0 0 0.8rem 0; font-weight: 900; line-height: 1.2; font-size: 1.2rem;">{{ $res->title }}</h4>
-                                @if($res->description)
-                                    <p style="font-size: 0.95rem; color: #555; margin-bottom: 1.5rem;">{{ $res->description }}</p>
-                                @endif
+            @if(isset($documents) && count($documents) > 0)
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem;">
+                    @foreach($documents as $doc)
+                    <div style="border: 2px solid #000; border-radius: 10px; padding: 1.5rem; background: #fdfdfd; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 4px 4px 0px #000; transition: transform 0.2s;">
+                        <div style="margin-bottom: 1rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.5rem;">
+                                <span style="font-size: 0.7rem; font-weight: 800; background: #eee; padding: 2px 6px; border-radius: 4px; border: 1px solid #999;">
+                                    {{ $doc->created_at->format('d/m/Y') }}
+                                </span>
+                                <i class="fa-solid fa-file-pdf" style="font-size: 1.5rem; color: #e11d48;"></i>
                             </div>
-                            <a href="{{ route('resources.download', $res->id) }}" class="neobrutalist-btn bg-amarillo w-full text-center" style="font-size: 1rem; padding: 12px; font-weight: 800;">
-                                <i class="fa-solid fa-download"></i> Descargar
-                            </a>
+                            <h4 style="margin: 0; font-size: 1rem; font-weight: 800; word-break: break-all;">{{ $doc->name }}</h4>
+                            <span style="font-size: 0.75rem; text-transform: uppercase; background: #e0f2fe; padding: 2px 5px; border-radius: 4px; border: 1px solid #000; display: inline-block; margin-top: 5px;">{{ $doc->type }}</span>
                         </div>
-                        @endforeach
+                        <a href="{{ route('documents.download', $doc->id) }}" class="neobrutalist-btn bg-celeste w-full text-center" style="font-size: 0.9rem; padding: 8px; box-shadow: 2px 2px 0px #000;">
+                            <i class="fa-solid fa-download"></i> Descargar
+                        </a>
                     </div>
-                @else
-                    <div style="text-align: center; padding: 2rem; background: #f9f9f9; border: 2px dashed #ccc; border-radius: 10px; font-family: 'Inter', sans-serif;">
-                        <p style="color: #666; font-weight: 700;">No hay materiales compartidos todavía.</p>
-                    </div>
-                @endif
+                    @endforeach
+                </div>
+            @else
+                <div style="text-align: center; padding: 3rem; background: #f9f9f9; border: 2px dashed #999; border-radius: 10px;">
+                    <i class="fa-solid fa-folder-open" style="font-size: 2rem; color: #ccc; margin-bottom: 1rem;"></i>
+                    <p style="color: #666; font-weight: 700; margin: 0;">No tenés documentos disponibles por ahora.</p>
+                </div>
+            @endif
+        </div>
+
+        <!-- Biblioteca de Materiales -->
+        @if(isset($resources) && count($resources) > 0)
+        <!-- Biblioteca de Materiales -->
+        <div id="materiales" class="neobrutalist-card" style="margin-top: 2rem; padding: 2.5rem !important; border: 3px solid #000; box-shadow: 8px 8px 0px #000; background: white;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 4px solid #000; padding-bottom: 0.8rem; margin-bottom: 1.5rem;">
+                <h3 style="font-size: 1.4rem; font-family: 'Syne', sans-serif; font-weight: 700; margin: 0;">
+                    <i class="fa-solid fa-folder-open"></i> Mi Biblioteca de Materiales
+                </h3>
             </div>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 2rem;">
+                @foreach($resources as $res)
+                <div class="neobrutalist-card" style="background: white; border-width: 4px; padding: 2rem; display: flex; flex-direction: column; justify-content: space-between; height: 100%; box-shadow: 6px 6px 0px #000 !important;">
+                    <div>
+                        <div style="font-size: 2.5rem; margin-bottom: 1rem; color: var(--color-celeste);">
+                            <i class="fa-solid fa-file-lines"></i>
+                        </div>
+                        <h4 style="margin: 0 0 0.8rem 0; font-weight: 900; line-height: 1.2; font-size: 1.2rem;">{{ $res->title }}</h4>
+                        @if($res->description)
+                            <p style="font-size: 0.95rem; color: #555; margin-bottom: 1.5rem;">{{ $res->description }}</p>
+                        @endif
+                    </div>
+                    <a href="{{ route('resources.download', $res->id) }}" class="neobrutalist-btn bg-amarillo w-full text-center" style="font-size: 1rem; padding: 12px; font-weight: 800;">
+                        <i class="fa-solid fa-download"></i> Descargar
+                    </a>
+                </div>
+                @endforeach
+            </div>
+        </div>
+        @endif
+
+
 
     </div>
         <!-- Custom Alert Modal (Cartel) -->
@@ -738,6 +803,7 @@ $blockedDays = $blockedDays ?? [];
     const userType = "{{ $tipoPaciente }}";
     const weekendsBlocked = @json($blockWeekends);
     const specificBlockedDays = @json($blockedDays);
+    const patientAppointments = @json($patientAppointmentsDates ?? []);
     
     let selectedDay = null; // Format YYYY-MM-DD
     let selectedTime = null; // Format HH:mm
@@ -769,13 +835,18 @@ $blockedDays = $blockedDays ?? [];
             
             const isWeekendBlocked = weekendsBlocked && (dayOfWeek === 0 || dayOfWeek === 6);
             const isSpecificBlocked = specificBlockedDays.includes(dateStr);
+            const isAlreadyBooked = patientAppointments.includes(dateStr);
             
             // Logic: 
             // 1. If hasGoogleSlots is true, it's AVAILABLE (overrides all blocks).
             // 2. If NO Google Slots, we check standard blocks and base availability.
             let isBlocked = false;
+            let blockReason = '';
 
-            if (hasGoogleSlots) {
+            if (isAlreadyBooked) {
+                isBlocked = true;
+                blockReason = 'Ya tenés un turno este día';
+            } else if (hasGoogleSlots) {
                 isBlocked = false; // Explicit availability overrides everything
             } else {
                 // Formatting fallback to standard availability
@@ -783,6 +854,7 @@ $blockedDays = $blockedDays ?? [];
                     isBlocked = true; // No basic slots
                 } else if (isWeekendBlocked || isSpecificBlocked) {
                     isBlocked = true; // Blocked by rule
+                    blockReason = isSpecificBlocked ? 'Día no disponible' : 'Fines de semana no disponibles';
                 }
             }
 
@@ -795,7 +867,12 @@ $blockedDays = $blockedDays ?? [];
                 dayBtn.style.opacity = '0.3';
                 dayBtn.style.cursor = 'not-allowed';
                 dayBtn.style.background = '#ddd';
-                dayBtn.title = isSpecificBlocked ? 'Día no disponible' : 'Fines de semana no disponibles';
+                dayBtn.title = blockReason || (isSpecificBlocked ? 'Día no disponible' : 'Fines de semana no disponibles');
+                
+                if (isAlreadyBooked) {
+                     dayBtn.style.border = '2px solid #e11d48'; // Red border for already booked
+                     dayBtn.style.color = '#e11d48';
+                }
             }
 
             dayBtn.innerHTML = `
@@ -816,12 +893,15 @@ $blockedDays = $blockedDays ?? [];
         const summary = document.getElementById('booking-summary');
         const text = document.getElementById('summary-text');
         
+        // Always display block but toggle visibility to keep layout static
+        summary.style.display = 'block'; 
+        
         if (!selectedDay) {
-            summary.style.display = 'none';
+            summary.style.visibility = 'hidden';
             return;
         }
 
-        summary.style.display = 'block';
+        summary.style.visibility = 'visible';
         let msg = `Reserva para el ${selectedDay.split('-').reverse().join('/')}`;
         
         if (selectedTime) {
@@ -851,8 +931,13 @@ $blockedDays = $blockedDays ?? [];
         document.querySelectorAll('.day-btn').forEach(b => b.classList.remove('selected'));
         element.classList.add('selected');
         
+        // Enable Next Button
+        document.getElementById('next-1').classList.remove('disabled-btn');
+
         // Reset steps forward
         selectedTime = null;
+        document.getElementById('next-2').classList.add('disabled-btn'); // Disable next step until time selected
+        
         updateSummary();
         generateTimes(dateStr);
     }
@@ -897,8 +982,10 @@ $blockedDays = $blockedDays ?? [];
             
             const pillContainer = document.createElement('div');
             pillContainer.style.display = 'flex';
+            pillContainer.style.flexDirection = 'column';
             pillContainer.style.alignItems = 'center';
             pillContainer.style.gap = '0.5rem';
+            pillContainer.style.width = '100%';
 
             const pill = document.createElement('div');
             pill.className = 'time-pill' + (isOccupied ? ' disabled' : '');
@@ -938,26 +1025,41 @@ $blockedDays = $blockedDays ?? [];
         selectedTime = timeStr;
         document.querySelectorAll('.time-pill').forEach(p => p.classList.remove('selected'));
         element.classList.add('selected');
+        
+        // Enable Next Button
+        document.getElementById('next-2').classList.remove('disabled-btn');
+        
         updateSummary();
     }
 
-    function joinWaitlist(date, time) {
-        fetch('{{ route("waitlist.store") }}', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': '{{ csrf_token() }}'
-            },
-            body: JSON.stringify({ fecha_especifica: date, hora_inicio: time })
-        })
-        .then(response => response.json())
-        .then(data => {
-            alert(data.message);
-        })
-        .catch(error => {
+    async function joinWaitlist(date, time) {
+        try {
+            const response = await fetch('{{ route("waitlist.store") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({ 
+                    fecha_especifica: date, 
+                    hora_inicio: time,
+                    availability: 'Horario Específico: ' + date + ' ' + time,
+                    modality: 'Cualquiera'
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                alert(data.success || '¡Te uniste a la lista de espera!');
+            } else {
+                alert('Error: ' + (data.message || 'No se pudo unir a la lista.'));
+            }
+        } catch (error) {
             console.error('Error:', error);
-            alert('Hubo un error al unirse a la lista de espera.');
-        });
+            alert('Hubo un error de conexión al unirse a la lista de espera.');
+        }
     }
 
     function selectModality(val) {
@@ -973,6 +1075,10 @@ $blockedDays = $blockedDays ?? [];
         
         document.querySelectorAll('.modality-btn').forEach(b => b.classList.remove('selected'));
         document.getElementById('mod-' + val).classList.add('selected');
+        
+        // Enable Next Button
+        document.getElementById('next-3').classList.remove('disabled-btn');
+
         updateSummary();
     }
 
@@ -1158,6 +1264,47 @@ $blockedDays = $blockedDays ?? [];
     
     #patient-sidebar.open {
         left: 0 !important;
+    }
+
+    /* Booking Form Time Slots: 2 Columns */
+    #times-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+        width: 100%;
+    }
+    
+    .time-pill {
+        width: 100%;
+        text-align: center;
+        background: white;
+        border: 2px solid #000;
+        padding: 0.8rem;
+        border-radius: 8px;
+        font-weight: 800;
+        cursor: pointer;
+        transition: all 0.2s;
+        box-shadow: 4px 4px 0px #000;
+    }
+    
+    .time-pill:hover {
+        transform: translate(-2px, -2px);
+        box-shadow: 6px 6px 0px #000;
+        background: var(--color-celeste);
+    }
+    
+    .time-pill.selected {
+        background: var(--color-verde);
+        transform: translate(2px, 2px);
+        box-shadow: 2px 2px 0px #000;
+    }
+    
+    .time-pill.disabled {
+        background: #f3f4f6;
+        color: #9ca3af;
+        box-shadow: none;
+        border-color: #d1d5db;
+        cursor: not-allowed;
     }
 </style>
 

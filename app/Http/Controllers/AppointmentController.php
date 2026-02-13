@@ -26,6 +26,16 @@ class AppointmentController extends Controller
 
         $appointmentDate = \Carbon\Carbon::parse($request->appointment_date);
         
+        // [RESTRICTION] One appointment per day per patient
+        $existingAppt = Appointment::where('usuario_id', Auth::id())
+            ->whereDate('fecha_hora', $appointmentDate->toDateString())
+            ->where('estado', '!=', 'cancelado')
+            ->exists();
+
+        if ($existingAppt) {
+            return redirect()->back()->withErrors(['appointment_date' => 'Ya tenés un turno reservado para este día. Si necesitás cambiarlo, cancelá el anterior primero.']);
+        }
+        
         $appt = Appointment::create([
             'usuario_id' => Auth::id(),
             'fecha_hora' => $appointmentDate,
@@ -54,7 +64,7 @@ class AppointmentController extends Controller
             ]);
         }
 
-        return redirect()->route('patient.dashboard')->with('success', 'Turno solicitado. Por favor subí tu comprobante de pago para confirmarlo.');
+        return redirect()->route('patient.dashboard')->with('success', 'Turno solicitado. Tu comprobante fue enviado y está en revisión.');
     }
 
     public function confirm($id)

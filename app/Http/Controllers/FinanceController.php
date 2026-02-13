@@ -164,6 +164,30 @@ class FinanceController extends Controller
         $totalGastos = $gastos->sum('monto');
         $realProfit = $monthlyIncome - $totalGastos;
 
+        // 8. Comprobantes Pendientes de Aprobación
+        $pendingReceipts = Appointment::where('estado', 'pendiente')
+            ->whereHas('payment', function($q) {
+                $q->where('estado', 'pendiente');
+            })
+            ->with(['user.paciente', 'payment'])
+            ->orderBy('fecha_hora', 'asc')
+            ->get()
+            ->map(function ($turno) {
+                $user = $turno->user;
+                if (!$user) return null;
+
+                return [
+                    'turno' => $turno,
+                    'user' => $user,
+                    'paciente' => $user->paciente,
+                    'comprobante_ruta' => $turno->payment ? asset('storage/' . $turno->payment->comprobante_ruta) : null,
+                    'fecha_hora' => $turno->fecha_hora,
+                    'modalidad' => $turno->modalidad,
+                ];
+            })
+            ->filter()
+            ->values();
+
         return compact(
             'monthlyIncome', 
             'pendingIncome', 
@@ -179,7 +203,8 @@ class FinanceController extends Controller
             'incomeGrowth',
             'isFirstMonth',
             'debtors',
-            'incomes'
+            'incomes',
+            'pendingReceipts'
         ) + ['year' => $currentYear];
     }
     

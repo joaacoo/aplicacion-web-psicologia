@@ -79,11 +79,11 @@
                 </div>
             </a>
 
-            <a href="{{ route('admin.finanzas') }}" class="stat-card card-rosa">
+            <a href="{{ route('admin.finanzas') }}#honorarios" class="stat-card card-rosa">
                 <div class="card-header">
                     <div>
                         <p class="card-label">Por Cobrar</p>
-                        <h2 class="card-value">${{ number_format($pendingIncome, 0, ',', '.') }}</h2>
+                        <h2 class="card-value">{{ $pendingIncome }}</h2>
                     </div>
                     <div class="card-icon-circle">
                         <i class="fa-solid fa-hand-holding-dollar"></i>

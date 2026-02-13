@@ -193,9 +193,9 @@
                         }
                     }
                 </style>
-                <div class="d-flex flex-column gap-4">
+                <div class="d-flex flex-column">
                     @foreach($turnos as $turno)
-                        <div class="neobrutalist-card bg-white" style="border: 3px solid #000; box-shadow: 6px 6px 0px #000; padding: 2rem; position: relative; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                        <div class="neobrutalist-card bg-white" style="border: 3px solid #000; box-shadow: 6px 6px 0px #000; padding: 2rem; position: relative; transition: transform 0.2s; margin-bottom: 3rem;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
                             
                             <!-- Session Header Container -->
                             <div class="session-header-container">
@@ -207,9 +207,9 @@
                                     </span>
                                     
                                     <div class="session-badges">
-                                        @if($turno->tipo)
-                                            <span class="badge" style="background: {{ $turno->tipo === 'presencial' ? '#dbeafe' : ($turno->tipo === 'virtual' ? '#fce7f3' : '#e0f2fe') }}; color: {{ $turno->tipo === 'presencial' || $turno->tipo === 'virtual' ? '#000' : '#0369a1' }}; padding: 0.4rem 0.8rem; border: 2px solid #000; font-weight: 700;">
-                                                {{ ucfirst($turno->tipo) }}
+                                        @if($turno->modalidad)
+                                            <span class="badge" style="background: {{ $turno->modalidad === 'presencial' ? '#dbeafe' : ($turno->modalidad === 'virtual' ? '#fce7f3' : '#e0f2fe') }}; color: {{ $turno->modalidad === 'presencial' ? '#1e40af' : ($turno->modalidad === 'virtual' ? '#be185d' : '#0369a1') }}; padding: 0.4rem 0.8rem; border: 2px solid #000; font-weight: 700;">
+                                                {{ ucfirst($turno->modalidad) }}
                                             </span>
                                         @else
                                             <span class="badge" style="background: #f3f4f6; color: #6b7280; padding: 0.4rem 0.8rem; border: 2px solid #000; font-weight: 600;">

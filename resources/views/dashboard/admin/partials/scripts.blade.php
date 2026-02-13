@@ -195,4 +195,35 @@
             document.getElementById('manage-disassociate-form').submit();
         }
     };
+
+    // Documents Modal Logic
+    window.openDocumentsModal = function(userId, patientName, documents) {
+        document.getElementById('docsPatientName').innerText = patientName;
+        document.getElementById('docsUserId').value = userId;
+        
+        const listContainer = document.getElementById('docsList');
+        listContainer.innerHTML = '';
+
+        if (documents && documents.length > 0) {
+            documents.forEach(doc => {
+                listContainer.innerHTML += renderDocumentItem(doc);
+            });
+        } else {
+            listContainer.innerHTML = '<p style="text-align: center; color: #666; font-style: italic;">No hay documentos cargados.</p>';
+        }
+
+        const modal = document.getElementById('documentsModal');
+        if(modal) {
+            modal.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        }
+    };
+
+    window.closeDocumentsModal = function() {
+        const modal = document.getElementById('documentsModal');
+        if(modal) {
+            modal.style.display = 'none';
+            document.body.style.overflow = '';
+        }
+    };
 </script>

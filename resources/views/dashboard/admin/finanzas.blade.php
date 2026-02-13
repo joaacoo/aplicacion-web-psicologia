@@ -5,7 +5,7 @@
 
 @section('content')
 <style>
-    @media (max-width: 768px) {
+@media (max-width: 768px) {
         /* Stack Filters */
         div[style*="display: flex; flex-wrap: wrap"] {
             flex-direction: column;
@@ -56,6 +56,56 @@
         /* Card Adjustments */
         .neobrutalist-card {
             padding: 1.2rem !important;
+        }
+        
+        /* MOBILE: Convert Debtors Table to Cards */
+        .debtors-table-container {
+            overflow-x: visible !important;
+        }
+        
+        .debtors-table {
+            display: block !important;
+        }
+        
+        .debtors-table thead {
+            display: none !important;
+        }
+        
+        .debtors-table tbody {
+            display: block !important;
+        }
+        
+        .debtors-table tr {
+            display: block !important;
+            border: 3px solid #000 !important;
+            border-radius: 12px !important;
+            margin-bottom: 1rem !important;
+            padding: 1rem !important;
+            background: white !important;
+            box-shadow: 4px 4px 0px #000 !important;
+        }
+        
+        .debtors-table td {
+            display: block !important;
+            text-align: left !important;
+            padding: 0.5rem 0 !important;
+            border: none !important;
+        }
+        
+        .debtors-table td:before {
+            content: attr(data-label);
+            font-weight: 800;
+            text-transform: uppercase;
+            font-size: 0.7rem;
+            color: #666;
+            display: block;
+            margin-bottom: 0.3rem;
+        }
+        
+        .debtors-table td:last-child {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 2px dashed #eee !important;
         }
     }
     /* Safer Minmax for desktop */
@@ -161,6 +211,21 @@
     .btn-export-excel:active {
         transform: translate(0, 0);
         box-shadow: 2px 2px 0px rgba(0,0,0,1);
+    }
+    /* Custom Scrollbar for Carousel */
+    .carousel-container::-webkit-scrollbar {
+        height: 8px;
+    }
+    .carousel-container::-webkit-scrollbar-track {
+        background: #f1f1f1; 
+        border-radius: 4px;
+    }
+    .carousel-container::-webkit-scrollbar-thumb {
+        background: #ccc; 
+        border-radius: 4px;
+    }
+    .carousel-container::-webkit-scrollbar-thumb:hover {
+        background: #888; 
     }
 </style>
 
@@ -295,7 +360,7 @@
                         <i class="fa-solid {{ $pendingIncome > 0 ? 'fa-hourglass-half' : 'fa-check' }}" style="font-size: 1.1rem; color: {{ $pendingIncome > 0 ? '#ef6c00' : '#2e7d32' }};"></i>
                     </div>
                 </div>
-                <h2 style="margin: 0; font-size: 1.8rem; font-weight: 900; color: #000;">${{ number_format($pendingIncome, 0, ',', '.') }}</h2>
+                <h2 style="margin: 0; font-size: 1.8rem; font-weight: 900; color: #000;">{{ $pendingIncome }}</h2>
                 @if($pendingIncome > 0)
                     <div style="font-size: 0.75rem; font-weight: 700; color: #ef6c00;">
                         <i class="fa-solid fa-circle-exclamation"></i> Pendiente de regularizar
@@ -452,62 +517,131 @@
         </div>
     </div>
     <div id="honorarios" class="tab-pane">
+        
+        {{-- NEW: Pending Receipts Section (Full Width) --}}
+        <div class="neobrutalist-card" style="background: #fff3e0; border: 3px solid #ffb74d; padding: 1.5rem; box-shadow: 5px 5px 0px rgba(255, 183, 77, 0.4); margin-bottom: 2rem;">
+            <h3 style="margin: 0 0 1.5rem 0; font-size: 1.1rem; font-weight: 900; color: #ef6c00; text-transform: uppercase;">
+                <i class="fa-solid fa-file-invoice"></i> Comprobantes Pendientes de Aprobación
+            </h3>
+            
+            @if($pendingReceipts->isEmpty())
+                <div style="text-align: center; padding: 2rem; background: white; border: 2px dashed #ffb74d; border-radius: 8px;">
+                    <p style="color: #ef6c00; font-weight: 700; margin: 0;">No hay comprobantes pendientes de revisión.</p>
+                </div>
+            @else
+                <!-- Carousel Container -->
+                <div class="carousel-container" id="receiptsCarousel" style="display: flex; gap: 1rem; overflow-x: auto; padding-bottom: 1rem; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; cursor: grab;">
+                    @foreach($pendingReceipts as $receipt)
+                        <div class="carousel-item" style="flex: 0 0 300px; scroll-snap-align: start; background: white; border: 3px solid #000; border-radius: 12px; padding: 1.5rem; box-shadow: 4px 4px 0px #000; display: flex; flex-direction: column; justify-content: space-between; user-select: none;">
+                            <div>
+                                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+                                    <div>
+                                        <h4 style="margin: 0 0 0.5rem 0; font-weight: 800; font-size: 0.95rem; line-height: 1.2; word-wrap: break-word; white-space: normal;">{{ $receipt['user']->nombre }}</h4>
+                                        <p style="margin: 0; color: #666; font-size: 0.9rem;">
+                                            <i class="fa-solid fa-calendar"></i> {{ \Carbon\Carbon::parse($receipt['fecha_hora'])->format('d/m H:i') }}
+                                        </p>
+                                        <p style="margin: 0.3rem 0 0 0; color: #666; font-size: 0.9rem;">
+                                            <i class="fa-solid fa-{{ $receipt['modalidad'] === 'virtual' ? 'video' : 'building' }}"></i> 
+                                            {{ ucfirst($receipt['modalidad']) }}
+                                        </p>
+                                    </div>
+                                    @if($receipt['paciente'])
+                                        <span style="background: {{ $receipt['paciente']->tipo_paciente === 'nuevo' ? '#ede7f6' : '#e8f5e9' }}; 
+                                                     color: {{ $receipt['paciente']->tipo_paciente === 'nuevo' ? '#5e35b1' : '#2e7d32' }}; 
+                                                     padding: 0.2rem 0.5rem; border: 2px solid #000; border-radius: 6px; font-weight: 800; font-size: 0.7rem; height: fit-content;">
+                                            {{ $receipt['paciente']->tipo_paciente === 'nuevo' ? 'NUEVO' : 'FREC' }}
+                                        </span>
+                                    @endif
+                                </div>
+                                
+                                @if($receipt['comprobante_ruta'])
+                                    <div style="margin: 1rem 0;">
+                                        <button type="button" class="neobrutalist-btn" 
+                                                onclick="openProofModalHelper('{{ route('payments.showProof', $receipt['turno']->payment->id) }}', '{{ $receipt['user']->nombre }}', '{{ $receipt['turno']->payment->created_at->format('d/m H:i') }}')"
+                                           style="width: 100%; background: #60a5fa; color: white; padding: 0.6rem; font-size: 0.85rem; border: 2px solid #000; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; box-shadow: 2px 2px 0px #000;">
+                                            <i class="fa-solid fa-file-image"></i> Ver Comprobante
+                                        </button>
+                                    </div>
+                                @endif
+                            </div>
+                            
+                            <div style="display: flex; gap: 0.5rem; margin-top: auto;">
+                                <form action="{{ route('admin.appointments.confirm', $receipt['turno']->id) }}" method="POST" style="flex: 1;">
+                                    @csrf
+                                    <button type="submit" class="neobrutalist-btn" 
+                                            style="width: 100%; background: #10b981; color: white; padding: 0.6rem; font-size: 0.85rem; border: 2px solid #000; box-shadow: 2px 2px 0px #000; display: flex; justify-content: center; align-items: center;">
+                                        <i class="fa-solid fa-check"></i>
+                                    </button>
+                                </form>
+                                <form action="{{ route('admin.appointments.cancel', $receipt['turno']->id) }}" method="POST" style="flex: 1;" onsubmit="return confirm('¿Rechazar este turno?')">
+                                    @csrf
+                                    <button type="submit" class="neobrutalist-btn" 
+                                            style="width: 100%; background: #ef4444; color: white; padding: 0.6rem; font-size: 0.85rem; border: 2px solid #000; box-shadow: 2px 2px 0px #000; display: flex; justify-content: center; align-items: center;">
+                                        <i class="fa-solid fa-times"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            @endif
+        </div>
+
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 1.5rem;">
             
+            {{-- REMOVED: Old Pending Receipts Section Location --}}
+
+            
             <!-- Smart Debtors Table (Seguimiento) -->
+            @if($debtors->count() > 0)
             <div class="neobrutalist-card" style="background: white; border: 3px solid #000; padding: 1.5rem; box-shadow: 5px 5px 0px rgba(0,0,0,1);">
                 <h3 style="margin: 0 0 1.5rem 0; font-size: 1.1rem; font-weight: 900; color: #000; text-transform: uppercase;">
                     <i class="fa-solid fa-hand-holding-dollar"></i> Seguimiento de Sesiones (Por Cobrar)
                 </h3>
                 
-                @if($debtors->isEmpty())
-                    <div style="text-align: center; padding: 2rem; background: #f9f9f9; border: 2px dashed #ccc; border-radius: 8px;">
-                        <p style="color: #666; font-weight: 700; margin: 0;">¡Todo al día! No hay sesiones pendientes de cobro.</p>
-                    </div>
-                @else
-                    <div style="overflow-x: auto;">
-                        <table style="width: 100%; border-collapse: collapse; font-family: 'Inter', sans-serif;">
-                            <thead>
-                                <tr style="border-bottom: 3px solid #000; text-align: left;">
-                                    <th style="padding: 1rem; font-size: 0.8rem; font-weight: 800; color: #000; text-transform: uppercase;">Paciente</th>
-                                    <th style="padding: 1rem; font-size: 0.8rem; font-weight: 800; color: #000; text-transform: uppercase;">Última Sesión</th>
-                                    <th style="padding: 1rem; font-size: 0.8rem; font-weight: 800; color: #000; text-transform: uppercase; text-align: center;">Cant.</th>
-                                    <th style="padding: 1rem; font-size: 0.8rem; font-weight: 800; color: #000; text-transform: uppercase;">Total</th>
-                                    <th style="padding: 1rem; text-align: right; font-size: 0.8rem; font-weight: 800; color: #000; text-transform: uppercase;">Acción</th>
+                <div class="debtors-table-container" style="overflow-x: auto;">
+                    <table class="debtors-table" style="width: 100%; border-collapse: collapse; font-family: 'Inter', sans-serif;">
+                        <thead>
+                            <tr style="border-bottom: 3px solid #000; text-align: left;">
+                                <th style="padding: 1rem; font-size: 0.8rem; font-weight: 800; color: #000; text-transform: uppercase;">Paciente</th>
+                                <th style="padding: 1rem; font-size: 0.8rem; font-weight: 800; color: #000; text-transform: uppercase;">Última Sesión</th>
+                                <th style="padding: 1rem; font-size: 0.8rem; font-weight: 800; color: #000; text-transform: uppercase; text-align: center;">Cant.</th>
+                                <th style="padding: 1rem; font-size: 0.8rem; font-weight: 800; color: #000; text-transform: uppercase;">Total</th>
+                                <th style="padding: 1rem; text-align: right; font-size: 0.8rem; font-weight: 800; color: #000; text-transform: uppercase;">Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($debtors as $dept)
+                                <tr style="border-bottom: 1px solid #eee;">
+                                    <td data-label="Paciente" style="padding: 1rem; font-weight: 700; color: #333;">
+                                        {{ $dept['user']->nombre }}
+                                        @if($dept['is_frequent'])
+                                            <span style="font-size: 0.65rem; background: #e8f5e9; color: #2e7d32; padding: 2px 5px; border-radius: 4px; border: 1px solid #c8e6c9;">FREC</span>
+                                        @endif
+                                    </td>
+                                    <td data-label="Última Sesión" style="padding: 1rem; color: #555;">{{ \Carbon\Carbon::parse($dept['last_session_date'])->format('d/m/Y') }}</td>
+                                    <td data-label="Cantidad" style="padding: 1rem; text-align: center;">
+                                        <span style="background: #fff3e0; border: 2px solid #ffb74d; padding: 2px 8px; border-radius: 20px; font-size: 0.8rem; font-weight: 800; color: #ef6c00;">{{ $dept['sessions_count'] }}</span>
+                                    </td>
+                                    <td data-label="Total" style="padding: 1rem; font-weight: 800; color: #000;">${{ number_format($dept['total_debt'], 0, ',', '.') }}</td>
+                                    <td data-label="Acción" style="padding: 1rem; text-align: right;">
+                                        <a href="{{ $dept['whatsapp_link'] }}" target="_blank" 
+                                           class="neobrutalist-btn" 
+                                           style="background: #25D366; color: white; padding: 6px 15px; font-size: 0.8rem; text-decoration: none; border: 2px solid #000; display: inline-flex; align-items: center; gap: 5px; box-shadow: 2px 2px 0px #000; transition: all 0.2s;"
+                                           onclick="this.style.background='#128C7E'; this.innerHTML='<i class=\'fa-solid fa-check\'></i> Enviado';">
+                                            <i class="fa-brands fa-whatsapp"></i> Recordar
+                                        </a>
+                                    </td>
                                 </tr>
-                            </thead>
-                            <tbody>
-                                @foreach($debtors as $dept)
-                                    <tr style="border-bottom: 1px solid #eee;">
-                                        <td style="padding: 1rem; font-weight: 700; color: #333;">
-                                            {{ $dept['user']->nombre }}
-                                            @if($dept['is_frequent'])
-                                                <span style="font-size: 0.65rem; background: #e8f5e9; color: #2e7d32; padding: 2px 5px; border-radius: 4px; border: 1px solid #c8e6c9;">FREC</span>
-                                            @endif
-                                        </td>
-                                        <td style="padding: 1rem; color: #555;">{{ \Carbon\Carbon::parse($dept['last_session_date'])->format('d/m/Y') }}</td>
-                                        <td style="padding: 1rem; text-align: center;">
-                                            <span style="background: #fff3e0; border: 2px solid #ffb74d; padding: 2px 8px; border-radius: 20px; font-size: 0.8rem; font-weight: 800; color: #ef6c00;">{{ $dept['sessions_count'] }}</span>
-                                        </td>
-                                        <td style="padding: 1rem; font-weight: 800; color: #000;">${{ number_format($dept['total_debt'], 0, ',', '.') }}</td>
-                                        <td style="padding: 1rem; text-align: right;">
-                                            <a href="{{ $dept['whatsapp_link'] }}" target="_blank" 
-                                               class="neobrutalist-btn" 
-                                               style="background: #25D366; color: white; padding: 6px 15px; font-size: 0.8rem; text-decoration: none; border: 2px solid #000; display: inline-flex; align-items: center; gap: 5px; box-shadow: 2px 2px 0px #000; transition: all 0.2s;"
-                                               onclick="this.style.background='#128C7E'; this.innerHTML='<i class=\'fa-solid fa-check\'></i> Enviado';">
-                                                <i class="fa-brands fa-whatsapp"></i> Recordar
-                                            </a>
-                                        </td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-                @endif
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
             </div>
+            @endif
 
             <!-- Inflation Tool -->
-            <div class="neobrutalist-card" style="background: #e3f2fd; border: 3px solid #1565c0; padding: 1.5rem; box-shadow: 4px 4px 0px rgba(21, 101, 192, 0.3); align-self: start;">
+            <div class="neobrutalist-card" style="background: #e3f2fd; border: 3px solid #1565c0; padding: 1.5rem; box-shadow: 4px 4px 0px rgba(21, 101, 192, 0.3); align-self: start; max-width: 500px; width: 100%;">
                 <div style="display: flex; gap: 0.8rem; align-items: center; margin-bottom: 1rem;">
                      <div style="background: white; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 50%; border: 3px solid #1565c0;">
                          <i class="fa-solid fa-money-bill-trend-up" style="color: #0d47a1; font-size: 1.1rem;"></i>
@@ -677,20 +811,23 @@
                 
                 // Custom Legend Generation
                 const legendContainer = document.getElementById('patientChartLegend');
-                if(legendContainer) {
+                if (legendContainer) {
                     legendContainer.innerHTML = `
-                        <div style="display: flex; gap: 10px; justify-content: center; margin-top: 10px; flex-wrap: wrap;">
-                            <span class="badge-new" style="background: #ede7f6; color: #5e35b1; border-color: #d1c4e9;">
+                        <div style="display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap;">
+                             <span class="badge-new" style="background: #ede7f6; color: #5e35b1; border-color: #d1c4e9;">
                                 <i class="fa-solid fa-circle" style="font-size: 0.5rem;"></i> Nuevos
                             </span>
-                             <span class="badge-new" style="background: #e8f5e9; color: #2e7d32; border-color: #c8e6c9;">
+                            <span class="badge-new" style="background: #e8f5e9; color: #2e7d32; border-color: #c8e6c9;">
                                 <i class="fa-solid fa-circle" style="font-size: 0.5rem;"></i> Frecuentes
+                            </span>
+                             <span class="badge-new" style="background: #e3f2fd; color: #1565c0; border-color: #90caf9;">
+                                <i class="fa-solid fa-circle" style="font-size: 0.5rem;"></i> Otros
                             </span>
                         </div>
                     `;
                 }
-                });
-        }
+            }); // Close fetch
+        } // Close if check
 
         // Check for URL Hash to activate tab
         if(window.location.hash) {
@@ -701,6 +838,85 @@
                 openTab({currentTarget: tabBtn}, hash);
             }
         }
+
+        // Drag to scroll functionality for carousel
+        const slider = document.getElementById('receiptsCarousel');
+        if (slider) {
+            let isDown = false;
+            let startX;
+            let scrollLeft;
+
+            slider.addEventListener('mousedown', (e) => {
+                isDown = true;
+                slider.classList.add('active');
+                slider.style.cursor = 'grabbing';
+                startX = e.pageX - slider.offsetLeft;
+                scrollLeft = slider.scrollLeft;
+            });
+
+            slider.addEventListener('mouseleave', () => {
+                isDown = false;
+                slider.style.cursor = 'grab';
+            });
+
+            slider.addEventListener('mouseup', () => {
+                isDown = false;
+                slider.style.cursor = 'grab';
+            });
+
+            slider.addEventListener('mousemove', (e) => {
+                if (!isDown) return;
+                e.preventDefault();
+                const x = e.pageX - slider.offsetLeft;
+                const walk = (x - startX) * 2; // Scroll-fast
+                slider.scrollLeft = scrollLeft - walk;
+            });
+        }
+    });
+</script>
+
+
+<!-- Modal de Comprobante (Moved to end) -->
+<div id="proofModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 10000; align-items: center; justify-content: center; backdrop-filter: blur(5px);">
+    <div style="background: white; width: 90%; max-width: 600px; max-height: 90vh; overflow-y: auto; border: 4px solid #000; border-radius: 12px; box-shadow: 8px 8px 0px #000;">
+        <div style="padding: 1.5rem; border-bottom: 3px solid #000; display: flex; justify-content: space-between; align-items: center; background: #f0f0f0;">
+            <div>
+                <h3 id="proofModalTitle" style="margin: 0; font-weight: 900; font-size: 1.2rem;">Comprobante de Pago</h3>
+                <p id="proofModalSubtitle" style="margin: 0.2rem 0 0 0; font-size: 0.8rem; color: #666;"></p>
+            </div>
+            <button onclick="closeProofModal()" class="neobrutalist-btn" style="background: #ff5252; color: white; padding: 0.4rem 0.8rem; font-size: 1rem;"><i class="fa-solid fa-times"></i></button>
+        </div>
+        <div style="padding: 2rem; text-align: center; background: #333;">
+            <img id="proofModalImg" src="" alt="Comprobante" style="max-width: 100%; max-height: 60vh; border: 2px solid #fff; box-shadow: 0 0 15px rgba(0,0,0,0.5);">
+        </div>
+        <div style="padding: 1rem; text-align: center; border-top: 3px solid #000; background: white;">
+            <a id="proofModalDownload" href="#" download class="neobrutalist-btn bg-amarillo" style="text-decoration: none;">
+                <i class="fa-solid fa-download"></i> Descargar Imagen
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openProofModalHelper(url, userName, date) {
+        document.getElementById('proofModalImg').src = url;
+        document.getElementById('proofModalTitle').innerText = 'Comprobante: ' + userName;
+        document.getElementById('proofModalSubtitle').innerText = 'Subido el ' + date;
+        document.getElementById('proofModalDownload').href = url;
+        
+        document.getElementById('proofModal').style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeProofModal() {
+        document.getElementById('proofModal').style.display = 'none';
+        document.body.style.overflow = 'auto';
+        document.getElementById('proofModalImg').src = '';
+    }
+    
+    // Close on outside click
+    document.getElementById('proofModal').addEventListener('click', function(e) {
+        if (e.target === this) closeProofModal();
     });
 </script>
 @endsection

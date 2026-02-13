@@ -23,9 +23,13 @@ class ClinicalHistoryController extends Controller
             ->orderBy('fecha_hora', 'DESC')
             ->get();
         
+        // Get documents for this patient's user
+        $documents = $paciente->user ? $paciente->user->documents()->orderBy('created_at', 'DESC')->get() : collect([]);
+
         return view('dashboard.admin.clinical_history.index', [
             'paciente' => $paciente,
             'turnos' => $turnos,
+            'documents' => $documents,
         ]);
     }
 
@@ -102,15 +106,6 @@ class ClinicalHistoryController extends Controller
         $query = Turno::where('paciente_id', $pacienteId)
             ->with('clinicalHistory');
         
-        // Search by keyword in note content (case-insensitive)
-        if (request('search')) {
-            $searchTerm = request('search');
-            $query->whereHas('clinicalHistory', function ($q) use ($searchTerm) {
-                // LOWER() converts to lowercase for case-insensitive comparison
-                $q->whereRaw('LOWER(content) LIKE ?', ['%' . strtolower($searchTerm) . '%']);
-            });
-        }
-        
         // Filter by turno date range
         if (request('date_from')) {
             $query->whereDate('fecha_hora', '>=', request('date_from'));
@@ -128,12 +123,45 @@ class ClinicalHistoryController extends Controller
         // Get only turnos WITH notes
         $turnos = $query->whereHas('clinicalHistory')
             ->orderBy('fecha_hora', 'DESC')
-            ->paginate(10);
+            ->get();
         
+        // IMPORTANT: Search by keyword AFTER retrieval (because content is encrypted)
+        // We can't search encrypted content in SQL, so we filter in PHP after decryption
+        if (request('search')) {
+            $searchTerm = strtolower(request('search'));
+            $turnos = $turnos->filter(function ($turno) use ($searchTerm) {
+                if ($turno->clinicalHistory) {
+                    // Content is auto-decrypted by Laravel's encrypted cast
+                    $content = strtolower($turno->clinicalHistory->content);
+                    return str_contains($content, $searchTerm);
+                }
+                return false;
+            });
+        }
+        
+        // Manual pagination since we filtered in PHP
+        $perPage = 10;
+        $currentPage = request('page', 1);
+        $total = $turnos->count();
+        $turnos = $turnos->slice(($currentPage - 1) * $perPage, $perPage)->values();
+        
+        // Create paginator
+        $turnos = new \Illuminate\Pagination\LengthAwarePaginator(
+            $turnos,
+            $total,
+            $perPage,
+            $currentPage,
+            ['path' => request()->url(), 'query' => request()->query()]
+        );
+        
+        // Get documents for this patient's user
+        $documents = $paciente->user ? $paciente->user->documents()->orderBy('created_at', 'DESC')->get() : collect([]);
+
         return view('dashboard.admin.clinical_history.index', [
             'paciente' => $paciente,
             'turnos' => $turnos,
             'searching' => true,
+            'documents' => $documents,
         ]);
     }
 

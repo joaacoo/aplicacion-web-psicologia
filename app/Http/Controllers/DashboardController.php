@@ -25,7 +25,35 @@ class DashboardController extends Controller
             ->orderBy('fecha_hora', 'asc')
             ->get();
 
-        $availabilities = \App\Models\Availability::all();
+        // Obtener configuración del Admin
+        $adminUser = \App\Models\User::where('rol', 'admin')->first();
+        $sessionDuration = $adminUser->duracion_sesion ?? 45;
+        $sessionInterval = $adminUser->intervalo_sesion ?? 15;
+
+        $dbAvailabilities = \App\Models\Availability::all();
+        $availabilities = collect();
+        foreach ($dbAvailabilities as $av) {
+            if (!$av->hora_inicio || !$av->hora_fin) continue;
+            try {
+                $start = \Carbon\Carbon::parse($av->hora_inicio);
+                $end = \Carbon\Carbon::parse($av->hora_fin);
+                
+                // Evitar bucles infinitos si hora fin < hora inicio
+                if ($end->lt($start)) continue;
+
+                while ($start->copy()->addMinutes($sessionDuration)->lte($end)) {
+                    $availabilities->push([
+                        'dia_semana' => $av->dia_semana,
+                        'hora_inicio' => $start->format('H:i:s'),
+                        'hora_fin' => $start->copy()->addMinutes($sessionDuration)->format('H:i:s'),
+                    ]);
+                    $start->addMinutes($sessionDuration + $sessionInterval);
+                }
+            } catch (\Exception $e) {
+                continue;
+            }
+        }
+
         $occupiedAppts = Appointment::where('estado', '!=', 'cancelado')
             ->where('fecha_hora', '>=', now())
             ->pluck('fecha_hora')
@@ -40,11 +68,6 @@ class DashboardController extends Controller
             $t = strtoupper($e->title);
             return str_contains($t, 'LIBRE') || str_contains($t, 'DISPONIBLE') || str_contains($t, 'ATENCION');
         });
-
-        // Obtener configuración del Admin
-        $adminUser = \App\Models\User::where('rol', 'admin')->first();
-        $sessionDuration = $adminUser->duracion_sesion ?? 45;
-        $sessionInterval = $adminUser->intervalo_sesion ?? 15;
 
         // Expandir rangos en slots dinámicos
         $googleAvailableSlots = collect();
@@ -101,7 +124,23 @@ class DashboardController extends Controller
         $adminUser = \App\Models\User::where('rol', 'admin')->first();
         $blockWeekends = $adminUser ? $adminUser->block_weekends : false;
 
-        return view('dashboard.patient', compact('appointments', 'availabilities', 'occupiedSlots', 'nextAppointment', 'resources', 'documents', 'googleAvailableSlots', 'blockedDays', 'blockWeekends'));
+        // Fechas donde el paciente ya tiene turno (para bloquear en calendario)
+        $patientAppointmentsDates = Appointment::where('usuario_id', Auth::id())
+            ->where('estado', '!=', 'cancelado')
+            ->where('fecha_hora', '>=', now())
+            ->get()
+            ->map(fn($a) => $a->fecha_hora->format('Y-m-d'))
+            ->unique()
+            ->values()
+            ->toArray();
+
+        return view('dashboard.patient', compact('appointments', 'availabilities', 'occupiedSlots', 'nextAppointment', 'resources', 'documents', 'googleAvailableSlots', 'blockedDays', 'blockWeekends', 'patientAppointmentsDates'));
+    }
+
+    public function patientDocuments()
+    {
+        $documents = \App\Models\Document::where('user_id', Auth::id())->latest()->get();
+        return view('dashboard.patient.documents', compact('documents'));
     }
 
     public function adminDashboard()
@@ -115,9 +154,24 @@ class DashboardController extends Controller
             ->orderBy('fecha_hora', 'asc')
             ->get();
 
+        // Count pending appointments (esperando_pago)
+        $pendingAppointments = Appointment::where('estado', 'esperando_pago')->count();
+        $confirmedAppointments = Appointment::where('estado', 'confirmado')->count();
+
+        // Calculate Monthly Income (Estimated)
+        $currentMonthIncome = \App\Models\Payment::whereMonth('created_at', now()->month)
+            ->where('estado', 'aprobado')
+            ->sum('monto');
+
+        // Calculate Pending Income (appointments waiting for payment)
+        // This is tricky because price might vary, let's use base price for estimation or check appointment price if stored
+        // Assuming base price for now or look at related payment request if exists
+        $pendingIncome = \App\Models\Payment::where('estado', 'pendiente')->sum('monto');
+
+        // Listado de Pacientes
         $patients = \App\Models\User::where('rol', 'paciente')
             ->orderBy('nombre', 'asc')
-            ->with(['documents', 'paciente']) // Eager load documents and paciente info
+            ->with(['documents', 'paciente']) 
             ->get();
 
         // Historial de Acciones y Recursos
@@ -156,7 +210,51 @@ class DashboardController extends Controller
         
         $blockWeekends = auth()->user()->block_weekends;
 
-        return view('dashboard.admin', compact('appointments', 'todayAppointments', 'patients', 'activityLogs', 'resources', 'recentRegistrations', 'nextAdminAppointment', 'documents', 'waitlist', 'externalEvents', 'availabilities', 'blockedDays', 'blockWeekends'));
+        // --- ESTADÍSTICAS PARA EL DASHBOARD (admin.blade.php esperas estas variables) ---
+        $currentMonth = now()->month;
+        $currentYear = now()->year;
+
+        // 1. Ingresos Mes
+        $ingresosMes = Appointment::whereYear('fecha_hora', $currentYear)
+            ->whereMonth('fecha_hora', $currentMonth)
+            ->whereIn('estado', ['confirmado', 'asistido', 'completado'])
+            ->sum('monto_final');
+
+        // 2. Por Cobrar
+        $porCobrar = Appointment::where('fecha_hora', '<', now())
+            ->where('estado', 'confirmado')
+            ->sum('monto_final');
+
+        // 3. Pacientes Nuevos
+        $patientsThisMonth = Appointment::whereYear('fecha_hora', $currentYear)
+            ->whereMonth('fecha_hora', $currentMonth)
+            ->whereIn('estado', ['confirmado', 'asistido', 'completado'])
+            ->with(['user.paciente'])
+            ->get()
+            ->groupBy('usuario_id');
+
+        $nuevosPacientes = 0;
+        foreach ($patientsThisMonth as $userId => $appts) {
+            $patient = $appts->first()->user->paciente ?? null;
+            if ($patient && $patient->tipo_paciente === 'nuevo') $nuevosPacientes++;
+        }
+        
+        // 4. Sesiones del Mes
+        $sesionesMes = Appointment::whereYear('fecha_hora', $currentYear)
+            ->whereMonth('fecha_hora', $currentMonth)
+            ->where('estado', '!=', 'cancelado')
+            ->count();
+
+        // 5. Comprobantes Pendientes (Para mostrar en algún lugar si se desea, aunque finanzas es el lugar principal)
+        // La vista admin.blade.php NO parece tener una sección para esto, pero lo calculamos por si acaso
+        // o para agregarlo después.
+        
+        return view('dashboard.admin', compact(
+            'appointments', 'todayAppointments', 'patients', 'activityLogs', 
+            'resources', 'recentRegistrations', 'nextAdminAppointment', 'documents', 
+            'waitlist', 'externalEvents', 'availabilities', 'blockedDays', 'blockWeekends',
+            'ingresosMes', 'porCobrar', 'nuevosPacientes', 'sesionesMes'
+        ));
     }
 
     // Métodos separados para cada sección
@@ -222,22 +320,25 @@ class DashboardController extends Controller
 
         // --- Nuevas Métricas Financieras ---
         
-        // 1. Ingresos del Mes (Confirmados/Completados/Asistidos)
+        // 1. Ingresos del Mes (Solo pagos APROBADOS este mes)
         $monthlyIncome = Appointment::whereYear('fecha_hora', now()->year)
             ->whereMonth('fecha_hora', now()->month)
-            ->whereIn('estado', ['confirmado', 'asistido', 'completado'])
+            ->whereHas('payment', function($q) {
+                $q->where('estado', 'aprobado');
+            })
             ->sum('monto_final');
 
-        // 2. Pagos Pendientes (Históricos Confirmados pero 'pendientes de cobro' conceptualmente, 
-        //    usando lógica de FinanceController: fecha < now y estado confirmado)
-        $pendingIncome = Appointment::where('fecha_hora', '<', now())
-            ->where('estado', 'confirmado')
-            ->sum('monto_final');
+        // 2. Por Cobrar (En realidad: DINERO EN REVISIÓN / Comprobantes Pendientes)
+        // User requested COUNT of pending receipts, not amount.
+        $pendingIncome = Appointment::whereHas('payment', function($q) {
+                $q->where('estado', 'pendiente');
+            })
+            ->count();
 
-        // 3. Pacientes Nuevos (Registrados este mes)
+        // 3. Pacientes Nuevos (Total registrados, o ajustar rango si se desea)
+        // User reports seeing 0 when there are known new patients. Checking broader definition.
         $newPatientsCount = \App\Models\User::where('rol', 'paciente')
             ->whereYear('created_at', now()->year)
-            ->whereMonth('created_at', now()->month)
             ->count();
 
         // 4. Sesiones Facturadas y Promedio
