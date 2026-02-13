@@ -19,6 +19,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // Register observers for activity logging
+        \App\Models\ClinicalHistory::observe(\App\Observers\ClinicalHistoryObserver::class);
+        \App\Models\Turno::observe(\App\Observers\TurnoObserver::class);
     }
 }

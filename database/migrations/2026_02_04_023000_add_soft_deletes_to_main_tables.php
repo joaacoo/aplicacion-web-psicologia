@@ -11,17 +11,23 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('usuarios', function (Blueprint $table) {
-            $table->softDeletes();
-        });
+        if (!Schema::hasColumn('usuarios', 'deleted_at')) {
+            Schema::table('usuarios', function (Blueprint $table) {
+                $table->softDeletes();
+            });
+        }
 
-        Schema::table('pacientes', function (Blueprint $table) {
-            $table->softDeletes();
-        });
+        if (!Schema::hasColumn('pacientes', 'deleted_at')) {
+            Schema::table('pacientes', function (Blueprint $table) {
+                $table->softDeletes();
+            });
+        }
 
-        Schema::table('turnos', function (Blueprint $table) {
-            $table->softDeletes();
-        });
+        if (!Schema::hasColumn('turnos', 'deleted_at')) {
+            Schema::table('turnos', function (Blueprint $table) {
+                $table->softDeletes();
+            });
+        }
     }
 
     /**

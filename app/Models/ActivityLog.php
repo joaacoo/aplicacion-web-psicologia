@@ -14,12 +14,16 @@ class ActivityLog extends Model
     protected $fillable = [
         'user_id',
         'action',
+        'model_type',
+        'model_id',
+        'changes',
         'description',
         'metadata'
     ];
 
     protected $casts = [
         'metadata' => 'array',
+        'changes' => 'json',
     ];
 
     public function user()

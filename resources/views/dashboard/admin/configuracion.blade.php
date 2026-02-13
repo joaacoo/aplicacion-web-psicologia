@@ -10,9 +10,11 @@
         display: flex;
         gap: 1rem;
         border-bottom: 2px solid #000; /* Changed to black to match theme */
-        margin-bottom: 4rem;
-        flex-wrap: wrap; 
-        /* Removed overflow-x: auto per request to remove internal scroll */
+        margin-bottom: 2rem; /* Reduced spacing as requested */
+        flex-wrap: nowrap; /* Prevent wrapping */
+        overflow-x: auto; /* Allow horizontal scroll */
+        padding-bottom: 5px; /* Space for scrollbar if needed */
+        -webkit-overflow-scrolling: touch;
     }
     .tab-btn {
         padding: 0.8rem 1.5rem;
@@ -21,6 +23,7 @@
         margin-right: -2px;
         font-family: 'Syne', sans-serif;
         font-weight: 700;
+        white-space: nowrap; /* Ensure text stays on one line */
         font-size: 0.9rem;
         color: #000;
         cursor: pointer;
@@ -68,7 +71,7 @@
     </div>
 
     <!-- SECCIÓN 1: CONFIGURACIÓN GENERAL (Honorarios y Duración) -->
-    <div id="tab-general" class="tab-pane active">
+    <div id="tab-general" class="tab-pane active" style="margin-top: 0 !important; padding-top: 0 !important; margin-bottom: 6rem;">
         <!-- Removed redundant header since tabs now serve as headers -->
         <h3 style="font-size: 1.5rem; margin-bottom: 1.5rem;">
            <i class="fa-solid fa-sliders"></i> Configuración de Honorarios y Sesiones
@@ -120,7 +123,8 @@
     </div>
 
     <!-- SECCIÓN 2: HORARIOS DE ATENCIÓN (Semanal) -->
-    <div id="tab-horarios" class="tab-pane">
+    <!-- SECCIÓN 2: HORARIOS DE ATENCIÓN (Semanal) -->
+    <div id="tab-horarios" class="tab-pane" style="margin-top: 0 !important; padding-top: 0 !important; margin-bottom: 6rem;">
         <h3 style="font-size: 1.5rem; margin-bottom: 1.5rem;">
             <i class="fa-regular fa-calendar-check"></i> Horarios de Atención Semanal
         </h3>
@@ -191,7 +195,7 @@
                             </tr>
                             @endforeach
                         @empty
-                            <tr><td colspan="3" style="padding: 2rem; text-align: center; color: #999;">No configuraste horarios todavía.</td></tr>
+                            <tr><td colspan="3" style="padding: 2rem; text-align: center; color: #999; border: none !important;">No configuraste horarios todavía.</td></tr>
                         @endforelse
                     </tbody>
                 </table>
@@ -200,7 +204,8 @@
     </div>
 
     <!-- SECCIÓN 3: GESTIÓN DE BLOQUEOS (Días no laborables) -->
-    <div id="tab-bloqueos" class="tab-pane">
+    <!-- SECCIÓN 3: GESTIÓN DE BLOQUEOS (Días no laborables) -->
+    <div id="tab-bloqueos" class="tab-pane" style="margin-top: 0 !important; padding-top: 0 !important; margin-bottom: 6rem;">
         <h3 style="font-size: 1.5rem; margin-bottom: 1.5rem;">
             <i class="fa-solid fa-user-lock"></i> Gestión de Bloqueos Agendados
         </h3>

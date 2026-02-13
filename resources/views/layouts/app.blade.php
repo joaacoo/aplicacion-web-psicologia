@@ -312,6 +312,15 @@
             outline: none;
             background-color: #fff !important;
         }
+        
+        /* Notification Items Cursor Fix */
+        .notification-item {
+            cursor: pointer !important;
+        }
+        
+        .notification-dropdown {
+            cursor: default !important;
+        }
     </style>
 </head>
 <body style="margin: 0; padding: 0; font-family: 'Manrope', sans-serif; background-color: var(--color-celeste); min-height: 100vh; display: flex; flex-direction: column; overflow-x: hidden; width: 100%;">
@@ -326,6 +335,41 @@
                         if (overlay) overlay.classList.toggle('active');
                 }
             };
+
+            // Mobile Select Fix - JS Injection
+            document.addEventListener('DOMContentLoaded', function() {
+                if (window.innerWidth <= 768) {
+                    const selectElement = document.getElementById('report-subject');
+                    if (selectElement) {
+                        // Force styles directly
+                        selectElement.style.cssText = `
+                            background-color: white !important;
+                            color: black !important;
+                            -webkit-appearance: none !important;
+                            appearance: none !important;
+                            border: 3px solid black !important;
+                            border-radius: 10px !important;
+                            padding: 0 12px !important;
+                            width: 100% !important;
+                            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e") !important;
+                            background-repeat: no-repeat !important;
+                            background-position: right 12px center !important;
+                            background-size: 16px 16px !important;
+                        `;
+                        
+                        // Force options
+                        Array.from(selectElement.options).forEach(opt => {
+                            opt.style.backgroundColor = 'white';
+                            opt.style.color = 'black';
+                        });
+                        
+                        selectElement.addEventListener('touchstart', function() {
+                            this.style.backgroundColor = 'white';
+                            this.style.color = 'black';
+                        });
+                    }
+                }
+            });
     </script>
 
     @auth
@@ -396,7 +440,7 @@
                                 /* Sidebar logo on mobile */
                                 .sidebar-logo {
                                     padding: 1.5rem 1rem !important;
-                                    border-bottom: 2px solid #eee !important;
+                                    border-bottom: 2px solid #000 !important;
                                 }
                             }
                             
@@ -525,7 +569,7 @@
                                             <span class="notification-badge" id="notif-count" style="position: absolute; top: -5px; right: -5px; background: #ff4d4d; color: white; border-radius: 50%; min-width: 20px; height: 20px; font-size: 0.7rem; display: none; align-items: center; justify-content: center; border: 2px solid #fff; font-weight: 800; padding: 0 4px;">0</span>
                                             
                                             <!-- Dropdown -->
-                                            <div id="notif-dropdown" class="notification-dropdown" onclick="event.stopPropagation()" style="display: none; position: absolute; top: calc(100% + 15px); right: -10px; width: 360px; max-width: 90vw; background: white; border-radius: 16px; box-shadow: 0 16px 40px rgba(0,0,0,0.18), 0 4px 12px rgba(0,0,0,0.08); overflow: hidden; z-index: 10005; border: 3px solid #000;">
+                                            <div id="notif-dropdown" class="notification-dropdown" onclick="event.stopPropagation()" style="display: none; position: absolute; top: calc(100% + 15px); right: -10px; width: 360px; max-width: 90vw; background: white; border-radius: 16px; box-shadow: 0 16px 40px rgba(0,0,0,0.18), 0 4px 12px rgba(0,0,0,0.08); overflow: hidden; z-index: 10005; border: 3px solid #000; cursor: default;">
                                                 <div class="notification-header" style="padding: 1rem 1.2rem; border-bottom: 3px solid #000; display: flex; justify-content: space-between; align-items: center; background: #f8f9fa;">
                                                     <span style="font-weight: 800; font-size: 1.05rem; color: #111; font-family: 'Manrope', sans-serif;">Notificaciones</span>
                                                     <button onclick="markAllRead()" style="background: var(--color-celeste); border: 2px solid #000; color: #000; font-size: 0.75rem; font-weight: 700; cursor: pointer; padding: 0.4rem 0.8rem; border-radius: 8px; box-shadow: 2px 2px 0px #000;">
@@ -543,7 +587,7 @@
                                         </div>
                                         
                                         <!-- Logout (Restored Desktop Form) -->
-                                        <form id="logout-form" action="{{ route('logout') }}" method="POST" style="display: inline;" class="header-logout-form">
+                                        <form action="{{ route('logout') }}" method="POST" style="display: inline;" class="header-logout-form">
                                             @csrf
                                             <button type="button" 
                                                 onclick="openLogoutModal()"
@@ -571,18 +615,51 @@
                         </div>
                     </header>
 
-                    @if(session('success'))
-                        <div class="alert alert-success">
-                            {{ session('success') }}
-                        </div>
-                    @endif
-                    
-
-                    @if(session('error'))
-                        <div class="alert alert-error">
-                            {{ session('error') }}
+                    <!-- Global Flash Messages (Toast Style) -->
+                    <div id="global-flash-messages" style="position: fixed; top: 100px; right: 20px; z-index: 99999; display: flex; flex-direction: column; gap: 10px; max-width: 90vw; width: 400px; pointer-events: none;">
+                        @if(session('success'))
+                            <div class="neobrutalist-flash success" style="pointer-events: auto; background: #bbf7d0; border: 3px solid #000; padding: 1rem; box-shadow: 4px 4px 0px #000; display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; animation: slideInRight 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
+                                <div style="display: flex; align-items: center; gap: 12px;">
+                                    <i class="fa-solid fa-check-circle" style="font-size: 1.4rem;"></i>
+                                    <span style="font-weight: 700; font-size: 0.95rem;">{{ session('success') }}</span>
+                                </div>
+                                <button onclick="this.parentElement.remove()" style="background: transparent; border: none; font-weight: 900; font-size: 1.5rem; cursor: pointer; padding: 0 0.5rem; line-height: 1;">&times;</button>
                             </div>
-                    @endif
+                        @endif
+
+                        @if(session('error'))
+                            <div class="neobrutalist-flash error" style="pointer-events: auto; background: #fca5a5; border: 3px solid #000; padding: 1rem; box-shadow: 4px 4px 0px #000; display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; animation: slideInRight 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
+                                <div style="display: flex; align-items: center; gap: 12px;">
+                                    <i class="fa-solid fa-triangle-exclamation" style="font-size: 1.4rem;"></i>
+                                    <span style="font-weight: 700; font-size: 0.95rem;">{{ session('error') }}</span>
+                                </div>
+                                <button onclick="this.parentElement.remove()" style="background: transparent; border: none; font-weight: 900; font-size: 1.5rem; cursor: pointer; padding: 0 0.5rem; line-height: 1;">&times;</button>
+                            </div>
+                        @endif
+                    </div>
+
+                    <script>
+                        document.addEventListener('DOMContentLoaded', function() {
+                            const flashes = document.querySelectorAll('.neobrutalist-flash');
+                            if (flashes.length > 0) {
+                                setTimeout(function() {
+                                    flashes.forEach(flash => {
+                                        flash.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+                                        flash.style.opacity = '0';
+                                        flash.style.transform = 'translateX(100%)';
+                                        setTimeout(() => flash.remove(), 500);
+                                    });
+                                }, 10000); // 10 segundos
+                            }
+                        });
+                    </script>
+
+                    <style>
+                        @keyframes slideInRight {
+                            from { transform: translateX(100%); opacity: 0; }
+                            to { transform: translateX(0); opacity: 1; }
+                        }
+                    </style>
 
 
                     <div class="workspace-container" style="width: 100%; max-width: 1400px; min-height: 80vh; padding-top: 20px; margin: 0 auto; display: flex; flex-direction: column;">
@@ -855,7 +932,7 @@
     <div id="report-modal-overlay" class="confirm-modal-overlay" style="display: none; z-index: 100000; background: rgba(0,0,0,0.6);">
         <div class="confirm-modal" style="max-width: 480px; width: 92%; border: 3px solid #000; box-shadow: 8px 8px 0px #000; position: relative;"> 
             <div class="confirm-modal-title report-modal-header" style="background: #000; color: white; position: relative; padding: 1.2rem 2rem; display: flex; align-items: center;">
-                <span class="report-modal-title-text" style="font-family: 'Syne', sans-serif; font-weight: 800; white-space: nowrap; font-size: 0.8rem;">Reportar un problema</span>
+                <span class="report-modal-title-text" style="font-family: 'Inter', sans-serif; font-weight: 700; white-space: nowrap; font-size: 0.8rem;">Reportar un problema</span>
                 <button class="report-modal-close-btn" onclick="closeReportModal()" style="position: absolute; right: 8px; top: 8px; background: none; border: none; color: white; font-size: 1.2rem; cursor: pointer;"><i class="fa-solid fa-times"></i></button>
             </div>
             <style>
@@ -871,6 +948,12 @@
                         display: none !important; /* Hide close button on PC */
                     }
                 }
+                /* Mobile: Make title larger */
+                @media (max-width: 768px) {
+                    .report-modal-title-text {
+                        font-size: 1rem !important;
+                    }
+                }
             </style>
             
             <div class="confirm-modal-message" style="padding: 2rem; text-align: left;">
@@ -881,7 +964,7 @@
                         <input type="hidden" name="url_origen" value="{{ request()->fullUrl() }}">
                         <div style="margin-bottom: 1.2rem;">
                             <label style="font-weight: 400; font-size: 0.8rem; text-transform: uppercase; display: block; margin-bottom: 0.5rem; letter-spacing: 0.5px; font-family: 'Syne', sans-serif; color: #111;">Asunto</label>
-                            <select name="subject" id="report-subject" class="neobrutalist-input modal-select" style="width: 100%; height: 46px; border: 3px solid #000; padding: 0 12px; font-weight: 700; font-size: 0.9rem; background: #fafafa; border-radius: 10px; box-shadow: 4px 4px 0px #000; outline: none; appearance: none; -webkit-appearance: none; -moz-appearance: none; background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23000000%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22/%3E%3C/svg%3E'); background-repeat: no-repeat; background-position: right 12px top 50%; background-size: 12px auto;">
+                            <select name="subject" id="report-subject" class="neobrutalist-input modal-select" style="width: 100%; height: auto; border: 3px solid #000; padding: 12px; font-weight: 700; font-size: 0.95rem; background: #fafafa; border-radius: 10px; box-shadow: 4px 4px 0px #000; outline: none; appearance: none; -webkit-appearance: none; -moz-appearance: none; background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23000000%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22/%3E%3C/svg%3E'); background-repeat: no-repeat; background-position: right 12px top 50%; background-size: 12px auto;">
                                 <option value="Error visual / Diseño" style="background: #fafafa; color: #000;">Error visual / Diseño</option>
                                 <option value="Algo no funciona" style="background: #fafafa; color: #000;">Algo no funciona</option>
                                 <option value="Sugerencia" style="background: #fafafa; color: #000;">Sugerencia</option>
@@ -889,6 +972,71 @@
                             </select>
                             <style>
                                 .modal-select:focus { outline: none !important; border-color: #000 !important; }
+                                
+                                /* Mobile Fix for Select Background */
+                                @media (max-width: 768px) {
+                                    /* Mobile Fix for Select Background - ADVANCED NUCLEAR OPTION */
+                                    select#report-subject {
+                                        /* Remove native styling */
+                                        -webkit-appearance: none !important;
+                                        -moz-appearance: none !important;
+                                        appearance: none !important;
+                                        
+                                        /* Force white background */
+                                        background-color: #ffffff !important;
+                                        color: #000000 !important;
+                                        border: 3px solid #000 !important;
+                                        border-radius: 10px !important;
+                                        padding: 0 12px !important;
+                                        font-weight: 700 !important;
+                                        opacity: 1 !important;
+                                        
+                                        /* Custom Arrow SVG */
+                                        background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e") !important;
+                                        background-repeat: no-repeat !important;
+                                        background-position: right 12px center !important;
+                                        background-size: 16px 16px !important;
+                                    }
+                                    
+                                    /* Force options white */
+                                    select#report-subject option {
+                                        background-color: #ffffff !important;
+                                        color: #000000 !important;
+                                        -webkit-appearance: none !important;
+                                    }
+                                    
+                                    /* CRITICAL: Fix cyan/blue selection color on mobile */
+                                    select#report-subject option:checked {
+                                        background-color: #ffffff !important;
+                                        color: #000000 !important;
+                                        background-image: none !important;
+                                    }
+                                    
+                                    select#report-subject option:hover {
+                                        background-color: #f0f0f0 !important;
+                                        color: #000000 !important;
+                                        background-image: none !important;
+                                    }
+                                    
+                                    select#report-subject option:focus {
+                                        background-color: #ffffff !important;
+                                        color: #000000 !important;
+                                        background-image: none !important;
+                                    }
+                                    
+                                    select#report-subject option:active {
+                                        background-color: #ffffff !important;
+                                        color: #000000 !important;
+                                        background-image: none !important;
+                                    }
+                                    
+                                    /* Focus state */
+                                    select#report-subject:focus {
+                                        outline: none !important;
+                                        background-color: #ffffff !important;
+                                        box-shadow: 4px 4px 0px #000 !important;
+                                    }
+                                }
                             </style>
                         </div>
                         <div class="mb-4">
@@ -1402,10 +1550,10 @@
     @if($showWidget)
     <div id="whatsapp-widget-container" style="position: fixed; bottom: 20px; right: 20px; z-index: 10000; font-family: 'Manrope', sans-serif;">
         <!-- Minimalist Chat Window -->
-        <div id="whatsapp-chat-window" style="display: none; position: absolute; bottom: 95px; right: 0; width: 320px; max-width: 90vw; background: white; border: 3px solid #000; box-shadow: 6px 6px 0px rgba(0,0,0,1); border-radius: 15px; overflow: visible; transform-origin: bottom right; animation: fadeUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); min-height: 380px; max-height: 90vh;">
+        <div id="whatsapp-chat-window" style="display: none; position: absolute; bottom: 95px; right: 5px; width: 320px; max-width: 90vw; background: white; border: 3px solid #000; box-shadow: 6px 6px 0px rgba(0,0,0,1); border-radius: 15px; overflow: visible; transform-origin: bottom right; animation: fadeUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); min-height: 380px; max-height: 90vh; box-sizing: border-box; z-index: 10001;">
             
             <!-- Elegant Header -->
-            <div style="background: #fff; padding: 1rem 1.2rem; display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #000; position: relative;">
+            <div style="background: #fff; padding: 1rem 1.2rem; display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #000; position: relative; border-top-left-radius: 12px; border-top-right-radius: 12px;">
                 <div style="display: flex; align-items: center; gap: 10px;">
                     <div style="width: 45px; height: 45px; border-radius: 50%; border: 2px solid #25D366; overflow: hidden; flex-shrink: 0;">
                         <img src="{{ asset('img/profile-chat.png') }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
@@ -1420,26 +1568,26 @@
 
             <!-- Body -->
             <div style="padding: 1.2rem; background: #fff; display: flex; flex-direction: column; justify-content: center;">
-                <p style="margin: 0 0 1.2rem 0; font-size: 0.85rem; color: #444; line-height: 1.4; font-weight: 600;">
+                <p style="margin: 0 0 1rem 0; font-size: 0.75rem; color: #444; line-height: 1.4; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                     Hola 👋 ¿Cómo puedo ayudarte hoy?
                 </p>
-                <div style="display: flex; flex-direction: column; gap: 0.7rem;">
-                    <a href="https://wa.me/5491139560673?text=Hola,%20quisiera%20reservar%20un%20turno." target="_blank" class="neobrutalist-btn bg-white w-full" style="text-align: center; text-decoration: none; font-size: 0.75rem; padding: 0.5rem 0.8rem; border-width: 2px; box-shadow: 3px 3px 0px #000; border-radius: 8px;">
+                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                    <a href="https://wa.me/5491139560673?text=Hola,%20quisiera%20reservar%20un%20turno." target="_blank" class="neobrutalist-btn bg-white w-full" style="text-align: center; text-decoration: none; font-size: 0.7rem; padding: 0.4rem 0.6rem; border-width: 2px; box-shadow: 3px 3px 0px #000; border-radius: 8px;">
                         🗓️ Reservar turno
                     </a>
-                    <a href="https://wa.me/5491139560673?text=Hola,%20quisiera%20saber%20sobre%20la%20modalidad%20de%20atención." target="_blank" class="neobrutalist-btn bg-white w-full" style="text-align: center; text-decoration: none; font-size: 0.75rem; padding: 0.5rem 0.8rem; border-width: 2px; box-shadow: 3px 3px 0px #000; border-radius: 8px;">
+                    <a href="https://wa.me/5491139560673?text=Hola,%20quisiera%20saber%20sobre%20la%20modalidad%20de%20atención." target="_blank" class="neobrutalist-btn bg-white w-full" style="text-align: center; text-decoration: none; font-size: 0.7rem; padding: 0.4rem 0.6rem; border-width: 2px; box-shadow: 3px 3px 0px #000; border-radius: 8px;">
                         📋 Modalidad atención
                     </a>
-                     <a href="https://wa.me/5491139560673?text=Hola,%20quisiera%20realizar%20una%20consulta." target="_blank" class="neobrutalist-btn bg-white w-full" style="text-align: center; text-decoration: none; font-size: 0.75rem; padding: 0.5rem 0.8rem; border-width: 2px; box-shadow: 3px 3px 0px #000; border-radius: 8px;">
+                     <a href="https://wa.me/5491139560673?text=Hola,%20quisiera%20realizar%20una%20consulta." target="_blank" class="neobrutalist-btn bg-white w-full" style="text-align: center; text-decoration: none; font-size: 0.7rem; padding: 0.4rem 0.6rem; border-width: 2px; box-shadow: 3px 3px 0px #000; border-radius: 8px;">
                         💬 Realizar una consulta
                     </a>
                 </div>
             </div>
             
             <!-- Footer -->
-            <div style="padding: 0.9rem; background: #fafafa; border-top: 2px solid #000; margin-top: auto;">
-                 <a href="https://wa.me/5491139560673" target="_blank" class="neobrutalist-btn" style="background: #25D366; color: white; border: 2px solid #000; width: 100%; text-align: center; justify-content: center; align-items: center; display: flex; gap: 8px; font-weight: 600; padding: 0.7rem; font-size: 0.9rem; box-shadow: 3px 3px 0px #000; font-family: 'Manrope', sans-serif; border-radius: 8px;">
-                    <i class="fa-brands fa-whatsapp" style="font-size: 1.1rem; margin-top: 1px;"></i> Iniciar Chat
+            <div style="padding: 0.8rem; background: #fafafa; border-top: 2px solid #000; margin-top: auto; border-bottom-left-radius: 12px; border-bottom-right-radius: 12px;">
+                 <a href="https://wa.me/5491139560673" target="_blank" class="neobrutalist-btn" style="background: #25D366; color: white; border: 2px solid #000; width: 100%; text-align: center; justify-content: center; align-items: center; display: flex; gap: 6px; font-weight: 600; padding: 0.6rem; font-size: 0.8rem; box-shadow: 3px 3px 0px #000; font-family: 'Manrope', sans-serif; border-radius: 8px;">
+                    <i class="fa-brands fa-whatsapp" style="font-size: 1rem; margin-top: 1px;"></i> Iniciar Chat
                 </a>
             </div>
         </div>
@@ -1650,7 +1798,7 @@
             @endif
             
             @auth
-                @if(auth()->user()->rol == 'paciente')
+                @if(auth()->user()->rol == 'paciente' && !request()->routeIs('login') && !request()->routeIs('register'))
                     <button type="button" onclick="openDeleteModal()" style="background: none; border: none; color: white; text-decoration: underline; cursor: pointer; font-size: 0.85rem; font-family: 'Manrope', sans-serif; margin-bottom: 1rem; display: block; margin-left: auto; margin-right: auto; opacity: 0.8; font-weight: 600; transition: opacity 0.3s ease;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.8'">
                         Quiero darme de baja del sistema
                     </button>
@@ -1790,6 +1938,56 @@
             const s = document.querySelector('.nav-sidebar');
             if(s) s.style.left = '-100%';
         }
+    </script>
+    <script>
+        // SOLUTION 1: NUCLEAR JAVASCRIPT FIX FOR MOBILE SELECT BACKGROUND
+        (function() {
+            // Detect Mobile
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
+            
+            if (!isMobile) return; 
+            
+            // Function to force styles aggressively
+            function forceDropdownStyle() {
+                const selects = document.querySelectorAll('select');
+                
+                selects.forEach(select => {
+                    // Force white background and text
+                    select.style.cssText += `
+                        background-color: white !important;
+                        color: black !important;
+                        -webkit-appearance: none !important;
+                        -moz-appearance: none !important;
+                        appearance: none !important;
+                        opacity: 1 !important;
+                    `;
+                    
+                    // Force options
+                    Array.from(select.options).forEach(option => {
+                        option.style.cssText += `
+                            background-color: white !important;
+                            color: black !important;
+                            padding: 8px !important;
+                        `;
+                    });
+                });
+            }
+            
+            // Run on Load
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', forceDropdownStyle);
+            } else {
+                forceDropdownStyle();
+            }
+            
+            // Run repeatedly to catch dynamic updates or browser overrides
+            setInterval(forceDropdownStyle, 500);
+            
+            // Run on interactions
+            document.addEventListener('touchstart', forceDropdownStyle);
+            document.addEventListener('click', forceDropdownStyle);
+            document.addEventListener('focusin', forceDropdownStyle);
+        })();
     </script>
 </body>
 </html>

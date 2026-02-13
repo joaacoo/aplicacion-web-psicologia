@@ -52,6 +52,11 @@
                                     onclick="openManageModal('{{ $patient->id }}', '{{ $patient->nombre }}', '{{ $patient->email }}', '{{ $patient->telefono ?? 'No registrado' }}', '{{ $patient->tipo_paciente }}', '{{ $patient->meet_link }}', '{{ $patient->paciente->precio_personalizado ?? 0 }}')">
                                         Gestionar
                                     </button>
+                                    <a href="{{ $patient->paciente ? route('admin.clinical-history.index', $patient->paciente->id) : '#' }}" 
+                                       class="neobrutalist-btn bg-white" 
+                                       style="padding: 0.2rem 0.6rem; font-size: 0.7rem; text-decoration: none; color: black; border: 2px solid #000; {{ !$patient->paciente ? 'opacity: 0.5; pointer-events: none;' : '' }}">
+                                        <i class="fa-solid fa-file-medical"></i> Historia
+                                    </a>
                                 </div>
                             </td>
                         </tr>

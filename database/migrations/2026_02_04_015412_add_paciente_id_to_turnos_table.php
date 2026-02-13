@@ -11,9 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('turnos', function (Blueprint $table) {
-            $table->foreignId('paciente_id')->nullable()->constrained('pacientes')->onDelete('set null');
-        });
+        if (!Schema::hasColumn('turnos', 'paciente_id')) {
+            Schema::table('turnos', function (Blueprint $table) {
+                $table->foreignId('paciente_id')->nullable()->constrained('pacientes')->onDelete('set null');
+            });
+        }
 
         // Backfill Logic
         $turnos = \Illuminate\Support\Facades\DB::table('turnos')->get();

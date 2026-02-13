@@ -91,6 +91,14 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/admin/waitlist', [DashboardController::class, 'adminWaitlist'])->name('admin.waitlist');
         Route::get('/admin/configuracion', [DashboardController::class, 'adminConfiguracion'])->name('admin.configuracion');
         Route::get('/admin/historial', [DashboardController::class, 'adminHistorial'])->name('admin.historial');
+        // Clinical History Routes
+        Route::get('/admin/pacientes/{pacienteId}/historia-clinica', [App\Http\Controllers\ClinicalHistoryController::class, 'index'])->name('admin.clinical-history.index');
+        Route::post('/admin/pacientes/{pacienteId}/historia-clinica/{turnoId}', [App\Http\Controllers\ClinicalHistoryController::class, 'store'])->name('admin.clinical-history.store');
+        Route::put('/admin/pacientes/{pacienteId}/historia-clinica/{turnoId}', [App\Http\Controllers\ClinicalHistoryController::class, 'update'])->name('admin.clinical-history.update');
+        Route::get('/admin/pacientes/{pacienteId}/historia-clinica/search', [App\Http\Controllers\ClinicalHistoryController::class, 'search'])->name('admin.clinical-history.search');
+        Route::get('/admin/pacientes/{pacienteId}/historia-clinica/export-pdf', [App\Http\Controllers\ClinicalHistoryController::class, 'exportPdf'])->name('admin.clinical-history.export-pdf');
+
+
         Route::get('/admin/appointments', [AppointmentController::class, 'index'])->name('admin.appointments');
         Route::post('/admin/appointments/{id}/confirm', [AppointmentController::class, 'confirm'])->name('admin.appointments.confirm');
         Route::post('/admin/appointments/{id}/cancel', [AppointmentController::class, 'cancel'])->name('admin.appointments.cancel');

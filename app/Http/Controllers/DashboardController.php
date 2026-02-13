@@ -333,7 +333,7 @@ class DashboardController extends Controller
     {
         $patients = \App\Models\User::where('rol', 'paciente')
             ->orderBy('nombre', 'asc')
-            ->with(['documents'])
+            ->with(['documents', 'paciente'])
             ->get();
 
         $basePrice = \App\Models\Setting::get('precio_base_sesion', 25000);

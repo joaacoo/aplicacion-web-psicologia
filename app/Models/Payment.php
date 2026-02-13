@@ -4,10 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Payment extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $table = 'pagos';
 
@@ -20,6 +21,7 @@ class Payment extends Model
 
     protected $casts = [
         'verificado_en' => 'datetime',
+        'deleted_at' => 'datetime',
     ];
 
     public function appointment()

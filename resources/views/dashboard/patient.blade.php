@@ -132,11 +132,12 @@
         #whatsapp-chat-window {
             width: 85vw !important;
             max-width: 320px !important;
-            right: 0 !important; /* Reset to 0 to avoid cutting off right shadow */
+            right: 5px !important; /* Added space from right edge */
             bottom: 85px !important;
             min-height: auto !important;
             max-height: 80vh !important;
-            margin-right: 5px !important; /* Small margin to see the shadow fully */
+            box-sizing: border-box !important; /* Ensure border is included in width */
+            margin-right: 0 !important;
         }
 
         #whatsapp-chat-window > div:nth-child(2) { /* Body content */
