@@ -201,9 +201,10 @@ class AuthController extends Controller
             'meet_link' => 'nullable|url'
         ]);
 
-        $user->update([
-            'meet_link' => $request->meet_link
-        ]);
+        $user->paciente()->updateOrCreate(
+            ['user_id' => $user->id],
+            ['meet_link' => $request->meet_link]
+        );
 
         return back()->with('success', 'Link de Meet actualizado correctamente para ' . $user->nombre);
     }
@@ -212,21 +213,21 @@ class AuthController extends Controller
     {
         $user = User::findOrFail($id);
         
-        // Notificar por DB
-        \App\Models\Notification::create([
-            'usuario_id' => $user->id,
+        // Notificar por DB y Mail usando el sistema de notificaciones
+        $user->notify(new \App\Notifications\PatientNotification([
+            'title' => 'Recordatorio de Profesional',
             'mensaje' => 'La Lic. Nazarena De Luca te ha enviado un recordatorio. Por favor, revisá tus turnos pendientes.',
-            'link' => route('patient.dashboard')
-        ]);
+            'link' => route('patient.dashboard'),
+            'type' => 'recordatorio'
+        ]));
 
-        // Enviar mail genérico de recordatorio
-        try {
-            \Illuminate\Support\Facades\Mail::raw("Hola {$user->nombre}, la Lic. Nazarena De Luca te envía este recordatorio acerca de tus sesiones. Por favor, ingresá al portal para más detalles.", function($msg) use ($user) {
-                $msg->to($user->email)->subject('Recordatorio - Lic. Nazarena De Luca');
-            });
-        } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error("Error enviando recordatorio manual: " . $e->getMessage());
-        }
+        // Enviar mail genérico de recordatorio (opcional si PatientNotification ya envía mail)
+        // Pero PatientNotification ya envía mail si 'via' incluye 'mail'.
+        // Sin embargo, el código anterior tenía un mail raw específico.
+        // Lo mantendré igual para no cambiar el comportamiento de mail si no es necesario,
+        // pero PatientNotification ya tiene un toMail decente.
+        // En realidad, duplicar el mail no es bueno.
+        // Borraré el mail raw de abajo ya que PatientNotification (['mail', 'database']) ya lo hace.
 
         return back()->with('success', 'Recordatorio enviado con éxito a ' . $user->nombre);
     }

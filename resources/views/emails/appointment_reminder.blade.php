@@ -26,6 +26,12 @@
         </div>
         <a href="{{ url('/dashboard') }}" class="btn" style="background: #10B981; color: white;">INGRESAR AL PORTAL</a>
         <p style="font-size: 0.85rem; color: #666; margin-top: 10px;">(El link de Meet estará activo 1 hora antes de la sesión)</p>
+    @elseif($tipo_aviso == 'recordatorio_confirmado')
+        <div style="background: #DBEAFE; padding: 15px; border: 2px solid #000; margin: 20px 0;">
+            <p style="margin:0;"><strong>¡Todo listo!</strong> Te recordamos tu sesión de mañana. Recordá que podés acceder al link de la reunión desde tu portal 1 hora antes del comienzo.</p>
+        </div>
+        <p>Acceder a mi portal:</p>
+        <a href="{{ url('/dashboard') }}" class="btn" style="background: #60A5FA; color: white;">Ir al Portal</a>
     @endif
 
     <p>Si ya lo subiste o ya realizaste el pago, por favor desestimá este mail.</p>

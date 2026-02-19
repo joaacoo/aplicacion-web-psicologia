@@ -77,6 +77,7 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/payments', [PaymentController::class, 'store'])->name('payments.store');
         Route::delete('/account', [AuthController::class, 'destroyAccount'])->name('patient.account.destroy');
         Route::post('/appointments/{id}/cancel', [AppointmentController::class, 'cancel'])->name('appointments.cancel');
+        Route::post('/appointments/upload-proof', [AppointmentController::class, 'uploadProof'])->name('appointments.upload-proof');
         Route::get('/documents', [DashboardController::class, 'patientDocuments'])->name('patient.documents');
     });
 
@@ -120,7 +121,7 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/admin/activity-logs/{id}/revert', [\App\Http\Controllers\ActivityLogController::class, 'revert'])->name('admin.activity-logs.revert');
 
         Route::post('/admin/patients/{id}/update-type', [AuthController::class, 'updatePatientType'])->name('admin.patients.update-type');
-        Route::post('/admin/patients/{id}/update-link', [AuthController::class, 'updateMeetLink'])->name('admin.patients.update-link');
+        Route::post('/admin/patients/{id}/update-meet', [AuthController::class, 'updateMeetLink'])->name('admin.patients.update-meet');
         Route::post('/admin/patients/{id}/send-reminder', [AuthController::class, 'sendManualReminder'])->name('admin.patients.send-reminder');
 
         Route::delete('/admin/patients/{id}', [AuthController::class, 'destroyPatient'])->name('admin.patients.destroy');
@@ -143,6 +144,7 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/admin/calendar/token', [\App\Http\Controllers\CalendarController::class, 'generateToken'])->name('admin.calendar.generateToken');
         Route::post('/admin/calendar/google-url', [\App\Http\Controllers\CalendarController::class, 'updateGoogleUrl'])->name('admin.calendar.google-url');
         Route::post('/admin/calendar/sync', [\App\Http\Controllers\CalendarController::class, 'syncGoogle'])->name('admin.calendar.sync');
+        Route::post('/admin/calendar/sync-force', [\App\Http\Controllers\CalendarController::class, 'syncGoogleForce'])->name('admin.calendar.sync-force');
         Route::post('/admin/calendar/toggle-weekends', [\App\Http\Controllers\CalendarController::class, 'toggleWeekends'])->name('admin.calendar.toggle-weekends');
         
         // Gemini AI

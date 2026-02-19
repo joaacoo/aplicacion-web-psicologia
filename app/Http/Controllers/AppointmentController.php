@@ -40,7 +40,9 @@ class AppointmentController extends Controller
             'usuario_id' => Auth::id(),
             'fecha_hora' => $appointmentDate,
             'modalidad' => $request->modalidad,
+            'frecuencia' => $request->frecuencia,
             'estado' => 'pendiente',
+            'es_recurrente' => true, // New bookings are fixed/recurring by default now
             'notas' => $request->notes,
             'vence_en' => $appointmentDate->copy()->subHours(20),
         ]);
@@ -59,13 +61,57 @@ class AppointmentController extends Controller
         if ($admin) {
             $admin->notify(new \App\Notifications\AdminNotification([
                 'title' => 'Reserva de Turno',
-                'mensaje' => 'Nuevo turno reservado por ' . Auth::user()->nombre . ' para el ' . $appointmentDate->format('d/m H:i'),
+                'mensaje' => 'Nuevo turno reservado por ' . Auth::user()->nombre . ' para el ' . $appointmentDate->format('d/m H:i') . 
+                            ' (' . ucfirst($request->frecuencia ?? 'semanal') . ') ' . 
+                            ($appt->es_recurrente ? '[Reserva Fija]' : '[Turno Eventual]'),
                 'link' => route('admin.dashboard'),
                 'type' => 'reserva'
             ]));
         }
 
         return redirect()->route('patient.dashboard')->with('success', 'Turno solicitado. Tu comprobante fue enviado y está en revisión.');
+    }
+
+    /**
+     * Handle payment proof upload for an existing appointment.
+     */
+    public function uploadProof(Request $request)
+    {
+        $request->validate([
+            'appointment_id' => 'required|exists:turnos,id',
+            'proof' => 'required|file|mimes:jpg,jpeg,png,pdf|max:10240',
+        ]);
+
+        $appt = Appointment::findOrFail($request->appointment_id);
+
+        // Security check
+        if ($appt->usuario_id !== Auth::id()) {
+            abort(403);
+        }
+
+        $path = $request->file('proof')->store('pagos', 'public');
+
+        // Create or Update Payment
+        $appt->payment()->updateOrCreate(
+            ['turno_id' => $appt->id],
+            [
+                'comprobante_ruta' => $path,
+                'estado' => 'pendiente',
+            ]
+        );
+
+        // Notify Admin
+        $admin = \App\Models\User::where('rol', 'admin')->first();
+        if ($admin) {
+            $admin->notify(new \App\Notifications\AdminNotification([
+                'title' => 'Nuevo Comprobante Recibido',
+                'mensaje' => Auth::user()->nombre . ' subió un comprobante para el turno del ' . $appt->fecha_hora->format('d/m H:i'),
+                'link' => route('admin.pagos'),
+                'type' => 'pago'
+            ]));
+        }
+
+        return back()->with('success', 'Comprobante subido con éxito. El pago está siendo verificado.');
     }
 
     public function confirm($id)
@@ -117,14 +163,23 @@ class AppointmentController extends Controller
         
         // Authorization check - admin or owner can cancel
         $this->authorize('cancel', $appointment);
-        $appointment->update(['estado' => 'cancelado']);
-
-        // Notificar al Paciente por DB
-        \App\Models\Notification::create([
-            'usuario_id' => $appointment->usuario_id,
-            'mensaje' => 'Tu turno para el ' . $appointment->fecha_hora->format('d/m H:i') . ' ha sido cancelado.',
-            'link' => route('patient.dashboard')
+        // Cancellation Policy: if < 24h before, mark as must pay
+        $mustPay = now()->diffInHours($appointment->fecha_hora, false) < 24;
+        
+        $appointment->update([
+            'estado' => 'cancelado',
+            'debe_pagarse' => $appointment->debe_pagarse || $mustPay
         ]);
+
+        // Notificar al Paciente (Mail + DB)
+        if ($appointment->user) {
+            $appointment->user->notify(new \App\Notifications\PatientNotification([
+                'title' => 'Turno Cancelado',
+                'mensaje' => 'Tu turno para el ' . $appointment->fecha_hora->format('d/m H:i') . ' ha sido cancelado.',
+                'link' => route('patient.dashboard'),
+                'type' => 'cancelado'
+            ]));
+        }
 
         // Lógica de Lista de Espera: Buscar el primero de la lista
         $nextInLine = \App\Models\Waitlist::where(function($q) use ($appointment) {
@@ -140,18 +195,13 @@ class AppointmentController extends Controller
 
         if ($nextInLine) {
             if ($nextInLine->usuario_id && $nextInLine->user) {
-                // Notificar por DB
-                \App\Models\Notification::create([
-                    'usuario_id' => $nextInLine->usuario_id,
+                // Notificar por DB y Mail usando el sistema de notificaciones
+                $nextInLine->user->notify(new \App\Notifications\PatientNotification([
+                    'title' => '¡Turno Disponible!',
                     'mensaje' => '¡Buenas noticias! Se liberó el turno del ' . $appointment->fecha_hora->format('d/m H:i') . '. Podés reservarlo ahora.',
-                    'link' => route('patient.dashboard')
-                ]);
-
-                try {
-                    \Illuminate\Support\Facades\Mail::raw('Se liberó un turno el ' . $appointment->fecha_hora->format('d/m H:i') . ' que te interesaba. Entrá al portal rápido para reservarlo antes de que alguien más lo tome.', function($msg) use ($nextInLine) {
-                        $msg->to($nextInLine->user->email)->subject('¡Turno disponible!');
-                    });
-                } catch (\Exception $e) {}
+                    'link' => route('patient.dashboard'),
+                    'type' => 'turno_disponible'
+                ]));
             }
 
             // Opcionalmente: Podríamos borrarlo de la lista para que no siga recibiendo avisos si no lo toma?

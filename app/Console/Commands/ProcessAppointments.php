@@ -35,34 +35,66 @@ class ProcessAppointments extends Command
         // So Reminder (T-24) happens BEFORE vence_en.
         // Rule: T-24 is Appt - 24 hours.
         
-        // 1. Reminders (T-24h) - NOW FOR ALL PATIENTS (Confirmed + Pendiente)
+        // 1. Reminders (T-24h and T-1h)
         $appointmentsForReminder = \App\Models\Appointment::whereIn('estado', ['pendiente', 'confirmado'])
-            ->get(); // We filter mostly in loop or improve query for time
-
-        // Better Query for T-24h
-        // We need appointments that happen tomorrow around this time.
-        // Actually the loop logic below checks times specific to each appointment.
-        // Let's get all active appointments that haven't been notified yet.
-        $appointmentsForReminder = \App\Models\Appointment::whereIn('estado', ['pendiente', 'confirmado'])
-            ->whereNull('notificado_recordatorio_en')
-            ->where('fecha_hora', '>=', $now) // Future appointments
-            ->where('fecha_hora', '<=', $now->copy()->addHours(48)) // Optimization: don't load everything
+            ->where('fecha_hora', '>=', $now)
+            ->where('fecha_hora', '<=', $now->copy()->addHours(48))
             ->get();
 
         foreach ($appointmentsForReminder as $appt) {
             $appointmentTime = $appt->fecha_hora;
+            $user = $appt->user;
             
-            // T-24h Reminder (Logic: Between T-25h and T-21h to be safe and catch the window)
-            // Original logic: $now >= Appt-24h AND $now < Appt-21h
-            if ($now->greaterThanOrEqualTo($appointmentTime->copy()->subHours(24)) && 
-                $now->lessThan($appointmentTime->copy()->subHours(21))) {
+            // T-24h Reminder
+            if (!$appt->notificado_recordatorio_en &&
+                $now->greaterThanOrEqualTo($appointmentTime->copy()->subHours(24)) && 
+                $now->lessThan($appointmentTime->copy()->subHours(20))) {
                 
                 try {
-                    \Illuminate\Support\Facades\Mail::to($appt->user->email)->send(new \App\Mail\AppointmentReminder($appt->user->nombre, $appt->fecha_hora->format('d/m H:i'), 'recordatorio'));
+                    $tipoAviso = ($appt->estado === 'confirmado') ? 'recordatorio_confirmado' : 'recordatorio';
+                    $msg = ($appt->estado === 'confirmado') 
+                        ? 'Recordá que tenés una sesión mañana a las ' . $appointmentTime->format('H:i') . ' hs.'
+                        : 'Recordá que tenés una sesión mañana a las ' . $appointmentTime->format('H:i') . ' hs. Recordá subir el comprobante para confirmar.';
+
+                    // Mail
+                    \Illuminate\Support\Facades\Mail::to($user->email)->send(new \App\Mail\AppointmentReminder($user->nombre, $appointmentTime->format('d/m H:i'), $tipoAviso));
+                    
+                    // Web Notification
+                    $user->notify(new \App\Notifications\PatientNotification([
+                        'title' => 'Recordatorio de Sesión',
+                        'mensaje' => $msg,
+                        'link' => route('patient.dashboard'),
+                        'type' => 'info'
+                    ]));
+
                     $appt->update(['notificado_recordatorio_en' => $now]);
-                    $this->info("Sent reminder to: " . $appt->user->email);
+                    $this->info("Sent 24h reminder to: " . $user->email);
                 } catch (\Exception $e) {
-                    $this->error("Failed to send reminder to " . $appt->user->email);
+                    $this->error("Failed to send 24h reminder to " . $user->email . ": " . $e->getMessage());
+                }
+            }
+
+            // T-1h Reminder
+            if (!$appt->notificado_una_hora_en &&
+                $now->greaterThanOrEqualTo($appointmentTime->copy()->subMinutes(60)) && 
+                $now->lessThan($appointmentTime)) {
+                
+                try {
+                    // Mail
+                    \Illuminate\Support\Facades\Mail::to($user->email)->send(new \App\Mail\AppointmentReminder($user->nombre, $appointmentTime->format('H:i'), 'proxima_sesion'));
+                    
+                    // Web Notification
+                    $user->notify(new \App\Notifications\PatientNotification([
+                        'title' => 'Sesión en 1 hora',
+                        'mensaje' => 'Tu sesión comienza en 1 hora (a las ' . $appointmentTime->format('H:i') . ' hs).',
+                        'link' => route('patient.dashboard'),
+                        'type' => 'warning'
+                    ]));
+
+                    $appt->update(['notificado_una_hora_en' => $now]);
+                    $this->info("Sent 1h reminder to: " . $user->email);
+                } catch (\Exception $e) {
+                    $this->error("Failed to send 1h reminder to " . $user->email . ": " . $e->getMessage());
                 }
             }
         }
@@ -93,12 +125,13 @@ class ProcessAppointments extends Command
             if ($now->greaterThanOrEqualTo($appt->vence_en)) {
                 $appt->update(['estado' => 'cancelado']);
                 
-                // Notify via DB
-                \App\Models\Notification::create([
-                    'usuario_id' => $appt->usuario_id,
+                // Notify via DB and Mail
+                $appt->user->notify(new \App\Notifications\PatientNotification([
+                    'title' => 'Turno Cancelado Automat.',
                     'mensaje' => 'Tu turno para el ' . $appt->fecha_hora->format('d/m H:i') . ' ha sido cancelado automáticamente por falta de pago.',
-                    'link' => route('patient.dashboard')
-                ]);
+                    'link' => route('patient.dashboard'),
+                    'type' => 'cancelación_automática'
+                ]));
 
                 $this->info("Cancelled appointment: " . $appt->id);
             }
@@ -126,20 +159,19 @@ class ProcessAppointments extends Command
                 // Simpler: Just create a notification in DB.
                 
                 foreach ($appointmentsTomorrowWithPendingProof as $appt) {
-                     // Check if notification already exists for this specific issue today
-                     $exists = \App\Models\Notification::where('usuario_id', $admin->id)
-                        ->where('mensaje', 'like', '%Revisar comprobante pendiente%')
+                     // Check if notification already exists using standard notifications table
+                     $exists = $admin->notifications()
+                        ->where('data->mensaje', 'like', '%Revisar comprobante pendiente%')
                         ->where('created_at', '>=', $now->copy()->startOfDay())
                         ->exists();
 
                      if (!$exists) {
-                        \App\Models\Notification::create([
-                            'usuario_id' => $admin->id,
+                        $admin->notify(new \App\Notifications\AdminNotification([
+                            'title' => 'Comprobante Pendiente',
                             'mensaje' => '⚠️ Revisar comprobante pendiente para el turno de mañana: ' . $appt->user->nombre,
-                            'link' => route('payments.showProof', $appt->payment->id)
-                        ]);
-                        
-                        // Optional: Email to admin? User said "ponga", sounds like notification/alert.
+                            'link' => route('payments.showProof', $appt->payment->id),
+                            'type' => 'pago_pendiente'
+                        ]));
                      }
                 }
             }

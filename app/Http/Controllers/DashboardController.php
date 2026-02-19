@@ -30,10 +30,47 @@ class DashboardController extends Controller
 
         $perPage = $isMobile ? 3 : 5;
 
-        $appointments = Appointment::where('usuario_id', Auth::id())
-            ->with('payment')
+        $query = Appointment::where('usuario_id', Auth::id())
+            ->with(['payment'])
             ->orderBy('fecha_hora', 'desc')
-            ->paginate($perPage);
+            ->orderBy('id', 'desc');
+
+        // Apply Month Filter
+        if (request('month')) {
+            $date = \Carbon\Carbon::parse(request('month'));
+            $query->whereMonth('fecha_hora', $date->month)
+                  ->whereYear('fecha_hora', $date->year);
+        }
+
+        // Apply Status Filter
+        if (request('status')) {
+            switch (request('status')) {
+                case 'cancelado':
+                    $query->where('estado', 'cancelado');
+                    break;
+                case 'realizado':
+                    $query->where('estado', 'confirmado')
+                          ->where('fecha_hora', '<', now());
+                    break;
+                case 'proximo':
+                    $query->where('estado', 'confirmado')
+                          ->where('fecha_hora', '>=', now());
+                    break;
+                case 'eventual':
+                    $query->where('es_recurrente', false);
+                    break;
+            }
+        }
+
+        $appointments = $query->paginate($perPage);
+
+        if (request()->ajax()) {
+            return view('dashboard.patient', [
+                'appointments' => $appointments,
+                'isMobile' => $isMobile,
+                'isAjax' => true
+            ])->render();
+        }
 
         // Obtener configuración del Admin
         $adminUser = \App\Models\User::where('rol', 'admin')->with('profesional')->first();
@@ -160,7 +197,27 @@ class DashboardController extends Controller
             ->values()
             ->toArray();
 
-        return view('dashboard.patient', compact('appointments', 'availabilities', 'occupiedSlots', 'nextAppointment', 'resources', 'documents', 'googleAvailableSlots', 'blockedDays', 'blockWeekends', 'patientAppointmentsDates'));
+        // Check for Fixed Reservation (Recurring)
+        $fixedReservation = Appointment::where('usuario_id', Auth::id())
+            ->where('es_recurrente', true)
+            ->where('estado', '!=', 'cancelado')
+            ->where('fecha_hora', '>=', now()->startOfDay())
+            ->orderBy('fecha_hora', 'asc')
+            ->first();
+
+        return view('dashboard.patient', compact(
+            'appointments', 
+            'availabilities', 
+            'occupiedSlots', 
+            'nextAppointment', 
+            'resources', 
+            'documents', 
+            'googleAvailableSlots', 
+            'blockedDays', 
+            'blockWeekends', 
+            'patientAppointmentsDates',
+            'fixedReservation'
+        ));
     }
 
     public function patientDocuments()
@@ -299,7 +356,7 @@ class DashboardController extends Controller
         //     return redirect()->route('admin.developer');
         // }
 
-        // Sincronización automática de Google Calendar
+        // Sincronización automática de Google Calendar (Throttled inside service)
         if (auth()->user()->google_calendar_url) {
             $this->syncService->sync(auth()->user());
         }
@@ -353,37 +410,40 @@ class DashboardController extends Controller
         $welcomeMessage = preg_replace('/ (\p{So})/u', "\u{00A0}$1", $welcomeMessage);
 
 
-        // --- Nuevas Métricas Financieras ---
-        
-        // 1. Ingresos del Mes (Solo pagos APROBADOS este mes)
-        $monthlyIncome = Appointment::whereYear('fecha_hora', now()->year)
-            ->whereMonth('fecha_hora', now()->month)
-            ->whereHas('payment', function($q) {
-                $q->where('estado', 'verificado');
-            })
-            ->sum('monto_final');
+        // --- Nuevas Métricas Financieras (CACHED for 30 seconds) ---
+        $stats = \Illuminate\Support\Facades\Cache::remember('admin_dashboard_stats', 30, function() {
+            // 1. Ingresos del Mes (Solo pagos APROBADOS este mes)
+            $monthlyIncome = Appointment::whereYear('fecha_hora', now()->year)
+                ->whereMonth('fecha_hora', now()->month)
+                ->whereHas('payment', function($q) {
+                    $q->where('estado', 'verificado');
+                })
+                ->sum('monto_final');
 
-        // 2. Por Cobrar (En realidad: DINERO EN REVISIÓN / Comprobantes Pendientes)
-        // User requested COUNT of pending receipts, not amount.
-        $pendingIncome = Appointment::whereHas('payment', function($q) {
-                $q->where('estado', 'pendiente');
-            })
-            ->count();
+            // 2. Por Cobrar (En realidad: DINERO EN REVISIÓN / Comprobantes Pendientes)
+            $pendingIncome = Appointment::whereHas('payment', function($q) {
+                    $q->where('estado', 'pendiente');
+                })
+                ->count();
 
-        // 3. Pacientes Nuevos (Total registrados, o ajustar rango si se desea)
-        // User reports seeing 0 when there are known new patients. Checking broader definition.
-        $newPatientsCount = \App\Models\User::where('rol', 'paciente')
-            ->whereYear('created_at', now()->year)
-            ->count();
+            // 3. Pacientes Nuevos (Total registrados, o ajustar rango si se desea)
+            $newPatientsCount = \App\Models\User::where('rol', 'paciente')
+                ->whereYear('created_at', now()->year)
+                ->count();
 
-        // 4. Sesiones Facturadas y Promedio
-        $sessionsThisMonth = Appointment::whereYear('fecha_hora', now()->year)
-            ->whereMonth('fecha_hora', now()->month)
-            ->whereIn('estado', ['confirmado', 'asistido', 'completado'])
-            ->get();
-            
-        $sessionsCount = $sessionsThisMonth->count();
-        $averageSessionPrice = $sessionsCount > 0 ? $sessionsThisMonth->avg('monto_final') : 0;
+            // 4. Sesiones Facturadas y Promedio
+            $sessionsThisMonth = Appointment::whereYear('fecha_hora', now()->year)
+                ->whereMonth('fecha_hora', now()->month)
+                ->whereIn('estado', ['confirmado', 'asistido', 'completado'])
+                ->get();
+                
+            $sessionsCount = $sessionsThisMonth->count();
+            $averageSessionPrice = $sessionsCount > 0 ? $sessionsThisMonth->avg('monto_final') : 0;
+
+            return compact('monthlyIncome', 'pendingIncome', 'newPatientsCount', 'sessionsCount', 'averageSessionPrice');
+        });
+
+        extract($stats);
 
         return view('dashboard.admin.home', [
             'todayAppointments' => $todayAppointments,
@@ -400,13 +460,10 @@ class DashboardController extends Controller
 
     public function adminAgenda(Request $request)
     {
-        // Sincronización automática de Google Calendar
-        if (auth()->user()->google_calendar_url) {
-            $this->syncService->sync(auth()->user());
-        }
-
+        // Sincronización automática de Google Calendar removida por rendimiento
+        
         // Definir mes y año (Default: Hoy, pero clamped a Enero 2026 como mínimo si se pide histórico)
-        // La solicitud del usuario dice "apartir de enero de 2026 para aca adelante", implicando que ese es el inicio.
+  // La solicitud del usuario dice "apartir de enero de 2026 para aca adelante", implicando que ese es el inicio.
         $now = now();
         $month = $request->input('month', $now->month);
         $year = $request->input('year', $now->year);
@@ -453,24 +510,55 @@ class DashboardController extends Controller
             ->whereMonth('date', $month)
             ->get();
 
+        $prev = $currentDate->copy()->subMonth();
+        $minAllowed = \Carbon\Carbon::create(2026, 1, 1)->startOfDay();
+
         return view('dashboard.admin.agenda', compact(
             'todayAppointments', 
             'nextAdminAppointment', 
             'appointments', 
             'externalEvents', 
             'recentRegistrations',
-            'recentRegistrations',
             'currentDate', // Para la navegación en la vista
+            'prev',
+            'minAllowed',
             'blockedDays' // Pass blocked days/holidays
         ));
     }
 
-    public function adminPacientes()
+    public function adminPacientes(Request $request)
     {
-        $patients = \App\Models\User::where('rol', 'paciente')
-            ->orderBy('nombre', 'asc')
-            ->with(['documents', 'paciente'])
-            ->get();
+        $search = $request->input('search');
+        $type = $request->input('type');
+        $sort = $request->input('sort', 'name'); // default sort by name
+        $order = $request->input('order', 'asc');
+
+        $query = \App\Models\User::where('rol', 'paciente')
+            ->select('id', 'nombre', 'email', 'created_at') // Limit columns for User
+            ->with(['paciente:id,user_id,tipo_paciente,telefono,meet_link,precio_personalizado', 'turnos' => function($q) {
+                $q->where('es_recurrente', true)->orderBy('fecha_hora', 'desc')->limit(1); // Only need the most recent recurring one
+            }]);
+
+        // Filter by Name
+        if ($search) {
+            $query->where('nombre', 'like', '%' . $search . '%');
+        }
+
+        // Filter by Type
+        if ($type) {
+            $query->whereHas('paciente', function($q) use ($type) {
+                $q->where('tipo_paciente', $type);
+            });
+        }
+
+        // Sort
+        if ($sort === 'turnos') {
+            $query->orderBy('turnos_count', $order);
+        } else {
+            $query->orderBy('nombre', $order);
+        }
+
+        $patients = $query->paginate(6)->appends($request->all());
 
         $basePrice = \App\Models\Setting::get('precio_base_sesion', 25000);
 

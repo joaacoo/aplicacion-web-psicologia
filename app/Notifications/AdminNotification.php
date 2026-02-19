@@ -38,7 +38,7 @@ class AdminNotification extends Notification
     {
         return (new MailMessage)
             ->subject('Nueva notificación: ' . ($this->data['title'] ?? 'Soporte'))
-            ->greeting('Hola soporte.')
+            ->greeting('Hola, Lic. Nazarena De Luca.')
             ->line($this->data['mensaje'])
             ->action('Ver en el portal', $this->data['link'] ?? route('admin.dashboard'))
             ->line('Gracias por usar la plataforma.')

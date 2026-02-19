@@ -8,7 +8,7 @@
     
     <!-- CSS -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-    <link rel="icon" type="image/jpeg" href="{{ asset('img/069b6f01-e0b6-4089-9e31-e383edf4ff62.jpg') }}?v={{ time() }}">
+    <link rel="icon" type="image/jpeg" href="{{ asset('img/069b6f01-e0b6-4089-9e31-e383edf4ff62.jpg') }}">
     <link rel="stylesheet" href="{{ asset('css/whatsapp_widget.css') }}">
     <style>
         /* Body Fix for Full Width Footer */
@@ -1380,44 +1380,44 @@
                 const res = await fetch('{{ route("notifications.latest") }}');
                 const data = await res.json();
                 
+                // data now expects { notifications: [], unread_count: X }
+                const notifications = data.notifications || [];
+                const unreadCount = data.unread_count || 0;
+
                 // Buscar elementos tanto de admin como de paciente
                 const countDesktop = document.getElementById('notif-count') || document.getElementById('patient-notif-count');
                 const countMobile = document.getElementById('notif-count-mobile');
                 const items = document.getElementById('notif-items') || document.getElementById('patient-notif-items');
                 
-                if (data && data.length > 0) {
-                    if (countDesktop) {
-                        countDesktop.innerText = data.length;
-                        countDesktop.style.display = 'flex';
-                    }
-                    if (countMobile) {
-                        countMobile.innerText = data.length;
-                        countMobile.style.display = 'flex';
-                    }
-                    
-                    if (items) {
-                        items.innerHTML = data.map(n => `
-                            <div class="notification-item" data-id="${n.id}" style="border-bottom: 1px solid #f0f0f0; padding: 16px 24px; display: block; text-decoration: none; cursor: pointer; background: white;" onclick="markAsRead(${n.id})">
-                                <div style="display: flex; justify-content: space-between; align-items: start; gap: 12px;">
-                                    <div style="flex: 1;">
-                                        <p style="margin:0; font-size: 0.9rem; font-weight: 500; font-family: 'Inter', sans-serif; color: #1f2937; line-height: 1.5;">${n.mensaje}</p>
-                                        <small style="color: #6b7280; font-size: 0.75rem; font-weight: 400; display: block; margin-top: 6px; font-family: 'Inter', sans-serif;">
-                                            ${new Date(n.created_at).toLocaleDateString()} a las ${new Date(n.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                                        </small>
-                                    </div>
-                                    <div style="width: 8px; height: 8px; background: #3b82f6; border-radius: 50%; margin-top: 6px;"></div>
-                                </div>
-                            </div>
-                        `).join('');
-                    }
-                } else {
-                    if (countDesktop) countDesktop.style.display = 'none';
-                    if (countMobile) countMobile.style.display = 'none';
-                    if (showInDropdown && items) {
-                        items.innerHTML = '<div class="notification-empty" style="padding: 4rem 2rem; text-align: center; color: #a1a1a1; font-family: \'Inter\', sans-serif;"><p style="margin: 0; font-weight: 500; font-size: 0.95rem;">No tienes nuevas notificaciones</p></div>';
-                    }
+                if (countDesktop) {
+                    countDesktop.innerText = unreadCount;
+                    countDesktop.style.display = unreadCount > 0 ? 'flex' : 'none';
                 }
-            } catch (e) { console.error("Error fetching notifications", e); }
+                if (countMobile) {
+                    countMobile.innerText = unreadCount;
+                    countMobile.style.display = unreadCount > 0 ? 'flex' : 'none';
+                }
+                
+                if (items && notifications.length > 0) {
+                    items.innerHTML = notifications.map(n => `
+                        <div class="notification-item" data-id="${n.id}" style="border-bottom: 1px solid #f0f0f0; padding: 16px 24px; display: block; text-decoration: none; cursor: pointer; background: ${n.leido ? 'white' : '#f9fafb'};" onclick="markAsRead('${n.id}')">
+                            <div style="display: flex; justify-content: space-between; align-items: start; gap: 12px;">
+                                <div style="flex: 1;">
+                                    <p style="margin:0; font-size: 0.9rem; font-weight: ${n.leido ? '400' : '600'}; font-family: 'Inter', sans-serif; color: #1f2937; line-height: 1.5;">${n.mensaje}</p>
+                                    <small style="color: #6b7280; font-size: 0.75rem; font-weight: 400; display: block; margin-top: 6px; font-family: 'Inter', sans-serif;">
+                                        ${new Date(n.created_at).toLocaleDateString()} a las ${new Date(n.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                    </small>
+                                </div>
+                                ${!n.leido ? '<div style="width: 8px; height: 8px; background: #3b82f6; border-radius: 50%; margin-top: 6px;"></div>' : ''}
+                            </div>
+                        </div>
+                    `).join('');
+                } else if (items) {
+                    items.innerHTML = '<div style="padding: 2rem; text-align: center; color: #6b7280;">No hay notificaciones recientes</div>';
+                }
+            } catch (e) { 
+                console.error("Error fetching notifications", e); 
+            }
         }
 
         async function markAsRead(id) {
@@ -1649,14 +1649,14 @@
                     Hola 👋 ¿Cómo puedo ayudarte hoy?
                 </p>
                 <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-                    <a href="https://wa.me/5491139560673?text=Hola,%20quisiera%20reservar%20un%20turno." target="_blank" class="neobrutalist-btn bg-white w-full" style="text-align: center; text-decoration: none; font-size: 0.7rem; padding: 0.4rem 0.6rem; border-width: 2px; box-shadow: 3px 3px 0px #000; border-radius: 8px;">
-                        🗓️ Reservar turno
+                    <a href="https://wa.me/5491139560673?text=Hola,%20quiero%20pedir%20un%20turno." target="_blank" class="neobrutalist-btn bg-white w-full" style="text-align: center; text-decoration: none; font-size: 0.7rem; padding: 0.4rem 0.6rem; border-width: 2px; box-shadow: 3px 3px 0px #000; border-radius: 8px;">
+                        🗓️ Quiero pedir un turno
                     </a>
-                    <a href="https://wa.me/5491139560673?text=Hola,%20quisiera%20saber%20sobre%20la%20modalidad%20de%20atención." target="_blank" class="neobrutalist-btn bg-white w-full" style="text-align: center; text-decoration: none; font-size: 0.7rem; padding: 0.4rem 0.6rem; border-width: 2px; box-shadow: 3px 3px 0px #000; border-radius: 8px;">
-                        📋 Modalidad atención
+                    <a href="https://wa.me/5491139560673?text=Hola,%20quisiera%20saber%20como%20son%20las%20sesiones." target="_blank" class="neobrutalist-btn bg-white w-full" style="text-align: center; text-decoration: none; font-size: 0.7rem; padding: 0.4rem 0.6rem; border-width: 2px; box-shadow: 3px 3px 0px #000; border-radius: 8px;">
+                        📍 ¿Cómo son las sesiones?
                     </a>
-                     <a href="https://wa.me/5491139560673?text=Hola,%20quisiera%20realizar%20una%20consulta." target="_blank" class="neobrutalist-btn bg-white w-full" style="text-align: center; text-decoration: none; font-size: 0.7rem; padding: 0.4rem 0.6rem; border-width: 2px; box-shadow: 3px 3px 0px #000; border-radius: 8px;">
-                        💬 Realizar una consulta
+                     <a href="https://wa.me/5491139560673?text=Hola,%20tengo%20una%20duda/consulta." target="_blank" class="neobrutalist-btn bg-white w-full" style="text-align: center; text-decoration: none; font-size: 0.7rem; padding: 0.4rem 0.6rem; border-width: 2px; box-shadow: 3px 3px 0px #000; border-radius: 8px;">
+                        💬 Tengo una duda/consulta
                     </a>
                 </div>
             </div>
@@ -1664,7 +1664,7 @@
             <!-- Footer -->
             <div style="padding: 0.8rem; background: #fafafa; border-top: 2px solid #000; margin-top: auto; border-bottom-left-radius: 12px; border-bottom-right-radius: 12px;">
                  <a href="https://wa.me/5491139560673" target="_blank" class="neobrutalist-btn" style="background: #25D366; color: white; border: 2px solid #000; width: 100%; text-align: center; justify-content: center; align-items: center; display: flex; gap: 6px; font-weight: 600; padding: 0.6rem; font-size: 0.8rem; box-shadow: 3px 3px 0px #000; font-family: 'Manrope', sans-serif; border-radius: 8px;">
-                    <i class="fa-brands fa-whatsapp" style="font-size: 1rem; margin-top: 1px;"></i> Iniciar Chat
+                    <i class="fa-brands fa-whatsapp" style="font-size: 1rem; margin-top: 1px;"></i> INICIAR CHAT
                 </a>
             </div>
         </div>

@@ -37,11 +37,17 @@ class WaitlistController extends Controller
         // Notificar al Admin
         $admin = \App\Models\User::where('rol', 'admin')->first();
         if ($admin) {
+            $isRecovery = $request->boolean('is_recovery');
+            $title = $isRecovery ? 'Solicitud de RECUPERACIÓN' : 'Nueva Lista de Espera';
+            $mensaje = $isRecovery 
+                ? "{$waitlist->name} solicita RECUPERAR una sesión para el " . \Carbon\Carbon::parse($waitlist->fecha_especifica)->format('d/m') . " a las {$waitlist->hora_inicio}."
+                : "{$waitlist->name} se unió a la lista de espera.";
+
             $admin->notify(new \App\Notifications\AdminNotification([
-                'title' => 'Nueva Lista de Espera',
-                'mensaje' => $waitlist->name . ' se unió a la lista de espera.',
+                'title' => $title,
+                'mensaje' => $mensaje,
                 'link' => route('admin.waitlist'),
-                'type' => 'waitlist'
+                'type' => $isRecovery ? 'recuperación' : 'waitlist'
             ]));
         }
 

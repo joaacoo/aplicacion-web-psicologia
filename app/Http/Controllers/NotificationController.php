@@ -2,13 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Notification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class NotificationController extends Controller
 {
-    public function fetchNotifications()
+    public function getLatest()
     {
         // Fetch last 15 notifications from standard Laravel table
         $notifications = auth()->user()->notifications()->latest()->limit(15)->get()->map(function ($n) {

@@ -145,9 +145,9 @@
                     <tbody>
                         @foreach($todayAppointments as $appt)
                             <tr style="border-bottom: 1px solid #e0e0e0; transition: background 0.2s;">
-                                <td style="padding: 1rem; font-weight: 900; color: #000;">{{ $appt->fecha_hora->format('H:i') }} hs</td>
-                                <td style="padding: 1rem; color: #333;">{{ $appt->user->nombre }} {{ $appt->user->apellido }}</td>
-                                <td style="padding: 1rem;">
+                                <td data-label="Hora" style="padding: 1rem; font-weight: 900; color: #000;">{{ $appt->fecha_hora->format('H:i') }} hs</td>
+                                <td data-label="Paciente" style="padding: 1rem; color: #333;">{{ $appt->user->nombre }} {{ $appt->user->apellido }}</td>
+                                <td data-label="Estado" style="padding: 1rem;">
                                     @php
                                         $statusColor = match($appt->estado ?? 'pendiente') {
                                             'confirmado' => 'var(--color-verde)',

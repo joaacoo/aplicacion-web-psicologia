@@ -136,6 +136,21 @@ class CalendarController extends Controller
     }
 
     /**
+     * Trigger forced manual sync (bypasses throttle).
+     */
+    public function syncGoogleForce()
+    {
+        $user = auth()->user();
+        // Clear metrics cache too since calendar sync might change waitlist/stats context
+        \Illuminate\Support\Facades\Cache::forget('admin_dashboard_stats');
+        
+        if ($this->syncService->sync($user, true)) {
+            return back()->with('success', 'Calendario sincronizado (forzado) con éxito.');
+        }
+        return back()->with('error', 'Hubo un error al sincronizar el calendario.');
+    }
+
+    /**
      * Store a new base availability.
      */
     public function storeAvailability(Request $request)

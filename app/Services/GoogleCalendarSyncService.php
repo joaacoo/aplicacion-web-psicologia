@@ -13,15 +13,21 @@ class GoogleCalendarSyncService
     /**
      * Sync external events from the user's Google Calendar iCal URL.
      */
-    public function sync(User $user)
+    public function sync(User $user, $force = false)
     {
         $pro = $user->profesional;
         if (!$pro || !$pro->google_calendar_url) {
             return false;
         }
 
+        // Throttling: Only sync every 15 minutes unless forced
+        $cacheKey = "last_google_sync_{$user->id}";
+        if (!$force && \Illuminate\Support\Facades\Cache::has($cacheKey)) {
+            return true; // Assume success/skip for performance
+        }
+
         try {
-            $response = Http::withoutVerifying()->get($pro->google_calendar_url);
+            $response = Http::withoutVerifying()->timeout(10)->get($pro->google_calendar_url);
             if (!$response->successful()) {
                 Log::error("Failed to fetch Google Calendar for user {$user->id}");
                 return false;
@@ -43,6 +49,9 @@ class GoogleCalendarSyncService
                     'external_id' => $event['uid'] ?? null,
                 ]);
             }
+
+            // Update last sync time (15 minutes)
+            \Illuminate\Support\Facades\Cache::put($cacheKey, now(), now()->addMinutes(15));
 
             return true;
         } catch (\Exception $e) {

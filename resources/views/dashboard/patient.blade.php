@@ -1,3 +1,8 @@
+@if(isset($isAjax) && $isAjax)
+    @include('dashboard.partials.appointments_table')
+    @php return; @endphp
+@endif
+
 @extends('layouts.app')
 
 @section('title', 'Mi Portal - Lic. Nazarena De Luca')
@@ -64,7 +69,10 @@
     
     @media (max-width: 768px) {
         .hide-mobile { display: none !important; }
+        .show-mobile { display: inline-block !important; }
     }
+    
+    .show-mobile { display: none; }
     
     .disabled-btn {
         opacity: 0.5 !important;
@@ -166,7 +174,7 @@
 
     <nav style="display: flex; flex-direction: column; gap: 10px;">
         <a href="#" onclick="togglePatientMenu(); window.scrollTo({top: 0, behavior: 'smooth'}); return false;" class="menu-chip" style="background: var(--color-celeste);">
-            <i class="fa-solid fa-calendar-plus"></i> <span>Reservar Turno</span>
+            <i class="fa-solid fa-calendar-plus"></i> <span>Reserva Fija</span>
         </a>
         <a href="#mis-turnos-section" onclick="togglePatientMenu()" class="menu-chip" style="background: var(--color-lila);">
             <i class="fa-solid fa-clock-rotate-left"></i> <span>Mis Turnos y Pagos</span>
@@ -306,7 +314,6 @@ function togglePatientMenu() {
     </style>
 
 @section('content')
-
     <!-- Top Banner: Next Session -->
     @if(isset($nextAppointment))
         @php
@@ -317,7 +324,6 @@ function togglePatientMenu() {
             <div class="neobrutalist-card next-session-banner" style="margin-bottom: 2rem; margin-top: 1.5rem; background: white; border: 3px solid #000; box-shadow: 6px 6px 0px #000; padding: 1.5rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; width: 100%; box-sizing: border-box;">
                 <div style="display: flex; align-items: center; gap: 1rem;">
                     <div style="font-size: 1.8rem;">
-                        <!-- Changed emoji to something related to time/session as requested -->
                         ⏰
                     </div>
                     <div>
@@ -344,9 +350,13 @@ function togglePatientMenu() {
             </div>
         @endif
         <style>
-            @media (max-width: 768px) {
-                .next-session-banner { margin-top: 6rem !important; }
-                .location-btn-mobile {
+        @media (max-width: 768px) {
+            .next-session-banner { margin-top: 100px !important; }
+            .booking-section, #fixed-reservation-status { 
+                margin-top: 100px !important; 
+                padding-top: 2rem !important; 
+            }
+            .location-btn-mobile {
                     padding: 0.4rem 0.8rem !important;
                     font-size: 0.8rem !important;
                     gap: 5px !important;
@@ -360,13 +370,55 @@ function togglePatientMenu() {
 
 <div class="dashboard-flex-container flex">
     
-    <!-- Left Column: New Appointment Stepper -->
+    <!-- Left Column: New Appointment Stepper OR Fixed Reservation Status -->
     <div class="booking-column">
-        <div id="booking" class="neobrutalist-card booking-section" style="margin-bottom: 4rem; padding-bottom: 3rem;">
+        @if(isset($fixedReservation))
+            <div id="fixed-reservation-status" class="neobrutalist-card" style="margin-bottom: 2rem; background: white; padding: 2rem; border: 5px solid #000; box-shadow: 10px 10px 0px #000; position: relative; overflow: hidden;">
+                <div style="position: absolute; top: 10px; right: 10px; font-size: 2rem; opacity: 0.1; transform: rotate(15deg);">
+                    <i class="fa-solid fa-calendar-check"></i>
+                </div>
+                
+                <h3 style="font-family: 'Syne', sans-serif; font-weight: 800; margin-bottom: 1.5rem; border-bottom: 3px solid #000; padding-bottom: 0.5rem; font-size: 1.3rem;">TU RESERVA FIJA</h3>
+                
+                <div style="background: #f0fdf4; border: 2px solid #166534; padding: 1rem; border-radius: 12px; margin-bottom: 1.5rem;">
+                    <p style="margin: 0; font-weight: 800; color: #166534; font-size: 1rem;">
+                        <i class="fa-solid fa-check-circle"></i> Ya tenés tu reserva fija para los días:
+                    </p>
+                    <p style="margin: 5px 0 0 0; font-size: 1.2rem; font-weight: 900; color: #000; letter-spacing: -0.5px;">
+                        {{ ucfirst(\Carbon\Carbon::parse($fixedReservation->fecha_hora)->isoFormat('dddd')) }} de {{ \Carbon\Carbon::parse($fixedReservation->fecha_hora)->format('H:i') }} a {{ \Carbon\Carbon::parse($fixedReservation->fecha_hora)->addMinutes(45)->format('H:i') }} hs
+                    </p>
+                    <span style="display: inline-block; background: #166534; color: white; padding: 2px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: 800; margin-top: 8px; text-transform: uppercase;">
+                        Modalidad: {{ ucfirst($fixedReservation->modalidad) }}
+                    </span>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    @if($fixedReservation->modalidad == 'virtual')
+                        <a href="{{ $fixedReservation->meet_link ?? ($user->paciente->meet_link ?? '#') }}" target="_blank" class="neobrutalist-btn bg-verde" style="text-decoration: none; justify-content: center; display: flex; align-items: center; gap: 10px; padding: 0.8rem; font-weight: 800;">
+                            <i class="fa-solid fa-video"></i> UNIRSE A LA SESIÓN
+                        </a>
+                    @else
+                        <a href="https://www.google.com/maps/search/?api=1&query=626+Somellera,+Adrogue" target="_blank" class="neobrutalist-btn bg-celeste" style="text-decoration: none; justify-content: center; display: flex; align-items: center; gap: 10px; padding: 0.8rem; font-weight: 800;">
+                            <i class="fa-solid fa-map-location-dot"></i> VER UBICACIÓN
+                        </a>
+                    @endif
+
+                    <button type="button" onclick="openRecoveryModal({{ $fixedReservation->id }})" class="neobrutalist-btn bg-lila" style="padding: 1rem; font-weight: 800; font-size: 0.95rem; box-shadow: 4px 4px 0px #000;">
+                        <i class="fa-solid fa-calendar-xmark"></i> NO PUEDO ASISTIR ESTA SEMANA
+                    </button>
+                </div>
+
+                <p style="margin-top: 1.5rem; font-size: 0.75rem; color: #666; font-weight: 600; text-align: center; line-height: 1.4;">
+                    <i class="fa-solid fa-circle-info"></i> Recordá que las cancelaciones deben ser con 24hs de antelación.
+                </p>
+            </div>
+        @else
+            <div id="booking" class="neobrutalist-card booking-section" style="margin-bottom: 4rem; padding-bottom: 3rem;">
+                <!-- ... stepper code ... -->
             <style>
                 @media (max-width: 768px) {
                     .booking-section {
-                        margin-top: 2rem !important;
+                        /* Margin handled by generic mobile class above */
                         padding-top: 1.5rem !important;
                     }
                 }
@@ -382,7 +434,7 @@ function togglePatientMenu() {
                 </div>
             @endif
             
-            <h3 class="mb-4" style="font-family: 'Syne', sans-serif; font-weight: 700; white-space: nowrap;"><i class="fa-solid fa-calendar-plus"></i> Reservar Nuevo Turno</h3>
+            <h3 class="mb-4" style="font-family: 'Syne', sans-serif; font-weight: 700; white-space: nowrap;"><i class="fa-solid fa-calendar-plus"></i> <span class="hide-mobile">Reservar Nuevo Turno</span><span class="show-mobile">Reserva Fija</span></h3>
                 
                 <div class="stepper-container">
                     <!-- Step Indicators -->
@@ -409,20 +461,39 @@ function togglePatientMenu() {
                             </div>
                         </div>
 
-                        <!-- Step 2: Modality Selection -->
+                        <!-- Step 2: Frequency & Modality -->
                         <div class="booking-step" id="step-2">
-                            <label class="block font-bold mb-4">Paso 2: Modalidad</label>
-                            <div class="modality-selector" style="margin-bottom: 2rem;">
-                                <div class="modality-btn" onclick="selectModality('presencial')" id="mod-presencial">
-                                    <i class="fa-solid fa-house-user"></i>
-                                    <span>Presencial</span>
+                            <label class="block font-bold mb-4">Paso 2: Frecuencia y Modalidad</label>
+                            
+                            <div style="margin-bottom: 2rem;">
+                                <label class="block font-bold mb-2" style="font-size: 0.85rem; color: #666;">¿Con qué frecuencia nos vemos?</label>
+                                <div class="modality-selector" style="gap: 15px;">
+                                    <div class="modality-btn" onclick="selectFrequency('semanal')" id="freq-semanal">
+                                        <i class="fa-solid fa-calendar-day"></i>
+                                        <span>Semanal</span>
+                                    </div>
+                                    <div class="modality-btn" onclick="selectFrequency('quincenal')" id="freq-quincenal">
+                                        <i class="fa-solid fa-calendar-week"></i>
+                                        <span>Quincenal</span>
+                                    </div>
                                 </div>
-                                <div class="modality-btn" onclick="selectModality('virtual')" id="mod-virtual">
-                                    <i class="fa-solid fa-video"></i>
-                                    <span>Virtual</span>
-                                </div>
+                                <input type="hidden" name="frecuencia" id="selected_frecuencia">
                             </div>
-                            <input type="hidden" name="modalidad" id="selected_modalidad">
+
+                            <div>
+                                <label class="block font-bold mb-2" style="font-size: 0.85rem; color: #666;">¿Qué modalidad preferís?</label>
+                                <div class="modality-selector">
+                                    <div class="modality-btn" onclick="selectModality('presencial')" id="mod-presencial">
+                                        <i class="fa-solid fa-house-user"></i>
+                                        <span>Presencial</span>
+                                    </div>
+                                    <div class="modality-btn" onclick="selectModality('virtual')" id="mod-virtual">
+                                        <i class="fa-solid fa-video"></i>
+                                        <span>Virtual</span>
+                                    </div>
+                                </div>
+                                <input type="hidden" name="modalidad" id="selected_modalidad">
+                            </div>
                             
                             <div class="flex justify-between mt-12" style="gap: 1rem;">
                                 <button type="button" class="neobrutalist-btn bg-lila" onclick="prevStep(1)">Atrás</button>
@@ -442,9 +513,14 @@ function togglePatientMenu() {
                             </div>
                         </div>
 
-                        <!-- Step 4: Payment & Confirm -->
                         <div class="booking-step" id="step-4">
-                            <label class="block font-bold mb-4">Paso 4: Pago y Confirmación</label>
+                            <label class="block font-bold mb-4">Paso 4: Pago de la Primera Sesión</label>
+                            
+                            <div style="background: #eef2ff; border: 2px solid #6366f1; border-radius: 12px; padding: 1rem; margin-bottom: 2rem; font-size: 0.9rem; font-weight: 700; color: #4338ca;">
+                                <i class="fa-solid fa-circle-info"></i> Se abona únicamente la <b>primera sesión</b> para confirmar la reserva fija. Las siguientes sesiones se abonan individualmente.
+                                <br><br>
+                                <i class="fa-solid fa-triangle-exclamation"></i> <b>Importante:</b> Las cancelaciones deben realizarse con al menos 24 horas de anticipación. De lo contrario, se deberá abonar el total de la sesión.
+                            </div>
                             
                             <div id="payment-instructions" style="background: white; padding: 1.2rem; border: 3px solid #000; margin-bottom: 2rem; box-shadow: 4px 4px 0px #000; border-radius: 12px; max-width: 400px; margin-left: auto; margin-right: auto;">
                                 <h4 style="margin-bottom: 0.8rem; font-size: 0.9rem; font-weight: 900; text-align: center; text-transform: uppercase; letter-spacing: 1px; border-bottom: 2px solid #eee; padding-bottom: 0.5rem;">Datos de Pago</h4>
@@ -485,8 +561,11 @@ function togglePatientMenu() {
 
                     </form>
                 </div>
-            </div>
+            @endif
         </div>
+
+        <!-- Recovery Modal (Eventual) -->
+        
 
         <!-- Right Column: My Appointments -->
     <div id="mis-turnos-section" style="flex: 2.5; min-width: 300px;">
@@ -501,6 +580,25 @@ function togglePatientMenu() {
                 #mis-turnos { padding: 1.5rem !important; }
                 #mis-turnos h3 { font-size: 1.1rem; margin-bottom: 0.5rem !important; } /* Reduced margin */
                 
+                /* Header collision fixes */
+                .booking-section, #fixed-reservation-status { 
+                    margin-top: 100px !important; 
+                }
+                
+                /* Shrink Recovery Modal Buttons for Mobile */
+                #recovery-modal-overlay .neobrutalist-btn {
+                    padding: 8px 12px !important;
+                    font-size: 0.75rem !important;
+                }
+
+                #recovery-modal-overlay .neobrutalist-card {
+                    padding: 1.5rem !important;
+                }
+
+                #recovery-modal-overlay h3 {
+                    font-size: 1.1rem !important;
+                }
+
                 /* Fix button clipping */
                 .neobrutalist-btn { margin: 5px !important; }
                 .flex.justify-between { flex-wrap: wrap; gap: 10px; }
@@ -516,40 +614,48 @@ function togglePatientMenu() {
                     left: -9999px;
                 }
                 
-                #mis-turnos tr { border-bottom: 3px solid #000 !important; margin-bottom: 1rem; background: #fff; padding: 10px; border: 2px solid #eee; border-radius: 8px; }
+                #mis-turnos tr { border: 3px solid #000 !important; margin-bottom: 1rem; background: #fff; padding: 10px; border-radius: 8px; box-shadow: 4px 4px 0px #000; }
                 
                 #mis-turnos td { 
                     border: none !important;
                     position: relative;
-                    padding-left: 50% !important; 
+                    padding-left: 40% !important; /* Adjusted for better label fit */
                     text-align: right;
-                    padding-top: 5px !important;
-                    padding-bottom: 5px !important;
-                    min-height: 30px;
+                    padding-top: 10px !important;
+                    padding-bottom: 10px !important;
+                    min-height: 45px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: flex-end;
+                    font-size: 0.85rem;
                 }
                 
                 #mis-turnos td:before { 
                     position: absolute;
-                    top: 6px;
-                    left: 10px;
-                    width: 45%; 
-                    padding-right: 10px; 
-                    white-space: nowrap;
+                    top: 50%;
+                    transform: translateY(-50%);
+                    left: 12px;
+                    width: 35%; 
                     text-align: left;
                     font-weight: 800;
-                    color: #666;
+                    color: #000;
+                    font-family: 'Syne', sans-serif;
+                    text-transform: uppercase;
+                    font-size: 0.75rem;
                 }
                 
                 /* Labels */
-                /* Labels */
-                #mis-turnos td:nth-of-type(1):before { content: "Turno:"; } 
-                #mis-turnos td:nth-of-type(2):before { content: "Modalidad:"; }
-                #mis-turnos td:nth-of-type(3):before { content: "Estado:"; }
-                #mis-turnos td:nth-of-type(4):before { content: "Pago:"; }
-                #mis-turnos td:nth-of-type(5):before { content: "Acciones:"; }
+                #mis-turnos td:nth-of-type(1):before { content: "Fecha:"; } 
+                #mis-turnos td:nth-of-type(2):before { content: "Hora:"; } 
+                #mis-turnos td:nth-of-type(3):before { content: "Modalidad:"; }
+                #mis-turnos td:nth-of-type(4):before { content: "Estado:"; }
+                #mis-turnos td:nth-of-type(5):before { content: "Pago:"; }
+                #mis-turnos td:nth-of-type(6):before { content: "Acciones:"; }
+                #mis-turnos td:nth-of-type(5):before { content: "Pago:"; }
+                #mis-turnos td:nth-of-type(6):before { content: "Acciones:"; }
                 
                 /* Update Actions Column Index for Mobile Styling */
-                #mis-turnos td:nth-of-type(5) {
+                #mis-turnos td:nth-of-type(6) {
                     flex-direction: column !important;
                     align-items: stretch !important;
                     gap: 10px !important;
@@ -557,7 +663,7 @@ function togglePatientMenu() {
                     padding-top: 15px !important;
                     padding-bottom: 15px !important;
                 }
-                #mis-turnos td:nth-of-type(5):before {
+                #mis-turnos td:nth-of-type(6):before {
                     content: "Acciones:" !important;
                     display: block !important;
                     margin-bottom: 5px;
@@ -609,102 +715,56 @@ function togglePatientMenu() {
                     color: #111 !important;
                 }
                 
-                #mis-turnos td:before {
-                    position: static;
-                    font-weight: 700;
-                    color: #666;
+            }
+            
+            /* Remove horizontal scroll on desktop */
+            @media (min-width: 1025px) {
+                #mis-turnos div[style*="overflow-x: auto"] {
+                    overflow-x: visible !important;
                 }
-
-
             }
         </style>
             <!-- Fixed Height Container for 3 Items Pagination -->
             <div id="mis-turnos" class="neobrutalist-card" style="width: 100% !important; max-width: 100% !important; padding: 2.5rem 1.5rem !important; background: white; border: 3px solid #000; box-shadow: 8px 8px 0px #000; min-height: 500px; display: flex; flex-direction: column;">
-            <h3 class="no-select" style="background: var(--color-lila); display: inline-block; padding: 0.5rem 1rem; border: 3px solid #000; font-size: 1.4rem; margin-bottom: 1.5rem; box-shadow: 4px 4px 0px #000; font-family: 'Syne', sans-serif; font-weight: 700; white-space: nowrap;">Mis Turnos y Pagos</h3>
             
-            @if(isset($appointments) && $appointments->count() > 0)
-                <div style="overflow-x: auto; width: 100%; flex-grow: 1;">
-                    <table style="width: 100%; border-collapse: collapse; margin-top: 1rem; font-family: 'Inter', sans-serif;">
-                        <thead>
-                            <tr style="border-bottom: 3px solid #000;">
-                                <th style="text-align: left; padding: 0.5rem; font-weight: 800;">Fecha</th>
-                                <th style="text-align: left; padding: 0.5rem; font-weight: 800;">Modalidad</th>
-                                <th style="text-align: left; padding: 0.5rem; font-weight: 800;">Estado Turno</th>
-                                <th style="text-align: left; padding: 0.5rem; font-weight: 800;">Pago</th>
-                                <th style="text-align: left; padding: 0.5rem; font-weight: 800;">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach($appointments as $appt)
-                                <tr style="border-bottom: 1px solid #2D2D2D;">
-                                    <td style="padding: 0.5rem; white-space: nowrap;"><span class="mobile-label" style="font-weight: 700; color: #666; margin-right: 8px;">Fecha:</span>{{ $appt->fecha_hora->format('d/m H:i') }}</td>
-                                    <td style="padding: 0.5rem;">
-                                        {{ ucfirst($appt->modalidad ?? 'Virtual') }}
-                                    </td>
-                                    <td style="padding: 0.5rem;">
-                                        <span style="font-weight: bold; color: {{ $appt->estado == 'cancelado' ? 'red' : 'green' }}">
-                                            {{ ucfirst($appt->estado) }}
-                                        </span>
-                                    </td>
-                                    <td style="padding: 0.5rem;">
-                                        @if($appt->payment)
-                                            <span style="color: green; font-weight: bold;">{{ ucfirst($appt->payment->estado) }}</span>
-                                        @else
-                                            <span style="color: red; font-weight: bold;">Pendiente</span>
-                                        @endif
-                                    </td>
-                                    <td style="padding: 0.5rem;">
-                                        @if($appt->fecha_hora->isPast())
-                                            <span class="neobrutalist-badge" style="background: #e5e7eb; color: #374151; padding: 0.2rem 0.6rem; border-radius: 4px; font-weight: 700; border: 1px solid #9ca3af;">Finalizado</span>
-                                        @elseif($appt->estado == 'cancelado')
-                                            <span style="color: red; font-weight: 800;">Cancelado</span>
-                                        @else
-                                            <div class="actions-wrapper" style="display: flex; gap: 5px; flex-wrap: wrap;">
-                                                @if(($appt->modalidad ?? 'virtual') == 'virtual')
-                                                    @if($appt->fecha_hora->isToday() || $appt->fecha_hora->isTomorrow()) 
-                                                        <a href="{{ $appt->meet_link ?? '#' }}" target="_blank" class="neobrutalist-btn" style="padding: 0.3rem 0.6rem; font-size: 0.75rem; background: #fff; border: 2px solid #000; text-decoration: none; color: #000; display: inline-flex; align-items: center; gap: 4px; justify-content: center;">
-                                                            <i class="fa-solid fa-video"></i> Unirse
-                                                        </a>
-                                                    @endif
-                                                @elseif(($appt->modalidad ?? 'presencial') == 'presencial')
-                                                    <a href="https://www.google.com/maps/search/?api=1&query=626+Somellera,+Adrogue" target="_blank" class="neobrutalist-btn" style="padding: 0.3rem 0.6rem; font-size: 0.75rem; background: #fff; border: 2px solid #000; text-decoration: none; color: #000; display: inline-flex; align-items: center; gap: 4px; justify-content: center;">
-                                                        <i class="fa-solid fa-map-pin"></i> Ubicación
-                                                    </a>
-                                                @endif
-                                                
-                                                @if(!$appt->fecha_hora->isPast())
-                                                    <form action="{{ route('appointments.cancel', $appt->id) }}" method="POST" style="display:inline; width: 100%;">
-                                                        @csrf
-                                                        <button type="button" class="neobrutalist-btn bg-lila" style="padding: 0.3rem 0.6rem; font-size: 0.75rem; width: 100%;" 
-                                                            onclick="window.showConfirm('¿Seguro querés cancelar este turno?', () => this.closest('form').submit())">
-                                                            Cancelar
-                                                        </button>
-                                                    </form>
-                                                @endif
-                                            </div>
-                                            <style>
-                                                @media (min-width: 1025px) {
-                                                    .actions-wrapper a, .actions-wrapper form {
-                                                        flex: 1;
-                                                        width: auto !important;
-                                                    }
-                                                }
-                                            </style>
-                                        @endif
-                                    </td>
-                                </tr>
-                                @endforeach
-                        </tbody>
-                    </table>
-                </div>
-            @else
-                <div style="flex-grow: 1; display: flex; align-items: center; justify-content: center; padding: 2rem 0;">
-                    <div style="background: var(--color-amarillo); border: 3px solid #000; padding: 2.5rem; box-shadow: 6px 6px 0px #000; border-radius: 12px; text-align: center; max-width: 400px; width: 100%;">
-                        <i class="fa-solid fa-calendar-xmark" style="font-size: 2.5rem; margin-bottom: 1rem; display: block;"></i>
-                        <p style="font-weight: 800; font-size: 1.1rem; margin: 0; font-family: 'Syne', sans-serif;">No tenés turnos registrados.</p>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+                <h3 class="no-select" style="background: var(--color-lila); display: inline-block; padding: 0.5rem 1rem; border: 3px solid #000; font-size: 1.4rem; margin: 0; box-shadow: 4px 4px 0px #000; font-family: 'Syne', sans-serif; font-weight: 700; white-space: nowrap;">Mis Turnos y Pagos</h3>
+                
+                <!-- Filters Bar -->
+                <form id="appointments-filter-form" action="{{ route('patient.dashboard') }}#mis-turnos" method="GET" style="display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end;">
+                    <div style="display: flex; flex-direction: column;">
+                        <label style="font-size: 0.7rem; font-weight: 800; margin-bottom: 2px;">MES:</label>
+                        <select name="month" onchange="applyFilters()" class="neobrutalist-input" style="padding: 0.3rem 0.6rem; font-size: 0.8rem; margin: 0; min-width: 120px;">
+                            <option value="">Todos</option>
+                            @php
+                                $currentYear = now()->year;
+                                $months = [];
+                                for ($m = 1; $m <= 12; $m++) {
+                                    $date = \Carbon\Carbon::create($currentYear, $m, 1);
+                                    $months[$date->format('Y-m')] = ucfirst($date->locale('es')->isoFormat('MMMM'));
+                                }
+                            @endphp
+                            @foreach($months as $val => $label)
+                                <option value="{{ $val }}" {{ request('month') == $val ? 'selected' : '' }}>{{ $label }}</option>
+                            @endforeach
+                        </select>
                     </div>
-                </div>
-            @endif
+                    <div style="display: flex; flex-direction: column;">
+                        <label style="font-size: 0.7rem; font-weight: 800; margin-bottom: 2px;">ESTADO:</label>
+                        <select name="status" onchange="applyFilters()" class="neobrutalist-input" style="padding: 0.3rem 0.6rem; font-size: 0.8rem; margin: 0; min-width: 120px;">
+                            <option value="">Todos</option>
+                            <option value="proximo" {{ request('status') == 'proximo' ? 'selected' : '' }}>Próximos</option>
+                            <option value="realizado" {{ request('status') == 'realizado' ? 'selected' : '' }}>Realizados</option>
+                            <option value="cancelado" {{ request('status') == 'cancelado' ? 'selected' : '' }}>Cancelados</option>
+                            <option value="eventual" {{ request('status') == 'eventual' ? 'selected' : '' }}>Eventual</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            
+            <div id="appointments-table-container" style="width: 100%; flex-grow: 1;">
+                @include('dashboard.partials.appointments_table')
+            </div>
 
                 @if ($appointments->hasPages())
                     <style>
@@ -949,134 +1009,64 @@ $blockedDays = $blockedDays ?? [];
     const specificBlockedDays = @json($blockedDays);
     const patientAppointments = @json($patientAppointmentsDates ?? []);
     
-    let selectedDay = null; // Format YYYY-MM-DD
-    let selectedTime = null; // Format HH:mm
-    let selectedModalidad = null;
+    let selectedDayOfWeek = null; // 0-6
+    let selectedDayName = null;
+    let selectedFrequency = null;
+    let selectedModality = null;
 
-    function initStepper() {
-        generateDays();
-        if (userType === 'nuevo') {
-            document.getElementById('payment-warning').style.display = 'block';
-            document.getElementById('proof_input').required = true;
-        }
-    }
-
-    function generateDays() {
+    function generateDayOfWeekButtons() {
         const grid = document.getElementById('days-grid');
+        if (!grid) return;
         grid.innerHTML = '';
         
-        const today = new Date();
-        let addedDays = 0;
-        let offset = 1;
+        const days = [
+            { id: 1, name: 'Lunes' },
+            { id: 2, name: 'Martes' },
+            { id: 3, name: 'Miércoles' },
+            { id: 4, name: 'Jueves' },
+            { id: 5, name: 'Viernes' }
+        ];
 
-        while (addedDays < 15) {
-            const date = new Date();
-            date.setDate(today.getDate() + offset);
+        days.forEach(day => {
+            const isBaseAvailable = availabilities.some(a => a.dia_semana == day.id);
             
-            const dayOfWeek = date.getDay(); // 0-6
-            const isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
-            
-            // Skip weekends entirely as requested
-            if (isWeekend) {
-                offset++;
-                continue;
-            }
-
-            const year = date.getFullYear();
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            const day = String(date.getDate()).padStart(2, '0');
-            const dateStr = `${year}-${month}-${day}`;
-
-            // Priority: Google Slots override blocks
-            const hasGoogleSlots = googleSlots.some(s => s.date === dateStr);
-            const isBaseAvailable = availabilities.some(a => a.dia_semana == dayOfWeek);
-            
-            const isSpecificBlocked = specificBlockedDays.includes(dateStr);
-            const isAlreadyBooked = patientAppointments.includes(dateStr);
-            
-            // Logic: 
-            // 1. If hasGoogleSlots is true, it's AVAILABLE (overrides all blocks).
-            // 2. If NO Google Slots, we check standard blocks and base availability.
-            let isBlocked = false;
-            let blockReason = '';
-
-            if (isAlreadyBooked) {
-                isBlocked = true;
-                blockReason = 'Ya tenés un turno este día';
-            } else if (hasGoogleSlots) {
-                isBlocked = false; // Explicit availability overrides everything
-            } else {
-                // Formatting fallback to standard availability
-                if (!isBaseAvailable) {
-                    isBlocked = true; // No basic slots
-                } else if (isSpecificBlocked) {
-                    isBlocked = true; // Blocked by rule
-                    blockReason = 'Día no disponible';
-                }
-            }
-
             const dayBtn = document.createElement('div');
-            dayBtn.className = 'day-btn' + (isBlocked ? ' disabled' : ''); 
+            dayBtn.className = 'day-btn' + (!isBaseAvailable ? ' disabled' : ''); 
             
-            // Add style for blocked
-            if (isBlocked) {
+            if (!isBaseAvailable) {
                 dayBtn.style.opacity = '0.3';
                 dayBtn.style.cursor = 'not-allowed';
                 dayBtn.style.background = '#ddd';
-                dayBtn.title = blockReason || (isSpecificBlocked ? 'Día no disponible' : 'Fuera de horario');
-                
-                if (isAlreadyBooked) {
-                     dayBtn.style.border = '2px solid #e11d48'; // Red border for already booked
-                     dayBtn.style.color = '#e11d48';
-                }
+                dayBtn.title = 'No hay horarios configurados para este día';
             }
 
             dayBtn.innerHTML = `
-                <div style="font-size: 0.6rem; opacity: 0.7;">${date.toLocaleDateString('es-AR', { weekday: 'short' }).toUpperCase()}</div>
-                <div style="font-size: 1.1rem;">${date.getDate()}</div>
-                <div style="font-size: 0.6rem;">${date.toLocaleDateString('es-AR', { month: 'short' })}</div>
+                <div style="font-size: 0.8rem; font-weight: 800; padding: 1rem 0;">${day.name.toUpperCase()}</div>
             `;
             
-            if (!isBlocked) {
-                dayBtn.onclick = () => selectDay(dateStr, dayBtn);
+            if (isBaseAvailable) {
+                dayBtn.onclick = () => selectDayOfWeek(day.id, day.name, dayBtn);
             }
 
             grid.appendChild(dayBtn);
-            addedDays++;
-            offset++;
-        }
+        });
+
+        // Add a note about recurring
+        const note = document.createElement('p');
+        note.style.gridColumn = '1 / -1';
+        note.style.marginTop = '1rem';
+        note.style.fontSize = '0.85rem';
+        note.style.fontWeight = '700';
+        note.style.color = '#555';
+        note.style.textAlign = 'center';
+        note.innerHTML = '<i class="fa-solid fa-circle-info"></i> Esta es una <b>Reserva Fija</b>. Elegí el día que prefieras para tus sesiones semanales o quincenales.';
+        grid.appendChild(note);
     }
 
-    function updateSummary() {
-        const container = document.getElementById('booking-summary-container');
-        const text = document.getElementById('summary-text');
-        
-        if (!selectedDay) {
-            container.style.opacity = '0';
-            container.style.maxHeight = '0';
-            return;
-        }
-
-        container.style.opacity = '1';
-        container.style.maxHeight = '200px'; // Allow enough room
-
-        let msg = `Reserva para el ${selectedDay.split('-').reverse().join('/')}`;
-        
-        if (selectedTime) {
-            msg += ` a las ${selectedTime}`;
-        }
-        
-        if (selectedModalidad) {
-            msg += ` (${selectedModalidad === 'virtual' ? 'Virtual' : 'Presencial'})`;
-        }
-
-        text.innerText = msg;
-    }
-
-    function selectDay(dateStr, element) {
-        if (selectedDay === dateStr) {
-            // Deseleccionar si ya estaba marcado
-            selectedDay = null;
+    function selectDayOfWeek(dayId, dayName, element) {
+        if (selectedDayOfWeek === dayId) {
+            selectedDayOfWeek = null;
+            selectedDayName = null;
             element.classList.remove('selected');
             selectedTime = null;
             document.getElementById('times-grid').innerHTML = '';
@@ -1085,7 +1075,8 @@ $blockedDays = $blockedDays ?? [];
             return;
         }
 
-        selectedDay = dateStr;
+        selectedDayOfWeek = dayId;
+        selectedDayName = dayName;
         document.querySelectorAll('.day-btn').forEach(b => b.classList.remove('selected'));
         element.classList.add('selected');
         
@@ -1093,9 +1084,14 @@ $blockedDays = $blockedDays ?? [];
         document.getElementById('next-1').classList.remove('disabled-btn');
 
         // Reset steps forward
+        selectedFrequency = null;
+        document.getElementById('selected_frecuencia').value = '';
+        document.querySelectorAll('#step-2 [id^="freq-"]').forEach(b => b.classList.remove('selected'));
+        
         selectedModalidad = null;
         document.getElementById('selected_modalidad').value = '';
-        document.querySelectorAll('.modality-btn').forEach(b => b.classList.remove('selected'));
+        document.querySelectorAll('#step-2 [id^="mod-"]').forEach(b => b.classList.remove('selected'));
+        
         document.getElementById('next-2').classList.add('disabled-btn');
         
         selectedTime = null;
@@ -1105,34 +1101,94 @@ $blockedDays = $blockedDays ?? [];
         updateSummary();
     }
 
-    function generateTimes(dateStr) {
+    function selectFrequency(freq) {
+        if (selectedFrequency === freq) {
+            selectedFrequency = null;
+            document.getElementById('selected_frecuencia').value = '';
+            document.getElementById('freq-' + freq).classList.remove('selected');
+        } else {
+            selectedFrequency = freq;
+            document.getElementById('selected_frecuencia').value = freq;
+            document.querySelectorAll('#step-2 [id^="freq-"]').forEach(b => b.classList.remove('selected'));
+            document.getElementById('freq-' + freq).classList.add('selected');
+        }
+        
+        checkStep2Ready();
+        updateSummary();
+    }
+
+    function selectModality(mod) {
+        if (selectedModalidad === mod) {
+            selectedModalidad = null;
+            document.getElementById('selected_modalidad').value = '';
+            document.getElementById('mod-' + mod).classList.remove('selected');
+        } else {
+            selectedModalidad = mod;
+            document.getElementById('selected_modalidad').value = mod;
+            document.querySelectorAll('#step-2 [id^="mod-"]').forEach(b => b.classList.remove('selected'));
+            document.getElementById('mod-' + mod).classList.add('selected');
+        }
+        
+        checkStep2Ready();
+        updateSummary();
+    }
+
+    function checkStep2Ready() {
+        if (selectedFrequency && selectedModalidad) {
+            document.getElementById('next-2').classList.remove('disabled-btn');
+        } else {
+            document.getElementById('next-2').classList.add('disabled-btn');
+        }
+    }
+
+    function updateSummary() {
+        const container = document.getElementById('booking-summary-container');
+        const text = document.getElementById('summary-text');
+        
+        if (!selectedDayOfWeek) {
+            container.style.opacity = '0';
+            container.style.maxHeight = '0';
+            return;
+        }
+
+        container.style.opacity = '1';
+        container.style.maxHeight = '200px';
+
+        let msg = `Reserva Fija para los días ${selectedDayName}`;
+        
+        if (selectedFrequency) {
+            msg += ` (${selectedFrequency.charAt(0).toUpperCase() + selectedFrequency.slice(1)})`;
+        }
+
+        if (selectedTime) {
+            msg += ` a las ${selectedTime}`;
+        }
+        
+        if (selectedModalidad) {
+            msg += ` [${selectedModalidad === 'virtual' ? 'Virtual' : 'Presencial'}]`;
+        }
+
+        text.innerText = msg;
+    }
+
+
+    function generateTimes() {
         const grid = document.getElementById('times-grid');
         grid.innerHTML = '';
         
-        const date = new Date(dateStr + 'T12:00:00'); // Use noon to avoid TZ issues
-        const dayOfWeek = date.getDay();
-        
-        // Priority 1: Google Calendar "LIBRE" slots
-        let dayGoogleSlots = googleSlots.filter(s => s.date === dateStr);
-        
-        let slotsToRender = [];
-        
-        if (dayGoogleSlots.length > 0) {
-            slotsToRender = dayGoogleSlots.map(s => ({ hora_inicio: s.time, modalidad: 'cualquiera' }));
-        } else {
-            // Priority 2: Fallback to base hours if no Google Slots
-            // FILTER BY SELECTED MODALITY
-            slotsToRender = availabilities.filter(a => 
-                a.dia_semana == dayOfWeek && 
-                (a.modalidad === 'cualquiera' || a.modalidad === selectedModalidad)
-            );
-        }
+        if (!selectedDayOfWeek || !selectedModalidad) return;
+
+        // For Recurring Booking, we show BASE availability for that day of week
+        let slotsToRender = availabilities.filter(a => 
+            a.dia_semana == selectedDayOfWeek && 
+            (a.modalidad === 'cualquiera' || a.modalidad === selectedModalidad)
+        );
         
         if (slotsToRender.length === 0) {
             grid.innerHTML = `
                 <div style="grid-column: 1 / -1; padding: 2rem; background: #fff4f4; border: 2px dashed #e11d48; border-radius: 12px; text-align: center;">
                     <i class="fa-solid fa-calendar-xmark" style="font-size: 2rem; color: #e11d48; margin-bottom: 0.5rem; display: block;"></i>
-                    <p style="font-weight: 800; color: #e11d48; margin: 0;">En esta modalidad no hay horarios disponibles para el día seleccionado.</p>
+                    <p style="font-weight: 800; color: #e11d48; margin: 0;">No hay horarios configurados para este día y modalidad.</p>
                 </div>
             `;
             return;
@@ -1140,6 +1196,18 @@ $blockedDays = $blockedDays ?? [];
 
         // Sort slots by time
         slotsToRender.sort((a,b) => a.hora_inicio.localeCompare(b.hora_inicio));
+
+        // Calculate Next Date for checking occupancy (even if it's recurring, we check the first one)
+        const now = new Date();
+        const today = now.getDay();
+        let diff = selectedDayOfWeek - today;
+        if (diff <= 0) diff += 7;
+        const nextDate = new Date();
+        nextDate.setDate(now.getDate() + diff);
+        const y = nextDate.getFullYear();
+        const m = String(nextDate.getMonth() + 1).padStart(2, '0');
+        const d = String(nextDate.getDate()).padStart(2, '0');
+        const dateStr = `${y}-${m}-${d}`;
 
         slotsToRender.forEach(slot => {
             const timeStr = slot.hora_inicio.substring(0, 5); // HH:mm
@@ -1255,37 +1323,9 @@ $blockedDays = $blockedDays ?? [];
 
     function closeWaitlistSuccess() {
         document.getElementById('waitlist-success-overlay').style.display = 'none';
-    }
-
-    function closeWaitlistSuccess() {
-        document.getElementById('waitlist-success-overlay').style.display = 'none';
         // Optional: refresh or just stay
     }
 
-    function selectModality(val) {
-        if (selectedModalidad === val) {
-            selectedModalidad = null;
-            document.getElementById('selected_modalidad').value = '';
-            document.querySelectorAll('.modality-btn').forEach(b => b.classList.remove('selected'));
-            updateSummary();
-            return;
-        }
-        selectedModalidad = val;
-        document.getElementById('selected_modalidad').value = val;
-        
-        document.querySelectorAll('.modality-btn').forEach(b => b.classList.remove('selected'));
-        document.getElementById('mod-' + val).classList.add('selected');
-        
-        // Enable Next Button
-        document.getElementById('next-2').classList.remove('disabled-btn');
-
-        // Regenerate times based on new modality
-        if (selectedDay) {
-            generateTimes(selectedDay);
-        }
-        
-        updateSummary();
-    }
 
     function previewFile() {
         const input = document.getElementById('proof_input');
@@ -1327,7 +1367,6 @@ $blockedDays = $blockedDays ?? [];
         navigator.clipboard.writeText(text).then(() => {
             const badge = document.getElementById('copy-badge-status');
             badge.innerText = '¡Copiado!';
-            badge.innerText = '¡Copiado!';
             badge.style.color = '#166534'; // Dark green for visibility
             setTimeout(() => {
                 badge.innerText = '(Toca para copiar)';
@@ -1345,18 +1384,90 @@ $blockedDays = $blockedDays ?? [];
         document.getElementById('alert-modal-overlay').style.display = 'none';
     }
 
+    function openEventualRecoveryModal() {
+        document.getElementById('recovery-modal-overlay').style.display = 'flex';
+        selectRecoveryModality('virtual'); // Default
+    }
+
+    function closeEventualRecoveryModal() {
+        document.getElementById('recovery-modal-overlay').style.display = 'none';
+    }
+
+    function selectRecoveryModality(mod) {
+        document.getElementById('selected_recovery_modality').value = mod;
+        const btnVirtual = document.getElementById('rec-mod-virtual');
+        const btnPresencial = document.getElementById('rec-mod-presencial');
+        
+        btnVirtual.classList.remove('bg-verde', 'text-white');
+        btnVirtual.classList.add('bg-white', 'text-black');
+        btnPresencial.classList.remove('bg-verde', 'text-white');
+        btnPresencial.classList.add('bg-white', 'text-black');
+        
+        const selectedBtn = mod === 'virtual' ? btnVirtual : btnPresencial;
+        selectedBtn.classList.remove('bg-white', 'text-black');
+        selectedBtn.classList.add('bg-verde', 'text-white');
+    }
+
+    async function sendEventualRecoveryRequest() {
+        const from = document.getElementById('recovery-time-pref-from').value;
+        const to = document.getElementById('recovery-time-pref-to').value;
+        const btn = document.getElementById('eventual-recovery-confirm-btn');
+        const modality = document.getElementById('selected_recovery_modality').value;
+        
+        if (!from || !to) {
+            window.showAlert('Por favor, seleccioná un rango de horario (Desde y Hasta).');
+            return;
+        }
+
+        btn.disabled = true;
+        btn.style.opacity = '0.5';
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> ENVIANDO...';
+
+        try {
+            const rangeStr = `de ${from} a ${to}`;
+            const response = await fetch('{{ route("waitlist.store") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({ 
+                    modality: modality.charAt(0).toUpperCase() + modality.slice(1),
+                    availability: 'RECUPERACIÓN EVENTUAL - Preferencia: ' + rangeStr,
+                    is_recovery: true,
+                    type: 'Eventual'
+                })
+            });
+
+            if (response.ok) {
+                window.showAlert('Solicitud de recuperación enviada. Nazarena revisará su agenda y disponibilidad y te avisará por Mail o WhatsApp si puede coordinar el espacio.');
+                closeEventualRecoveryModal();
+            } else {
+                alert('Hubo un error al enviar la solicitud.');
+            }
+        } catch (error) {
+            console.error(error);
+            alert('Error de conexión.');
+        } finally {
+            btn.disabled = false;
+            btn.style.opacity = '1';
+            btn.innerHTML = 'SOLICITAR';
+        }
+    }
+
     function nextStep(step) {
         // Validación según el paso actual antes de avanzar
         const currentStep = document.querySelector('.booking-step.active');
         const currentStepId = currentStep ? parseInt(currentStep.id.split('-')[1]) : 1;
 
-        if (step > currentStepId) { // Solo validar si intentamos avanzar
-            if (currentStepId === 1 && !selectedDay) {
+        if (step > currentStepId) { 
+            if (currentStepId === 1 && !selectedDayOfWeek) {
                 window.showAlert('Primero debes seleccionar un día para continuar.');
                 return;
             }
-            if (currentStepId === 2 && !selectedModalidad) {
-                window.showAlert('Primero debes seleccionar la modalidad (Virtual o Presencial).');
+            if (currentStepId === 2 && (!selectedModalidad || !selectedFrequency)) {
+                window.showAlert('Primero debes seleccionar frecuencia (Semanal/Quincenal) y modalidad (Virtual/Presencial).');
                 return;
             }
             if (currentStepId === 3 && !selectedTime) {
@@ -1374,10 +1485,29 @@ $blockedDays = $blockedDays ?? [];
             else ind.classList.remove('active');
         });
 
-        // Navbar scroll removed - neobrutalist navbar is always visible
+        if (step === 3) {
+            generateTimes();
+        }
 
         if (step === 4) {
-            document.getElementById('final_date').value = selectedDay + ' ' + selectedTime;
+            // For recurring booking, we calculate the NEXT occurrence of that day of week 
+            // to store as the first appointment date in the system (legacy support)
+            // or we might need a separate field for recurring bookings. 
+            // For now, let's just set dia_semana and time if the backend supports it.
+            // If the backend expects a DATE, we find the next date.
+            
+            const now = new Date();
+            const today = now.getDay();
+            let diff = selectedDayOfWeek - today;
+            if (diff <= 0) diff += 7;
+            
+            const nextDate = new Date();
+            nextDate.setDate(now.getDate() + diff);
+            const y = nextDate.getFullYear();
+            const m = String(nextDate.getMonth() + 1).padStart(2, '0');
+            const d = String(nextDate.getDate()).padStart(2, '0');
+            
+            document.getElementById('final_date').value = `${y}-${m}-${d} ${selectedTime}`;
         }
     }
 
@@ -1394,15 +1524,22 @@ $blockedDays = $blockedDays ?? [];
             }
         }
         
-        let dateParts = selectedDay.split('-'); // YYYY-MM-DD
-        let formattedDate = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`; // DD/MM/YYYY
-        
-        window.showConfirm('¿Confirmás la reserva para el día ' + formattedDate + ' a las ' + selectedTime + '?', function() {
+        window.showConfirm('¿Confirmás tu RESERVA FIJA ' + selectedFrequency.toUpperCase() + ' para los ' + selectedDayName + ' a las ' + selectedTime + '?', function() {
             document.getElementById('reserve-form').submit();
         });
     }
 
     // Initialize
+    function initStepper() {
+        generateDayOfWeekButtons();
+        if (userType === 'nuevo') {
+            const warning = document.getElementById('payment-warning');
+            if (warning) warning.style.display = 'block';
+            const proof = document.getElementById('proof_input');
+            if (proof) proof.required = true;
+        }
+    }
+    
     initStepper();
 
     function confirmDeleteAccount() {
@@ -1601,6 +1738,247 @@ $blockedDays = $blockedDays ?? [];
         document.getElementById('doc-preview-overlay').style.display = 'none';
         document.body.style.overflow = '';
         document.getElementById('doc-preview-content').innerHTML = '';
+    }
+</script>
+<!-- Upload Proof Modal -->
+<div id="upload-proof-overlay" style="display: none; position: fixed; inset: 0; background-color: rgba(0,0,0,0.6); backdrop-filter: blur(5px); align-items: center; justify-content: center; z-index: 100000; padding: 1rem;">
+    <div class="neobrutalist-card" style="max-width: 450px; width: 100%; background: white; padding: 2rem; border: 5px solid #000; box-shadow: 10px 10px 0px #000;">
+        <h3 style="font-family: 'Syne', sans-serif; font-weight: 800; margin-bottom: 1.5rem; border-bottom: 3px solid #000; padding-bottom: 0.5rem;">SUBIR COMPROBANTE</h3>
+        
+        <form id="upload-proof-form" action="{{ route('appointments.upload-proof') }}" method="POST" enctype="multipart/form-data">
+            @csrf
+            <input type="hidden" name="appointment_id" id="upload_appt_id">
+            
+            <div id="upload-payment-instructions" style="background: #f0f0f0; padding: 1rem; border: 2px solid #000; margin-bottom: 1.5rem; border-radius: 8px;">
+                <p style="margin:0; font-family: monospace; font-weight: 900; text-align: center;">Alias: nazarena.deluca</p>
+            </div>
+
+            <div style="margin-bottom: 1.5rem;">
+                <label class="block font-bold mb-2">Seleccioná el archivo:</label>
+                <input type="file" name="proof" class="neobrutalist-input w-full" style="padding: 10px; background: white;" required accept="image/*,application/pdf">
+            </div>
+
+            <div style="display: flex; gap: 10px;">
+                <button type="button" onclick="closeUploadModal()" class="neobrutalist-btn bg-lila" style="flex: 1;">CANCELAR</button>
+                <button type="submit" class="neobrutalist-btn bg-verde" style="flex: 1;">SUBIR</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Recovery Session Modal (Calendar for single session) -->
+<div id="recovery-overlay" style="display: none; position: fixed; inset: 0; background-color: rgba(0,0,0,0.6); backdrop-filter: blur(5px); align-items: center; justify-content: center; z-index: 100000; padding: 1rem;">
+    <div class="neobrutalist-card" style="max-width: 550px; width: 100%; background: white; padding: 2rem; border: 5px solid #000; box-shadow: 10px 10px 0px #000;">
+        <h3 style="font-family: 'Syne', sans-serif; font-weight: 800; margin-bottom: 1.5rem; border-bottom: 3px solid #000; padding-bottom: 0.5rem;">RECUPERAR SESIÓN</h3>
+        <p style="font-size: 0.9rem; font-weight: 600; color: #444; margin-bottom: 1.5rem;">
+            Elegí un horario entre los <b>espacios disponibles de Nazarena</b> para retomar la sesión cancelada. Ella recibirá tu solicitud.
+        </p>
+
+        <div style="margin-bottom: 1.5rem;">
+            <label class="block font-bold mb-2">1. Elegí el día:</label>
+            <div id="recovery-days-grid" class="days-grid" style="grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)); gap: 8px;">
+                <!-- Filled by JS -->
+            </div>
+        </div>
+
+        <div style="margin-bottom: 1.5rem; display: block;" id="recovery-time-section">
+            <label class="block font-bold mb-2">2. Rango horario preferido:</label>
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                <div style="flex: 1;">
+                    <label style="font-size: 0.75rem; color: #666; font-weight: 800; display: block; margin-bottom: 5px;">DESDE:</label>
+                    <input type="time" id="recovery-time-from" class="neobrutalist-input w-full" style="padding: 0.5rem; border-radius: 8px; font-weight: 700;" onclick="this.showPicker ? this.showPicker() : this.click();">
+                </div>
+                <div style="flex: 1;">
+                    <label style="font-size: 0.75rem; color: #666; font-weight: 800; display: block; margin-bottom: 5px;">HASTA:</label>
+                    <input type="time" id="recovery-time-to" class="neobrutalist-input w-full" style="padding: 0.5rem; border-radius: 8px; font-weight: 700;" onclick="this.showPicker ? this.showPicker() : this.click();">
+                </div>
+            </div>
+            <p style="font-size: 0.8rem; color: #666; margin-top: 10px; font-weight: 600;">
+                <i class="fa-solid fa-paper-plane"></i> Nazarena recibirá tu solicitud para ver su disponibilidad en la agenda y te enviará un mensaje de confirmación por WhatsApp.
+            </p>
+        </div>
+
+        <div style="display: flex; gap: 10px; margin-top: 2rem;">
+            <button type="button" onclick="closeRecoveryModal()" class="neobrutalist-btn bg-lila" style="flex: 1;">CANCELAR</button>
+            <button type="button" id="recovery-confirm-btn" onclick="sendRecoveryRequest()" class="neobrutalist-btn bg-verde disabled-btn" style="flex: 1;">SOLICITAR</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openUploadModal(apptId) {
+        document.getElementById('upload_appt_id').value = apptId;
+        document.getElementById('upload-proof-overlay').style.display = 'flex';
+    }
+
+    function closeUploadModal() {
+        document.getElementById('upload-proof-overlay').style.display = 'none';
+    }
+
+    let recoverySelectedDay = null;
+    let recoverySelectedTime = null;
+
+    function openRecoveryModal(apptId) {
+        document.getElementById('recovery-overlay').style.display = 'flex';
+        // Store apptId for the request and button fade
+        window.currentRecoveryApptId = apptId;
+        generateRecoveryDays();
+    }
+
+    function closeRecoveryModal() {
+        document.getElementById('recovery-overlay').style.display = 'none';
+        recoverySelectedDay = null;
+        recoverySelectedTime = null;
+        document.getElementById('recovery-time-section').style.display = 'none';
+        document.getElementById('recovery-confirm-btn').classList.add('disabled-btn');
+    }
+
+    function generateRecoveryDays() {
+        const grid = document.getElementById('recovery-days-grid');
+        grid.innerHTML = '';
+        
+        const today = new Date();
+        const currentDay = today.getDay(); // 0 (Sun) to 6 (Sat)
+        
+        // Calculate days remaining in the current week (until Friday)
+        // If today is Sat (6) or Sun (0), we show next week? 
+        // User said "dentro de esa misma semana", so if it's Friday, they can only recover today?
+        // Let's assume Mon-Fri.
+        
+        for (let i = 0; i < 7; i++) {
+            const date = new Date();
+            date.setDate(today.getDate() + i);
+            const dayOfWeek = date.getDay();
+            
+            // Skip weekends
+            if (dayOfWeek === 0 || dayOfWeek === 6) continue;
+            
+            // Limit to current week (until coming Sunday)
+            // If i=0 is today, and it's Wednesday, we show Wed, Thu, Fri.
+            // A simple way is to check if the date belongs to the same week or just limit to the next few days.
+            // User said "dentro de esa misma semana".
+            const diffToToday = date.getDate() - today.getDate();
+            const daysUntilSunday = (7 - currentDay) % 7;
+            
+            if (i > daysUntilSunday && currentDay !== 0) break; 
+
+            const y = date.getFullYear();
+            const m = String(date.getMonth() + 1).padStart(2, '0');
+            const dStr = String(date.getDate()).padStart(2, '0');
+            const dateStr = `${y}-${m}-${dStr}`;
+
+            const dayBtn = document.createElement('div');
+            dayBtn.className = 'day-btn';
+            dayBtn.style.padding = '5px';
+            dayBtn.innerHTML = `
+                <div style="font-size: 0.5rem; opacity: 0.7;">${date.toLocaleDateString('es-AR', { weekday: 'short' }).toUpperCase()}</div>
+                <div style="font-size: 0.9rem; font-weight: 800;">${date.getDate()}</div>
+            `;
+            dayBtn.onclick = () => {
+                document.querySelectorAll('#recovery-days-grid .day-btn').forEach(b => b.classList.remove('selected'));
+                dayBtn.classList.add('selected');
+                recoverySelectedDay = dateStr;
+                // Show range input section instead of times grid
+                document.getElementById('recovery-time-section').style.display = 'block';
+                document.getElementById('recovery-confirm-btn').classList.remove('disabled-btn');
+            };
+            grid.appendChild(dayBtn);
+        }
+    }
+
+    // Removed generateRecoveryTimes as we now use a custom range textarea
+
+    async function sendRecoveryRequest() {
+        if (!recoverySelectedDay) return;
+        
+        const from = document.getElementById('recovery-time-from').value;
+        const to = document.getElementById('recovery-time-to').value;
+        const btn = document.getElementById('recovery-confirm-btn');
+        btn.disabled = true;
+        btn.innerText = 'ENVIANDO...';
+
+        try {
+            const rangeStr = from && to ? `de ${from} a ${to}` : (from || to || 'Sin preferencia específica');
+            const response = await fetch('{{ route("waitlist.store") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({ 
+                    fecha_especifica: recoverySelectedDay, 
+                    availability: 'SOLICITUD RECUPERACIÓN (' + recoverySelectedDay + ') - Preferencia: ' + rangeStr,
+                    modality: 'Cualquiera',
+                    is_recovery: true
+                })
+            });
+
+            if (response.ok) {
+                closeRecoveryModal();
+                window.showAlert('Solicitud de recuperación enviada con éxito. Nazarena recibirá tu pedido y te contactará pronto por WhatsApp para confirmar.');
+                
+                // Fade and disable the specific recover button in the table
+                const apptId = window.currentRecoveryApptId;
+                if (apptId) {
+                    const tableBtn = document.querySelector(`button[onclick="openRecoveryModal(${apptId})"]`);
+                    if (tableBtn) {
+                        tableBtn.disabled = true;
+                        tableBtn.style.opacity = '0.4';
+                        tableBtn.style.pointerEvents = 'none';
+                        tableBtn.innerHTML = '<i class="fa-solid fa-clock"></i> Solicitado';
+                    }
+                }
+            } else {
+                window.showAlert('Error al enviar la solicitud.');
+            }
+        } catch (error) {
+            window.showAlert('Error de conexión.');
+        } finally {
+            btn.disabled = false;
+            btn.innerText = 'SOLICITAR';
+        }
+    }
+    async function applyFilters() {
+        const form = document.getElementById('appointments-filter-form');
+        const container = document.getElementById('appointments-table-container');
+        if (!form || !container) return;
+
+        const formData = new FormData(form);
+        const params = new URLSearchParams(formData);
+        
+        container.style.opacity = '0.5';
+        container.style.pointerEvents = 'none';
+
+        try {
+            const url = `{{ route('patient.dashboard') }}?${params.toString()}`;
+            const response = await fetch(url, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            const html = await response.text();
+            container.innerHTML = html;
+            window.history.pushState({}, '', url);
+        } catch (error) {
+            console.error('Filter error:', error);
+        } finally {
+            container.style.opacity = '1';
+            container.style.pointerEvents = 'auto';
+        }
+    }
+
+    // Time validation for recovery modal
+    document.getElementById('recovery-time-pref-from').addEventListener('change', validateRecoveryTimes);
+    document.getElementById('recovery-time-pref-to').addEventListener('change', validateRecoveryTimes);
+
+    function validateRecoveryTimes() {
+        const from = document.getElementById('recovery-time-pref-from');
+        const to = document.getElementById('recovery-time-pref-to');
+        if (from.value && to.value) {
+            if (from.value > to.value) {
+                window.showAlert('La hora "Desde" no puede ser mayor a la hora "Hasta".');
+                to.value = '';
+            }
+        }
     }
 </script>
 @endsection

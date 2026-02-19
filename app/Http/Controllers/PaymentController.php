@@ -174,12 +174,15 @@ class PaymentController extends Controller
             'paciente' => $payment->appointment->user->nombre
         ]);
 
-        // Notificar al Paciente
-        \App\Models\Notification::create([
-            'usuario_id' => $payment->appointment->usuario_id,
-            'mensaje' => 'Tu comprobante de pago para el ' . $payment->appointment->fecha_hora->format('d/m H:i') . ' ha sido rechazado. Por favor subí uno válido.',
-            'link' => route('patient.dashboard')
-        ]);
+        // Notificar al Paciente (Mail + DB)
+        if ($payment->appointment->user) {
+            $payment->appointment->user->notify(new \App\Notifications\PatientNotification([
+                'title' => 'Pago Rechazado',
+                'mensaje' => 'Tu comprobante de pago para el ' . $payment->appointment->fecha_hora->format('d/m H:i') . ' ha sido rechazado. Por favor subí uno válido.',
+                'link' => route('patient.dashboard'),
+                'type' => 'pago_rechazado'
+            ]));
+        }
 
         return back()->with('success', 'Pago rechazado.');
     }

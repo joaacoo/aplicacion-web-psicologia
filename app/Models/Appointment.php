@@ -24,9 +24,11 @@ class Appointment extends Model
         'vence_en',
         'notificado_recordatorio_en',
         'notificado_ultimatum_en',
+        'notificado_una_hora_en',
         'debe_pagarse',
         'paciente_id',
         'monto_final',
+        'frecuencia',
     ];
 
     /**
@@ -42,6 +44,7 @@ class Appointment extends Model
         'fecha_hora' => 'datetime',
         'es_recurrente' => 'boolean',
         'vence_en' => 'datetime',
+        'notificado_una_hora_en' => 'datetime',
     ];
 
     public function user()
@@ -96,5 +99,18 @@ class Appointment extends Model
     public function payment()
     {
         return $this->hasOne(Payment::class, 'turno_id');
+    }
+
+    /**
+     * Accessor para obtener el link de la reunión.
+     * Prioriza el link específico del turno (link_reunion) y falla al link del paciente.
+     */
+    public function getMeetLinkAttribute()
+    {
+        if ($this->link_reunion) {
+            return $this->link_reunion;
+        }
+
+        return $this->user->paciente->meet_link ?? '#';
     }
 }

@@ -32,7 +32,12 @@ class AppointmentReminder extends Mailable
      */
     public function envelope(): Envelope
     {
-        $subj = ($this->tipo_aviso === 'ultimatum') ? '⚠️ ÚLTIMO AVISO: Pago pendiente de tu turno' : 'Recordatorio de pago - Tu turno está próximo';
+        $subj = match($this->tipo_aviso) {
+            'ultimatum' => '⚠️ ÚLTIMO AVISO: Pago pendiente de tu turno',
+            'proxima_sesion' => 'Tu sesión comienza en breve (1 hora)',
+            'recordatorio_confirmado' => 'Recordatorio de tu sesión de mañana',
+            default => 'Recordatorio de pago - Tu turno está próximo',
+        };
         return new Envelope(
             subject: $subj,
         );

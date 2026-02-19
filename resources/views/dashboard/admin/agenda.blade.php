@@ -247,21 +247,19 @@
     <div class="calendar-container">
         <!-- Header estilo Apple -->
         <div class="calendar-header">
-            @php
-                $prev = $currentDate->copy()->subMonth();
-                $minAllowed = \Carbon\Carbon::create(2026, 1, 1);
-            @endphp
+            <div style="display: flex; align-items: center; gap: 0.8rem;">
+                @if($prev->lt($minAllowed))
+                    <button class="nav-btn" disabled aria-disabled="true" title="No se puede retroceder más">&lt;</button>
+                @else
+                    <a href="{{ route('admin.agenda', ['month' => $prev->month, 'year' => $prev->year]) }}" class="nav-btn">&lt;</a>
+                @endif
 
-            @if($prev->lt($minAllowed))
-                <button class="nav-btn" disabled aria-disabled="true" title="No se puede retroceder más">&lt;</button>
-            @else
-                <a href="{{ route('admin.agenda', ['month' => $prev->month, 'year' => $prev->year]) }}" class="nav-btn">&lt;</a>
-            @endif
+                <h2>{{ $currentDate->locale('es')->isoFormat('MMMM YYYY') }}</h2>
 
-            <h2>{{ $currentDate->locale('es')->isoFormat('MMMM YYYY') }}</h2>
+                @php $next = $currentDate->copy()->addMonth(); @endphp
+                <a href="{{ route('admin.agenda', ['month' => $next->month, 'year' => $next->year]) }}" class="nav-btn">&gt;</a>
+            </div>
 
-            @php $next = $currentDate->copy()->addMonth(); @endphp
-            <a href="{{ route('admin.agenda', ['month' => $next->month, 'year' => $next->year]) }}" class="nav-btn">&gt;</a>
         </div>
 
         <div class="calendar-grid">
