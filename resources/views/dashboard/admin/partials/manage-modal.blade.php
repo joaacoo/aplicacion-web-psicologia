@@ -1,8 +1,13 @@
 <div id="manageModal" class="confirm-modal-overlay" style="display: none; z-index: 100000; background: rgba(168, 226, 250, 0.3); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); align-items: center; justify-content: center; position: fixed; top: 0; left: 0; width: 100%; height: 100%;">
     
     <!-- Modal Container -->
-    <div class="confirm-modal confirm-modal-minimal" style="max-width: 550px; width: 95%; border: 3px solid #000; box-shadow: 10px 10px 0px #000; border-radius: 20px; background: white; padding: 0 !important; overflow: hidden; display: flex; flex-direction: column; max-height: 90vh;">
+    <div class="confirm-modal confirm-modal-minimal" style="position: relative; max-width: 550px; width: 95%; border: 3px solid #000; box-shadow: 10px 10px 0px #000; border-radius: 20px; background: white; padding: 0 !important; overflow: hidden; display: flex; flex-direction: column; max-height: 90vh;">
         
+        <!-- Top Right Close Button -->
+        <button onclick="closeManageModal()" style="position: absolute; top: 15px; right: 15px; background: #ff4444; color: white; border: 3px solid #000; box-shadow: 3px 3px 0px #000; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 100; font-weight: 800; font-size: 1.2rem; transition: transform 0.1s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1.0)'">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+
         <!-- Header (Yellow Pastel - Centered) -->
         <div class="confirm-modal-title-minimal" id="manageTitle" style="padding: 1.5rem 2rem; background: #fef9c3; border-bottom: 3px solid #000; font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.4rem; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 0.5rem;">
             <span>Gestionar</span>
@@ -103,11 +108,6 @@
                 </form>
             </div>
             
-            <!-- Close Button (Smaller) -->
-            <div style="display: flex; justify-content: center; margin-top: 1rem;">
-                <button onclick="closeManageModal()" class="neobrutalist-btn" style="background: #eee; border: 3px solid #000; box-shadow: 3px 3px 0px #000; border-radius: 8px; font-weight: 800; padding: 0.5rem 1.5rem; font-size: 0.8rem; width: auto; min-width: 120px;">Cerrar</button>
-            </div>
-
         </div>
     </div>
 </div>

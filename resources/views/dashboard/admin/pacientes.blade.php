@@ -31,7 +31,7 @@
                         <th style="padding: 0.8rem; text-align: left;">Teléfono</th>
                         <th style="padding: 0.8rem; text-align: left;">Tipo</th>
                         <th style="padding: 0.8rem; text-align: center;">Turnos</th>
-                        <th style="padding: 0.8rem; text-align: right;">Acciones</th>
+                        <th style="padding: 0.8rem; text-align: center;">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -47,18 +47,18 @@
                             </td>
                             <td data-label="Turnos" style="padding: 0.8rem; text-align: center;">{{ $patient->turnos_count ?? $patient->turnos()->count() }}</td>
                             <td style="padding: 0.8rem; text-align: right;">
-                                <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
-                            <button class="neobrutalist-btn no-select bg-amarillo" style="padding: 0.2rem 0.6rem; font-size: 0.7rem;"
-                                    onclick="openManageModal('{{ $patient->id }}', '{{ $patient->nombre }}', '{{ $patient->email }}', '{{ $patient->telefono ?? 'No registrado' }}', '{{ $patient->tipo_paciente }}', '{{ $patient->meet_link }}', '{{ $patient->paciente->precio_personalizado ?? 0 }}')">
+                                <div class="action-buttons-container" style="display: flex; gap: 0.5rem; justify-content: flex-end; flex-wrap: wrap;">
+                                    <button class="neobrutalist-btn no-select bg-amarillo" style="padding: 0.2rem 0.6rem; font-size: 0.7rem; flex: 1; white-space: nowrap; justify-content: center;"
+                                            onclick="openManageModal('{{ $patient->id }}', '{{ $patient->nombre }}', '{{ $patient->email }}', '{{ $patient->telefono ?? 'No registrado' }}', '{{ $patient->tipo_paciente }}', '{{ $patient->meet_link }}', '{{ $patient->paciente->precio_personalizado ?? 0 }}')">
                                         Gestionar
                                     </button>
-                                    <button class="neobrutalist-btn bg-celeste" style="padding: 0.2rem 0.6rem; font-size: 0.7rem;"
+                                    <button class="neobrutalist-btn bg-celeste" style="padding: 0.2rem 0.6rem; font-size: 0.7rem; flex: 1; white-space: nowrap; justify-content: center;"
                                             onclick='openDocumentsModal({{ $patient->id }}, "{{ $patient->nombre }}", @json($patient->documents))'>
                                         <i class="fa-solid fa-folder"></i> Docs
                                     </button>
-                                    <a href="{{ $patient->paciente ? route('admin.clinical-history.index', $patient->paciente->id) : '#' }}" 
+                                    <a href="{{ route('admin.clinical-history.initialize', $patient->id) }}" 
                                        class="neobrutalist-btn bg-white" 
-                                       style="padding: 0.2rem 0.6rem; font-size: 0.7rem; text-decoration: none; color: black; border: 2px solid #000; {{ !$patient->paciente ? 'opacity: 0.5; pointer-events: none;' : '' }}">
+                                       style="padding: 0.2rem 0.6rem; font-size: 0.7rem; text-decoration: none; color: black; border: 2px solid #000; flex: 1; white-space: nowrap; justify-content: center;">
                                         <i class="fa-solid fa-file-medical"></i> Historia
                                     </a>
                                 </div>

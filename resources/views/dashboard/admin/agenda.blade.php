@@ -373,18 +373,11 @@
                         <span class="btn-text">Guardar</span>
                     </button>
                 </div>
+                <div style="display: flex; align-items: center; gap: 8px; margin-top: 0.5rem; padding: 0.75rem 1rem; background: #f0fdf4; border: 1px solid #86efac; border-radius: 8px;">
+                    <i class="fa-solid fa-shield-halved" style="color: #16a34a; font-size: 1rem;"></i>
+                    <span style="font-size: 0.85rem; color: #15803d; font-weight: 600;">Tu link está totalmente seguro. Se guarda encriptado y solo vos podés verlo.</span>
+                </div>
             </form>
-
-            <!-- Sync Button -->
-            <div style="flex: 1; display: flex; flex-direction: column; gap: 0.8rem; width: 100%;">
-                <form action="{{ route('admin.calendar.sync') }}" method="POST" style="margin: 0; width: 100%;">
-                    @csrf
-                    <button type="submit" class="neobrutalist-btn" style="width: 100%; height: 56px; background: white; border: 2px solid #ea4335; color: #ea4335; border-radius: 14px; display: flex; align-items: center; justify-content: center; gap: 0.8rem; box-shadow: 4px 4px 0px #000;">
-                        <i class="fa-brands fa-google" style="font-size: 1.3rem;"></i>
-                        <span style="font-weight: 700;">Sincronizar ahora</span>
-                    </button>
-                </form>
-            </div>
         </div>
 
         <div style="margin-top: 2.5rem; padding-top: 1.5rem; border-top: 1px solid #f0f0f0; text-align: center;">

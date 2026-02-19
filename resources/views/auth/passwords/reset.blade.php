@@ -16,7 +16,7 @@
 
             <div class="mb-4">
                 <label for="email" style="font-weight: 700;">Email</label>
-                <input type="email" name="email" id="email" class="neobrutalist-input @error('email') border-red-500 @enderror" required placeholder="nombre@ejemplo.com" value="{{ $email ?? old('email') }}">
+                <input type="email" name="email" id="email" class="neobrutalist-input @error('email') border-red-500 @enderror" required placeholder="nombre@ejemplo.com" value="{{ $email ?? old('email') }}" readonly style="background-color: #e9ecef; cursor: not-allowed; opacity: 0.7;">
                 @error('email')
                     <span style="color: red; font-size: 0.8rem; font-weight: 700;">{{ $message }}</span>
                 @enderror

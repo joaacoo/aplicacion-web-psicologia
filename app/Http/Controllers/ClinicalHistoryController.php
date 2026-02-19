@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\ClinicalHistory;
 use App\Models\Paciente;
 use App\Models\Turno;
+use App\Models\User;
 use Illuminate\Http\Request;
 
 class ClinicalHistoryController extends Controller
@@ -13,6 +14,25 @@ class ClinicalHistoryController extends Controller
      * Display list of turnos (appointments) for a patient
      * Shows which turnos have clinical notes and which don't
      */
+    public function initialize($userId)
+    {
+        $user = User::findOrFail($userId);
+        
+        // Ensure Paciente record exists
+        $paciente = $user->paciente;
+        
+        if (!$paciente) {
+            $paciente = Paciente::create([
+                'user_id' => $user->id,
+                'telefono' => $user->telefono,
+                'tipo_paciente' => 'nuevo',
+                // meet_link will be auto-generated in Paciente::boot()
+            ]);
+        }
+        
+        return redirect()->route('admin.clinical-history.index', $paciente->id);
+    }
+
     public function index($pacienteId)
     {
         $paciente = Paciente::with('user')->findOrFail($pacienteId);

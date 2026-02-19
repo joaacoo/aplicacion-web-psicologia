@@ -54,14 +54,15 @@ class AppointmentController extends Controller
             ]);
         }
 
-        // Notificar al Admin
+        // Notificar al Admin (Web + Mail)
         $admin = \App\Models\User::where('rol', 'admin')->first();
         if ($admin) {
-            \App\Models\Notification::create([
-                'usuario_id' => $admin->id,
-                'mensaje' => 'Nuevo turno reservado por ' . Auth::user()->nombre,
-                'link' => route('admin.dashboard')
-            ]);
+            $admin->notify(new \App\Notifications\AdminNotification([
+                'title' => 'Reserva de Turno',
+                'mensaje' => 'Nuevo turno reservado por ' . Auth::user()->nombre . ' para el ' . $appointmentDate->format('d/m H:i'),
+                'link' => route('admin.dashboard'),
+                'type' => 'reserva'
+            ]));
         }
 
         return redirect()->route('patient.dashboard')->with('success', 'Turno solicitado. Tu comprobante fue enviado y está en revisión.');
@@ -77,7 +78,11 @@ class AppointmentController extends Controller
         // [FINANCE] Lock price at confirmation to preserve history
         $honorario = 0;
         if ($appointment->user && $appointment->user->paciente) {
-            $honorario = $appointment->user->paciente->honorario_pactado;
+            // Use the accessor to handle custom price or fallback to base price
+            $honorario = $appointment->user->paciente->precio_sesion;
+        } else {
+            // Final fallback if no model exists for some reason
+            $honorario = \App\Models\Setting::get('precio_base_sesion', 25000);
         }
 
         $appointment->update([
@@ -85,12 +90,18 @@ class AppointmentController extends Controller
             'monto_final' => $honorario
         ]);
 
-        // Notificar al Paciente
-        \App\Models\Notification::create([
-            'usuario_id' => $appointment->usuario_id,
+        // [FIX] Update payment status to 'verificado' so it counts in monthly income
+        if ($appointment->payment) {
+            $appointment->payment->update(['estado' => 'verificado']);
+        }
+
+        // Notificar al Paciente (Web + Mail)
+        $appointment->user->notify(new \App\Notifications\PatientNotification([
+            'title' => 'Turno Confirmado',
             'mensaje' => 'Tu turno para el ' . $appointment->fecha_hora->format('d/m H:i') . ' ha sido CONFIRMADO.',
-            'link' => route('patient.dashboard')
-        ]);
+            'link' => route('patient.dashboard'),
+            'type' => 'success'
+        ]));
 
         $this->logActivity('turno_confirmado', 'Confirmó manualmente el turno del ' . $appointment->fecha_hora->format('d/m H:i') . ' para ' . $appointment->user->nombre, [
             'turno_id' => $appointment->id,

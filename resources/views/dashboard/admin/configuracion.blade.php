@@ -70,14 +70,13 @@
         </button>
     </div>
 
-    <!-- SECCIÓN 1: CONFIGURACIÓN GENERAL (Honorarios y Duración) -->
+    <!-- SECCIÓN 1: CONFIGURACIÓN GENERAL (Honorarios) -->
     <div id="tab-general" class="tab-pane active" style="margin-top: 0 !important; padding-top: 0 !important; margin-bottom: 6rem;">
-        <!-- Removed redundant header since tabs now serve as headers -->
         <h3 style="font-size: 1.5rem; margin-bottom: 1.5rem;">
-           <i class="fa-solid fa-sliders"></i> Configuración de Honorarios y Sesiones
+           <i class="fa-solid fa-sliders"></i> Configuración de Honorarios
         </h3>
         
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 2rem;">
+        <div style="display: grid; grid-template-columns: 1fr; max-width: 500px; margin: 0 auto; gap: 2rem;">
             
             <!-- Configuración de Honorarios -->
             <div style="background: var(--color-amarillo); border: 3px solid #000; padding: 1.5rem; border-radius: 15px; box-shadow: 4px 4px 0px #000;">
@@ -87,8 +86,9 @@
                     @csrf
                     <div style="margin-bottom: 1.5rem;">
                         <label style="font-size: 0.8rem; font-weight: 800; display: block; margin-bottom: 0.5rem;">PRECIO BASE ($)</label>
-                        <input type="number" name="precio_base_sesion" value="{{ $basePrice }}" class="neobrutalist-input" style="padding: 10px; font-size: 1rem; width: 100%;" required>
+                        <input type="number" name="precio_base_sesion" value="{{ \App\Models\Setting::get('precio_base_sesion', 0) }}" class="neobrutalist-input w-full" style="padding: 10px; font-size: 1rem;" required="">
                     </div>
+                    {{-- Preserve session settings when updating price --}}
                     <input type="hidden" name="duracion_sesion" value="{{ auth()->user()->profesional->duracion_sesion ?? 45 }}">
                     <input type="hidden" name="intervalo_sesion" value="{{ auth()->user()->profesional->intervalo_sesion ?? 15 }}">
                     
@@ -97,35 +97,13 @@
                     </button>
                 </form>
             </div>
-
-            <!-- Configuración de Sesiones -->
-            <div style="background: var(--color-celeste); border: 3px solid #000; padding: 1.5rem; border-radius: 15px; box-shadow: 4px 4px 0px #000;">
-                <h4 style="margin-top: 0; font-weight: 800; font-size: 1.2rem;"><i class="fa-solid fa-clock"></i> Sesiones</h4>
-                <p style="font-size: 0.9rem; margin-bottom: 1.5rem; color: #555;">Duración y espacios entre turnos.</p>
-                <form action="{{ route('admin.settings.update') }}" method="POST">
-                    @csrf
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
-                        <div>
-                            <label style="font-size: 0.8rem; font-weight: 800; display: block; margin-bottom: 0.5rem;">DURACIÓN (MIN)</label>
-                            <input type="number" name="duracion_sesion" value="{{ auth()->user()->profesional->duracion_sesion ?? 45 }}" class="neobrutalist-input" style="padding: 10px; font-size: 1rem;" required>
-                        </div>
-                         <div>
-                            <label style="font-size: 0.8rem; font-weight: 800; display: block; margin-bottom: 0.5rem;">INTERVALO (MIN)</label>
-                            <input type="number" name="intervalo_sesion" value="{{ auth()->user()->profesional->intervalo_sesion ?? 15 }}" class="neobrutalist-input" style="padding: 10px; font-size: 1rem;" required>
-                        </div>
-                    </div>
-                    <button type="submit" class="neobrutalist-btn bg-amarillo w-full" style="padding: 10px; font-size: 0.9rem;">
-                        Guardar Configuración
-                    </button>
-                </form>
-            </div>
         </div>
     </div>
 
     <!-- SECCIÓN 2: HORARIOS DE ATENCIÓN (Semanal) -->
-    <!-- SECCIÓN 2: HORARIOS DE ATENCIÓN (Semanal) -->
     <div id="tab-horarios" class="tab-pane" style="margin-top: 0 !important; padding-top: 0 !important; margin-bottom: 6rem;">
-        <h3 style="font-size: 1.5rem; margin-bottom: 1.5rem;">
+        
+        <h3 style="font-size: 1.5rem; margin-bottom: 1.5rem; padding-top: 1rem;">
             <i class="fa-regular fa-calendar-check"></i> Horarios de Atención Semanal
         </h3>
         <p style="margin: -1rem 0 1.5rem 0; font-size: 0.9rem; color: #555;">
@@ -162,6 +140,14 @@
                             <input type="time" name="hora_fin" class="neobrutalist-input" style="width:100%; margin-bottom:0; padding: 8px;" required>
                         </div>
                     </div>
+                    <div style="margin-bottom: 1.5rem;">
+                         <label style="display:block; font-weight: 800; font-size: 0.85rem; margin-bottom: 0.3rem;">Modalidad:</label>
+                         <select name="modalidad" class="neobrutalist-input" style="width:100%; padding: 10px;" required>
+                             <option value="presencial">Presencial</option>
+                             <option value="virtual">Virtual</option>
+                             <option value="cualquiera">Cualquiera (Ambas)</option>
+                         </select>
+                    </div>
                     <button type="submit" class="neobrutalist-btn bg-amarillo w-full" style="padding: 10px;">Guardar Horario</button>
                 </form>
             </div>
@@ -172,6 +158,7 @@
                     <thead style="background: #000; color: white; position: sticky; top: 0;">
                         <tr>
                             <th style="padding: 1rem; text-align: left;">Día</th>
+                            <th style="padding: 1rem; text-align: left;">Modalidad</th>
                             <th style="padding: 1rem; text-align: left;">Rango</th>
                             <th style="padding: 1rem; text-align: right;">Acción</th>
                         </tr>
@@ -184,6 +171,11 @@
                             @foreach($dayAvailabilities as $avail)
                             <tr style="border-bottom: 2px solid #eee;">
                                 <td style="padding: 1rem; font-weight: 800;">{{ $diasStrings[$avail->dia_semana] }}</td>
+                                <td style="padding: 1rem;">
+                                    <span style="font-size: 0.75rem; font-weight: 800; text-transform: uppercase; padding: 2px 6px; border-radius: 4px; border: 2px solid #000; background: {{ $avail->modalidad == 'virtual' ? 'var(--color-celeste)' : ($avail->modalidad == 'presencial' ? 'var(--color-lila)' : '#eee') }}">
+                                        {{ $avail->modalidad }}
+                                    </span>
+                                </td>
                                 <td style="padding: 1rem;">{{ \Carbon\Carbon::parse($avail->hora_inicio)->format('H:i') }} - {{ \Carbon\Carbon::parse($avail->hora_fin)->format('H:i') }} hs</td>
                                 <td style="padding: 1rem; text-align: right;">
                                     <form id="delete-avail-{{ $avail->id }}" action="{{ route('admin.availabilities.destroy', $avail->id) }}" method="POST">
@@ -199,6 +191,30 @@
                         @endforelse
                     </tbody>
                 </table>
+            </div>
+        </div>
+
+        <!-- Configuración de Duración y Sesiones (Ahora abajo) -->
+        <div style="margin-top: 3rem; display: grid; grid-template-columns: 1fr; max-width: 500px; margin-left: auto; margin-right: auto;">
+            <div style="background: var(--color-celeste); border: 3px solid #000; padding: 1.5rem; border-radius: 15px; box-shadow: 4px 4px 0px #000;">
+                <h4 style="margin-top: 0; font-weight: 800; font-size: 1.2rem;"><i class="fa-solid fa-clock"></i> Configuración de Sesiones</h4>
+                <p style="font-size: 0.9rem; margin-bottom: 1.5rem; color: #555;">Definí la duración de cada turno y el tiempo entre ellos.</p>
+                <form action="{{ route('admin.settings.update') }}" method="POST">
+                    @csrf
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+                        <div>
+                            <label style="font-size: 0.8rem; font-weight: 800; display: block; margin-bottom: 0.5rem;">DURACIÓN (MIN)</label>
+                            <input type="number" name="duracion_sesion" value="{{ auth()->user()->profesional->duracion_sesion ?? 45 }}" class="neobrutalist-input w-full" style="padding: 10px; font-size: 1rem;" required="">
+                        </div>
+                         <div>
+                            <label style="font-size: 0.8rem; font-weight: 800; display: block; margin-bottom: 0.5rem;">INTERVALO (MIN)</label>
+                            <input type="number" name="intervalo_sesion" value="{{ auth()->user()->profesional->intervalo_sesion ?? 15 }}" class="neobrutalist-input w-full" style="padding: 10px; font-size: 1rem;" required="">
+                        </div>
+                    </div>
+                    <button type="submit" class="neobrutalist-btn bg-amarillo w-full" style="padding: 10px; font-size: 0.9rem;">
+                        Guardar Configuración
+                    </button>
+                </form>
             </div>
         </div>
     </div>
@@ -268,7 +284,15 @@
                 <div>
                     <h5 style="margin: 0 0 1rem 0; font-weight: 800; font-size: 1.1rem; border-bottom: 2px solid #000; padding-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center;">
                         <span><i class="fa-solid fa-flag"></i> Feriados Oficiales</span>
-                        <span style="font-size: 0.7rem; background: #e8f5e9; color: #1b5e20; padding: 4px 8px; border-radius: 4px; border: 1px solid #1b5e20; font-weight: 700;">Sincronizado 2026</span>
+                        <div style="display: flex; gap: 5px; align-items: center;">
+                            <span style="font-size: 0.7rem; background: #e8f5e9; color: #1b5e20; padding: 4px 8px; border-radius: 4px; border: 1px solid #1b5e20; font-weight: 700;">2026</span>
+                            <form action="{{ route('admin.calendar.import-holidays') }}" method="POST" style="margin:0;">
+                                @csrf
+                                <button type="submit" class="neobrutalist-btn" style="padding: 2px 8px; font-size: 0.7rem; background: white;" title="Sincronizar Manualmente">
+                                    <i class="fa-solid fa-rotate"></i>
+                                </button>
+                            </form>
+                        </div>
                     </h5>
                     
                     <div class="scroll-panel" style="max-height: 200px; overflow-y: auto; background: #fafafa; border: 2px solid #000; padding: 0.5rem; border-radius: 8px;">
@@ -301,44 +325,34 @@
         document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
 
         // Show selected pane
-        document.getElementById('tab-' + tabName).classList.add('active');
-        // Activate button - Find button that triggered this, or find by index/selector. 
-        // Simpler: event.target adds active, but since I call this inline, I need to pass 'this' or similar. 
-        // Let's use event.currentTarget
+        const pane = document.getElementById('tab-' + tabName);
+        if (pane) {
+            pane.classList.add('active');
+            // Update URL hash without jumping
+            history.replaceState(null, null, '#' + tabName);
+        }
+
+        // Activate button
+        const buttons = document.querySelectorAll('.tab-btn');
+        buttons.forEach(btn => {
+            if (btn.getAttribute('onclick').includes("'" + tabName + "'")) {
+                btn.classList.add('active');
+            }
+        });
     }
     
     // Add event listener to buttons to handle 'active' class more reliably than inline onclick
     document.addEventListener('DOMContentLoaded', function() {
-        const buttons = document.querySelectorAll('.tab-btn');
-        buttons.forEach(btn => {
-            btn.addEventListener('click', function() {
-                buttons.forEach(b => b.classList.remove('active'));
-                this.classList.add('active');
-            });
-        });
-        
-        // 1. Auto-Sync Holidays Logic (Silent)
-        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-        
-        // Check if route exists before fetching to avoid 404 in tests if route missing
-        const holidaysRoute = '{{ route("admin.calendar.import-holidays") }}';
-        if(holidaysRoute) {
-             fetch(holidaysRoute, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': csrfToken,
-                    'Accept': 'application/json'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                console.log('Feriados Sincronizados:', data.message);
-                const statusElem = document.getElementById('holiday-sync-status');
-                if (statusElem) statusElem.innerText = "Sincronizados.";
-            })
-            .catch(error => console.error('Error Sync Holidays:', error));
+        // 0. Check for hash in URL to open specific tab (e.g. #horarios)
+        const hash = window.location.hash;
+        if (hash) {
+            const tabName = hash.replace('#', '');
+            if (document.getElementById('tab-' + tabName)) {
+                switchTab(tabName);
+            }
         }
+        
+
 
         // 2. Scroll Logic: Smart Handling
         const scrollPanels = document.querySelectorAll('.scroll-panel');
@@ -374,12 +388,12 @@
                 <iframe id="modalPdf" src="" style="width: 100%; height: 50vh; border: 5px solid #fff; box-shadow: 10px 10px 0px #000; display: none;"></iframe>
                 <p id="modalError" style="display: none; color: white; font-weight: bold; font-size: 1.2rem;">Archivo no encontrado / No disponible</p>
             </div>
-            <div class="modal-info-col">
-                <div>
+            <div class="modal-info-col" style="border: none !important; border-left: none !important;">
+                <div style="border: none !important; margin-bottom: 1.5rem;">
                     <span class="custom-date-label">Paciente</span>
                     <p id="modalPatient" style="font-weight: 900; font-size: 1.2rem; margin:0;"></p>
                 </div>
-                <div>
+                <div style="border: none !important;">
                     <span class="custom-date-label">Subido el</span>
                     <p id="modalDate" style="font-weight: 700; margin:0;"></p>
                 </div>

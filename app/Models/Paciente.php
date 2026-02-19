@@ -19,12 +19,26 @@ class Paciente extends Model
         'honorario_pactado',
         'precio_personalizado', // New column
         'telefono',
+        'meet_link',
     ];
 
     protected $casts = [
         'telefono' => 'encrypted',
+        'meet_link' => 'encrypted',
         'precio_personalizado' => 'decimal:2',
     ];
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($paciente) {
+            if (empty($paciente->meet_link)) {
+                // Generar link placeholder único
+                $paciente->meet_link = 'https://meet.google.com/lookup/' . \Illuminate\Support\Str::random(10);
+            }
+        });
+    }
     
     // Logic: If precio_personalizado is set, use it. Otherwise, use global base price.
     public function getPrecioSesionAttribute()

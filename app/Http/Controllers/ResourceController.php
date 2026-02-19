@@ -32,6 +32,19 @@ class ResourceController extends Controller
             'file_type' => $request->file('file')->getClientOriginalExtension(),
         ]);
 
+        // Notificar al Paciente si es específico
+        if ($request->paciente_id) {
+            $paciente = \App\Models\User::find($request->paciente_id);
+            if ($paciente) {
+                $paciente->notify(new \App\Notifications\PatientNotification([
+                    'title' => 'Nuevo Material Disponible',
+                    'mensaje' => 'Se ha subido un nuevo material a tu biblioteca: ' . $request->title,
+                    'link' => route('patient.dashboard') . '#materiales',
+                    'type' => 'info'
+                ]));
+            }
+        }
+
         $targetText = $request->paciente_id ? ' para el paciente #' . $request->paciente_id : ' (Global)';
         $this->logActivity('recurso_subido', 'Subió un nuevo recurso: ' . $request->title . $targetText, [
             'recurso_id' => $resource->id,

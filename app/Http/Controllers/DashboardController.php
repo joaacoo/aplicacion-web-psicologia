@@ -20,13 +20,23 @@ class DashboardController extends Controller
     }
     public function patientDashboard()
     {
+        // Dynamic Pagination: 3 for Mobile, 5 for Desktop
+        $userAgent = request()->header('User-Agent');
+        $isMobile = false;
+        
+        if (preg_match('/(android|bb\d+|meego).+mobile|avantgo|bada\/|blackberry|blazer|compal|elaine|fennec|hiptop|iemobile|ip(hone|od)|iris|kindle|lge |maemo|midp|mmp|mobile.+firefox|netfront|opera m(ob|in)i|palm( os)?|phone|p(ixi|re)\/|plucker|pocket|psp|series(4|6)0|symbian|treo|up\.(browser|link)|vodafone|wap|windows ce|xda|xiino/i', $userAgent) || preg_match('/1207|6310|6590|3gso|4thp|50[1-6]i|770s|802s|a wa|abac|ac(er|oo|s\-)|ai(ko|rn)|al(av|ca|co)|amoi|an(ex|ny|yw)|aptu|ar(ch|go)|as(te|us)|attw|au(di|\-m|r |s )|avan|be(ck|ll|nq)|bi(lb|rd)|bl(ac|az)|br(e|v)w|bumb|bw\-(n|u)|c55\/|capi|ccwa|cdm\-|cell|chtm|cldc|cmd\-|co(mp|nd)|craw|da(it|ll|ng)|dbte|dc\-s|devi|dica|dmob|do(c|p)o|ds(12|\-d)|el(49|ai)|em(l2|ul)|er(ic|k0)|esl8|ez([4-7]0|os|wa|ze)|fetc|fly(\-|_)|g1 u|g560|gene|gf\-5|g\-mo|go(\.w|od)|gr(ad|un)|haie|hcit|hd\-(m|p|t)|hei\-|hi(pt|ta)|hp( i|ip)|hs\-c|ht(c(\-| |_|a|g|p|s|t)|tp)|hu(aw|tc)|i\-(20|go|ma)|i230|iac( |\-|\/)|ibro|idea|ig01|ikom|im1k|inno|ipaq|iris|ja(t|v)a|jbro|jemu|jigs|kddi|keji|kgt( |\/)|klon|kpt |kwc\-|kyo(c|k)|le(no|xi)|lg( g|\/(k|l|u)|50|54|\-[a-w])|libw|lynx|m1\-w|m3ga|m50\/|ma(te|ui|xo)|mc(01|21|ca)|m\-cr|me(rc|ri)|mi(o8|oa|ts)|mmef|mo(01|02|bi|de|do|t(\-| |o|v)|zz)|mt(50|p1|v )|mwbp|mywa|n10[0-2]|n20[2-3]|n30(0|2)|n50(0|2|5)|n7(0(0|1)|10)|ne((c|m)\-|on|tf|wf|wg|wt)|nok(6|i)|nzph|o2im|op(ti|wv)|oran|owg1|p800|pan(a|d|t)|pdxg|pg(13|\-([1-8]|c))|phil|pire|pl(ay|uc)|pn\-2|po(ck|rt|se)|prox|psio|pt\-g|qa\-a|qc(07|12|21|32|60|\-[2-7]|i\-)|qtek|r380|r600|raks|rim9|ro(ve|zo)|s55\/|sa(ge|ma|mm|ms|ny|va)|sc(01|h\-|oo|p\-)|sdk\/|se(c(\-|0|1)|47|mc|nd|ri)|sgh\-|shar|sie(\-|m)|sk\-0|sl(45|id)|sm(al|ar|b3|it|t5)|so(ft|ny)|sp(01|h\-|v\-|v )|sy(01|mb)|t2(18|50)|t6(00|10|18)|ta(gt|lk)|tcl\-|tdg\-|tel(i|m)|tim\-|t\-mo|to(pl|sh)|ts(70|m\-|m3|m5)|tx\-9|up(\.b|g1|si)|utst|v400|v750|veri|vi(rg|te)|vk(40|5[0-3]|\-v)|vm40|voda|vulc|vx(52|53|60|61|70|80|81|83|85|98)|w3c(\-| )|webc|whit|wi(g |nc|nw)|wmlb|wonu|x700|yas\-|your|zeto|zte\-/i', substr($userAgent, 0, 4))) {
+            $isMobile = true;
+        }
+
+        $perPage = $isMobile ? 3 : 5;
+
         $appointments = Appointment::where('usuario_id', Auth::id())
             ->with('payment')
-            ->orderBy('fecha_hora', 'asc')
-            ->get();
+            ->orderBy('fecha_hora', 'desc')
+            ->paginate($perPage);
 
         // Obtener configuración del Admin
-        $adminUser = \App\Models\User::where('rol', 'admin')->first();
+        $adminUser = \App\Models\User::where('rol', 'admin')->with('profesional')->first();
         $sessionDuration = $adminUser->duracion_sesion ?? 45;
         $sessionInterval = $adminUser->intervalo_sesion ?? 15;
 
@@ -42,10 +52,15 @@ class DashboardController extends Controller
                 if ($end->lt($start)) continue;
 
                 while ($start->copy()->addMinutes($sessionDuration)->lte($end)) {
+                    $slotStart = $start->format('H:i');
+                    $slotEnd = $start->copy()->addMinutes($sessionDuration)->format('H:i');
+                    
                     $availabilities->push([
                         'dia_semana' => $av->dia_semana,
-                        'hora_inicio' => $start->format('H:i:s'),
-                        'hora_fin' => $start->copy()->addMinutes($sessionDuration)->format('H:i:s'),
+                        'hora_inicio' => $slotStart . ':00',
+                        'hora_fin' => $slotEnd . ':00',
+                        'label' => $slotStart . ' - ' . $slotEnd,
+                        'modalidad' => $av->modalidad ?? 'presencial',
                     ]);
                     $start->addMinutes($sessionDuration + $sessionInterval);
                 }
@@ -60,7 +75,9 @@ class DashboardController extends Controller
             ->map(fn($t) => $t->format('Y-m-d H:i:s'))
             ->toArray();
 
+        // Optimized External Events Query: Limit to next 3 months to prevent loading thousands of past events
         $externalEvents = ExternalEvent::where('start_time', '>=', now())
+            ->where('start_time', '<=', now()->addMonths(3))
             ->get();
             
         // Identificar cuáles son "Espacios Disponibles" (Keyword: LIBRE o DISPONIBLE)
@@ -70,19 +87,25 @@ class DashboardController extends Controller
         });
 
         // Expandir rangos en slots dinámicos
-        $googleAvailableSlots = collect();
-        foreach ($googleRawEvents as $event) {
-            $current = $event->start_time->copy();
-            // Mientras haya al menos la duración de la sesión disponible
-            while ($current->copy()->addMinutes($sessionDuration)->lte($event->end_time)) {
-                $googleAvailableSlots->push([
-                    'start_time' => $current->copy(),
-                    'end_time' => $current->copy()->addMinutes($sessionDuration),
-                ]);
-                // Saltamos duración + intervalo para el siguiente slot
-                $current->addMinutes($sessionDuration + $sessionInterval);
-            }
+    $googleAvailableSlots = [];
+    foreach ($googleRawEvents as $event) {
+        $current = $event->start_time->copy();
+        // Mientras haya al menos la duración de la sesión disponible
+        while ($current->copy()->addMinutes($sessionDuration)->lte($event->end_time)) {
+            $slotStart = $current->format('H:i');
+            $slotEnd = $current->copy()->addMinutes($sessionDuration)->format('H:i');
+            
+            $googleAvailableSlots[] = [
+                'date' => $current->format('Y-m-d'),
+                'time' => $slotStart . ':00',
+                'hora_inicio' => $slotStart . ':00',
+                'label' => $slotStart . ' - ' . $slotEnd,
+                'modalidad' => 'cualquiera'
+            ];
+            // Saltamos duración + intervalo para el siguiente slot
+            $current->addMinutes($sessionDuration + $sessionInterval);
         }
+    }
 
         // Eventos que representan BLOQUEOS
         $busyExternal = $externalEvents->reject(function($e) {
@@ -95,7 +118,10 @@ class DashboardController extends Controller
         $occupiedExternal = $busyExternal->map(fn($e) => $e->start_time->format('Y-m-d H:i:s'))->toArray();
         
         // Blocked Days from Admin
-        $blockedDays = \App\Models\BlockedDay::where('date', '>=', now()->toDateString())->pluck('date')->toArray();
+        $blockedDays = \App\Models\BlockedDay::where('date', '>=', now()->toDateString())
+            ->pluck('date')
+            ->map(fn($d) => is_string($d) ? \Carbon\Carbon::parse($d)->format('Y-m-d') : $d->format('Y-m-d'))
+            ->toArray();
         // We add them as "occupied" but the frontend will handle them specially if needed.
         // Actually, for full day blocking, we need to handle it in the view or here.
         // Let's pass $blockedDays to the view separately to disable the whole day in the calendar.
@@ -158,14 +184,15 @@ class DashboardController extends Controller
         $pendingAppointments = Appointment::where('estado', 'esperando_pago')->count();
         $confirmedAppointments = Appointment::where('estado', 'confirmado')->count();
 
-        // Calculate Monthly Income (Estimated)
-        $currentMonthIncome = \App\Models\Payment::whereMonth('created_at', now()->month)
-            ->where('estado', 'aprobado')
-            ->sum('monto');
+        // Calculate Monthly Income (Real Income)
+        $currentMonthIncome = Appointment::whereMonth('fecha_hora', now()->month)
+            ->where('estado', 'confirmado')
+            ->whereHas('payment', function($q) {
+                $q->where('estado', 'verificado');
+            })
+            ->sum('monto_final');
 
-        // Calculate Pending Income (appointments waiting for payment)
-        // This is tricky because price might vary, let's use base price for estimation or check appointment price if stored
-        // Assuming base price for now or look at related payment request if exists
+        // Calculate Pending Income (appointments waiting for payment verification)
         $pendingIncome = \App\Models\Payment::where('estado', 'pendiente')->sum('monto');
 
         // Listado de Pacientes
@@ -195,12 +222,19 @@ class DashboardController extends Controller
         $waitlist = Waitlist::latest()->get();
 
         // Sincronización automática de Google Calendar al cargar el dashboard
+        // PERFORMANCE FIX: Disabled auto-sync on load to prevent slow page loads.
+        // Sync should be done via background job or manual button.
+        /*
         if (auth()->user()->google_calendar_url) {
             $this->syncService->sync(auth()->user());
         }
+        */
 
-        // Eventos externos (Google)
-        $externalEvents = ExternalEvent::orderBy('start_time', 'asc')->get();
+        // Eventos externos (Google) - Optimizado
+        $externalEvents = ExternalEvent::where('start_time', '>=', now()->subMonth())
+            ->where('start_time', '<=', now()->addMonths(6))
+            ->orderBy('start_time', 'asc')
+            ->get();
 
         // Disponibilidades base
         $availabilities = \App\Models\Availability::orderBy('dia_semana')->orderBy('hora_inicio')->get();
@@ -260,19 +294,20 @@ class DashboardController extends Controller
     // Métodos separados para cada sección
     public function adminHome(Request $request)
     {
-        // 1. Redirect Developer to Specialized Dashboard
-        if (auth()->user()->email === 'joacooodelucaaa16@gmail.com') {
-            return redirect()->route('admin.developer');
-        }
+        // 1. Redirect Developer removed per user request to see psychologist screen
+        // if (auth()->user()->email === 'joacooodelucaaa16@gmail.com') {
+        //     return redirect()->route('admin.developer');
+        // }
 
         // Sincronización automática de Google Calendar
         if (auth()->user()->google_calendar_url) {
             $this->syncService->sync(auth()->user());
         }
 
-        // Turnos de hoy
+        // Turnos de hoy (Upcoming only)
         $todayAppointments = Appointment::with(['user', 'payment'])
             ->whereDate('fecha_hora', \Carbon\Carbon::today())
+            ->where('fecha_hora', '>=', now()) // Filter past appointments
             ->orderBy('fecha_hora', 'asc')
             ->get();
 
@@ -324,7 +359,7 @@ class DashboardController extends Controller
         $monthlyIncome = Appointment::whereYear('fecha_hora', now()->year)
             ->whereMonth('fecha_hora', now()->month)
             ->whereHas('payment', function($q) {
-                $q->where('estado', 'aprobado');
+                $q->where('estado', 'verificado');
             })
             ->sum('monto_final');
 
@@ -539,7 +574,13 @@ class DashboardController extends Controller
 
     public function adminHistorial()
     {
-        $activityLogs = \App\Models\ActivityLog::with('user')->latest()->take(50)->get();
+        $activityLogs = \App\Models\ActivityLog::with('user')
+            ->whereHas('user', function($q) {
+                $q->where('rol', 'admin');
+            })
+            ->latest()
+            ->take(50)
+            ->get();
 
         return view('dashboard.admin.historial', compact('activityLogs'));
     }

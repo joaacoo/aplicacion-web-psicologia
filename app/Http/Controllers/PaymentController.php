@@ -48,14 +48,15 @@ class PaymentController extends Controller
                 'estado' => 'pendiente',
             ]);
 
-            // Notificar al Admin
+            // Notificar al Admin (Web + Mail)
             $admin = \App\Models\User::where('rol', 'admin')->first();
             if ($admin) {
-                \App\Models\Notification::create([
-                    'usuario_id' => $admin->id,
-                    'mensaje' => 'Nuevo comprobante subido por ' . auth()->user()->nombre,
-                    'link' => route('admin.dashboard')
-                ]);
+                $admin->notify(new \App\Notifications\AdminNotification([
+                    'title' => 'Nuevo Comprobante',
+                    'mensaje' => 'Nuevo comprobante subido por ' . auth()->user()->nombre . ' para el ' . $appointment->fecha_hora->format('d/m H:i'),
+                    'link' => route('admin.dashboard'),
+                    'type' => 'pago'
+                ]));
             }
 
             return redirect()->route('patient.dashboard')->with('success', 'Comprobante subido de forma segura. Esperando validación.');
@@ -96,19 +97,24 @@ class PaymentController extends Controller
         // [FINANCE] Lock price
         $honorario = 0;
         if ($payment->appointment->user && $payment->appointment->user->paciente) {
-             $honorario = $payment->appointment->user->paciente->honorario_pactado;
+             // Use accessor to ensure fallbacks (custom price > base price)
+             $honorario = $payment->appointment->user->paciente->precio_sesion;
+        } else {
+             // Fallback if no patient record (unlikely)
+             $honorario = \App\Models\Setting::get('precio_base_sesion', 25000);
         }
         $payment->appointment->update([
             'estado' => 'confirmado',
             'monto_final' => $honorario
         ]);
 
-        // Notificar al Paciente por DB
-        \App\Models\Notification::create([
-            'usuario_id' => $payment->appointment->usuario_id,
+        // Notificar al Paciente (Web + Mail)
+        $payment->appointment->user->notify(new \App\Notifications\PatientNotification([
+            'title' => 'Pago Verificado',
             'mensaje' => 'Tu pago ha sido verificado y tu turno para el ' . $payment->appointment->fecha_hora->format('d/m H:i') . ' está confirmado.',
-            'link' => route('patient.dashboard')
-        ]);
+            'link' => route('patient.dashboard'),
+            'type' => 'success'
+        ]));
 
         // Lógica de Google Calendar
         try {

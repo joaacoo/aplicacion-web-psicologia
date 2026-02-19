@@ -8,27 +8,44 @@ use Illuminate\Support\Facades\Auth;
 
 class NotificationController extends Controller
 {
-    public function getLatest()
+    public function fetchNotifications()
     {
-        $notifications = Notification::where('usuario_id', Auth::id())
-            ->where('leido', false)
-            ->orderBy('created_at', 'desc')
-            ->get();
-            
-        return response()->json($notifications);
+        // Fetch last 15 notifications from standard Laravel table
+        $notifications = auth()->user()->notifications()->latest()->limit(15)->get()->map(function ($n) {
+            return [
+                'id' => $n->id,
+                'mensaje' => $n->data['mensaje'] ?? 'Nueva notificación',
+                'link' => $n->data['link'] ?? '#',
+                'leido' => $n->read_at !== null,
+                'created_at' => $n->created_at,
+                'data' => $n->data // Include original data just in case
+            ];
+        });
+        
+        // Count unread
+        $unreadCount = auth()->user()->unreadNotifications->count();
+
+        return response()->json([
+            'notifications' => $notifications,
+            'unread_count' => $unreadCount
+        ]);
     }
 
     public function markAsRead($id)
     {
-        $notification = Notification::where('usuario_id', Auth::id())->findOrFail($id);
-        $notification->update(['leido' => true]);
+        $notification = auth()->user()->notifications()->where('id', $id)->first();
+        
+        if ($notification) {
+            $notification->markAsRead();
+        }
         
         return response()->json(['success' => true]);
     }
 
     public function markAllAsRead()
     {
-        Notification::where('usuario_id', Auth::id())->update(['leido' => true]);
+        auth()->user()->unreadNotifications->markAsRead();
+        
         return response()->json(['success' => true]);
     }
 }

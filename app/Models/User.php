@@ -15,11 +15,21 @@ class User extends Authenticatable
 
     protected $table = 'usuarios'; // Tabla en español
 
+    /**
+     * Send the password reset notification.
+     *
+     * @param  string  $token
+     * @return void
+     */
+    public function sendPasswordResetNotification($token)
+    {
+        $this->notify(new \App\Notifications\ResetPasswordNotification($token));
+    }
+
     protected $fillable = [
         'nombre',
         'email',
         // 'telefono', // Moved to Paciente
-        'meet_link',
         'password',
         'rol', // admin, paciente
         // 'tipo_paciente', // Moved to Paciente
@@ -34,19 +44,11 @@ class User extends Authenticatable
 
     protected $casts = [
         'email_verified_at' => 'datetime',
-        'meet_link' => 'encrypted',
     ];
     
     protected static function boot()
     {
         parent::boot();
-
-        static::creating(function ($user) {
-            if (empty($user->meet_link) && $user->rol === 'paciente') {
-                // Generar link placeholder único
-                $user->meet_link = 'https://meet.google.com/lookup/' . \Illuminate\Support\Str::random(10);
-            }
-        });
     }
 
     // Relación con Turnos

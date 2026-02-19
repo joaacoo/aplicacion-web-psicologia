@@ -129,6 +129,17 @@
             border-color: var(--color-celeste) !important;
             transform: none !important;
         }
+        /* Main Content Wrapper */
+        .app-main-wrapper {
+            transition: margin-left 0.3s ease;
+            padding-top: 80px; /* Header height + spacing */
+            padding-bottom: 2rem;
+            flex: 1; /* Pushes footer to bottom if content is short */
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            box-sizing: border-box;
+        }
         /* Static Sidebar Styles */
         .nav-sidebar {
             position: fixed;
@@ -268,6 +279,35 @@
             backdrop-filter: blur(5px);
         }
 
+        /* Notificaciones */
+    .notification-dropdown {
+        display: none;
+        position: absolute;
+        top: 100%;
+        right: 0;
+        width: 380px !important;
+        background: white;
+        border: 3px solid #000;
+        box-shadow: 6px 6px 0px #000 !important; /* Static shadow */
+        z-index: 1000;
+        max-height: 80vh;
+        overflow-y: hidden; /* Header fixed, items scroll */
+        border-radius: 0 !important;
+    }
+    
+    /* Remove any hover effect that changes shadow */
+    .notification-dropdown:hover {
+        box-shadow: 6px 6px 0px #000 !important;
+        transform: none !important;
+    }
+
+    .notification-items-container {
+        max-height: 400px;
+        overflow-y: auto !important;
+        /* Custom Scrollbar */
+        scrollbar-width: thin;
+        scrollbar-color: #000 #f1f1f1;
+    }
         .security-modal {
             background: white;
             border: 5px solid #000;
@@ -384,7 +424,9 @@
     @endphp
 
     @if($isAuthPage)
+        <div style="flex: 1; display: flex; flex-direction: column; justify-content: center;">
             @yield('content')
+        </div>
     @else
             @if(isset($isAdmin) && $isAdmin && !View::hasSection('hide_sidebar'))
             <div class="admin-layout" style="display: flex; flex: 1; width: 100%;">
@@ -564,9 +606,9 @@
                                 @auth
                                     <div class="header-navbar" style="display: flex; align-items: center; gap: 1.2rem;">
                                         <!-- Notifications Bell (Increased gap) -->
-                                        <div id="notif-bell" class="notification-bell-container" onclick="toggleNotifications(event)" style="cursor: pointer; position: relative; font-size: 1.5rem; display: flex; align-items: center; z-index: 10001; -webkit-tap-highlight-color: transparent; margin-left: 1rem;">
+                                        <div id="notif-bell" class="notification-bell-container" onclick="toggleNotifications(event)" style="cursor: pointer; position: relative; font-size: 1.8rem; display: flex; align-items: center; z-index: 10001; -webkit-tap-highlight-color: transparent; margin-left: 1rem;">
                                             <i class="fa-solid fa-bell" style="color: #000;"></i>
-                                            <span class="notification-badge" id="notif-count" style="position: absolute; top: -5px; right: -5px; background: #ff4d4d; color: white; border-radius: 50%; min-width: 20px; height: 20px; font-size: 0.7rem; display: none; align-items: center; justify-content: center; border: 2px solid #fff; font-weight: 800; padding: 0 4px;">0</span>
+                                            <span class="notification-badge" id="notif-count" style="position: absolute; top: 2px; right: 2px; background: #ff4d4d; color: white; border-radius: 50%; min-width: 17px; height: 17px; font-size: 0.6rem; display: none; align-items: center; justify-content: center; border: 1.5px solid #fff; font-weight: 800; padding: 0 4px;">0</span>
                                             
                                             <!-- Dropdown -->
                                             <div id="notif-dropdown" class="notification-dropdown" onclick="event.stopPropagation()" style="display: none; position: absolute; top: calc(100% + 15px); right: -10px; width: 360px; max-width: 90vw; background: white; border-radius: 16px; box-shadow: 0 16px 40px rgba(0,0,0,0.18), 0 4px 12px rgba(0,0,0,0.08); overflow: hidden; z-index: 10005; border: 3px solid #000; cursor: default;">
@@ -598,7 +640,7 @@
                                                 <span>Salir</span>
                                             </button>
                                         </form>
-                                        <style>
+                                         <style>
                                             @media (max-width: 1024px) {
                                                 .header-logout-form button {
                                                     display: flex !important;
@@ -606,6 +648,12 @@
                                                 }
                                                 .header-logout-form button span {
                                                     display: none !important;
+                                                }
+                                                /* Force bell visibility */
+                                                #notif-bell, #patient-notif-bell {
+                                                    display: flex !important;
+                                                    visibility: visible !important;
+                                                    opacity: 1 !important;
                                                 }
                                             }
                                         </style>
@@ -719,9 +767,9 @@
                                     <i class="fa-solid fa-bars" style="font-size: 1.2rem; color: #000;"></i>
                                 </button>
                                 <!-- Notifications Bell -->
-                                <div id="patient-notif-bell" class="notification-bell-container" onclick="toggleNotifications(event, 'patient-notif-dropdown')" style="cursor: pointer; position: relative; font-size: 1.5rem; display: flex; align-items: center; z-index: 10001;">
+                                <div id="patient-notif-bell" class="notification-bell-container" onclick="toggleNotifications(event, 'patient-notif-dropdown')" style="cursor: pointer; position: relative; font-size: 1.8rem; display: flex; align-items: center; z-index: 10001;">
                                         <i class="fa-solid fa-bell" style="color: #000;"></i>
-                                    <span class="notification-badge" id="patient-notif-count" style="position: absolute; top: -5px; right: -5px; background: #ff4d4d; color: white; border-radius: 50%; min-width: 20px; height: 20px; font-size: 0.7rem; display: none; align-items: center; justify-content: center; border: 2px solid #fff; font-weight: 800; padding: 0 4px;">0</span>
+                                    <span class="notification-badge" id="patient-notif-count" style="position: absolute; top: 2px; right: 2px; background: #ff4d4d; color: white; border-radius: 50%; min-width: 17px; height: 17px; font-size: 0.6rem; display: none; align-items: center; justify-content: center; border: 1.5px solid #fff; font-weight: 800; padding: 0 4px;">0</span>
                                         
                                     <!-- Dropdown -->
                                     <div id="patient-notif-dropdown" class="notification-dropdown" onclick="event.stopPropagation()" style="display: none; position: absolute; top: calc(100% + 15px); right: -10px; width: 360px; max-width: 95vw; background: white; border-radius: 16px; box-shadow: 0 16px 40px rgba(0,0,0,0.18), 0 4px 12px rgba(0,0,0,0.08); overflow: hidden; z-index: 10005; border: 3px solid #000;">
@@ -827,6 +875,11 @@
                     @endif
 
                     <style>
+                        /* Subtle Bell Interaction */
+        .notification-bell-container {
+            /* Sin animaciones por pedido del usuario */
+        }
+                        
                         @keyframes slideInRight {
                             from {
                                 transform: translateX(400px);
@@ -1105,12 +1158,44 @@
                         </div>
                         <div class="mb-4">
                             <label style="font-weight: 400; font-size: 0.8rem; text-transform: uppercase; display: block; margin-bottom: 0.5rem; letter-spacing: 0.5px; font-family: 'Syne', sans-serif; color: #111;">Descripción:</label>
-                            <textarea name="description" class="neobrutalist-input" required placeholder="Ej: No puedo visualizar mis turnos..." style="min-height: 100px; border: 3px solid #000; padding: 12px; width: 100%; box-sizing: border-box; font-size: 0.9rem; background: #fafafa; border-radius: 10px; box-shadow: 4px 4px 0px #000;"></textarea>
+                            <textarea name="description" id="report-description" class="neobrutalist-input" required placeholder="Ej: No puedo visualizar mis turnos..." style="min-height: 100px; border: 3px solid #000; padding: 12px; width: 100%; box-sizing: border-box; font-size: 0.9rem; background: #fafafa; border-radius: 10px; box-shadow: 4px 4px 0px #000;"></textarea>
                         </div>
                         <div class="confirm-modal-buttons" style="margin-top: 1.8rem; display: flex; gap: 1rem; padding: 0;">
                             <button type="button" onclick="closeReportModal()" class="neobrutalist-btn" style="flex: 1; background: white; border: 3px solid #000; padding: 0.5rem 1rem; font-weight: 700; font-size: 0.85rem;">Cancelar</button>
-                            <button type="submit" class="neobrutalist-btn" style="flex: 1; background: var(--color-amarillo); border: 3px solid #000; padding: 0.5rem 1rem; font-weight: 700; font-size: 0.85rem;">Enviar</button>
+                            <button type="button" onclick="submitReport()" class="neobrutalist-btn" style="flex: 1; background: var(--color-amarillo); border: 3px solid #000; padding: 0.5rem 1rem; font-weight: 700; font-size: 0.85rem;">Enviar</button>
                         </div>
+                </div>
+
+                <div id="report-preloader" style="display: none; text-align: center; padding: 3rem 1rem;">
+                    <style>
+                        .loader-bars {
+                            display: flex;
+                            justify-content: center;
+                            gap: 8px;
+                            margin-bottom: 1.5rem;
+                        }
+                        .loader-bar {
+                            width: 15px;
+                            height: 40px;
+                            background: white;
+                            border: 3px solid #000;
+                            box-shadow: 3px 3px 0px #000;
+                            animation: barPulse 0.8s ease-in-out infinite;
+                        }
+                        .loader-bar:nth-child(2) { animation-delay: 0.2s; background: var(--color-amarillo); }
+                        .loader-bar:nth-child(3) { animation-delay: 0.4s; background: var(--color-celeste); }
+
+                        @keyframes barPulse {
+                            0%, 100% { transform: scaleY(1); }
+                            50% { transform: scaleY(1.5); }
+                        }
+                    </style>
+                    <div class="loader-bars">
+                        <div class="loader-bar"></div>
+                        <div class="loader-bar"></div>
+                        <div class="loader-bar"></div>
+                    </div>
+                    <p style="font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.1rem; text-transform: uppercase; letter-spacing: 1px;">Enviando reporte...</p>
                 </div>
 
                 <div id="report-success-msg" style="display: none; text-align: center; padding: 1rem;">
@@ -1135,90 +1220,50 @@
     <!-- Html2Canvas Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script>
-        function openReportModal(event) {
-            if (event) {
-                event.preventDefault();
-                event.stopPropagation();
-            }
-            
-            // Save current scroll position
-            const scrollY = window.scrollY;
-            
-            // Prevent body scroll
-            document.body.style.position = 'fixed';
-            document.body.style.top = `-${scrollY}px`;
-            document.body.style.width = '100%';
-            document.body.style.overflow = 'hidden';
-            document.body.classList.add('modal-open');
-            
-            // Store scroll position for restoration
-            document.body.dataset.scrollY = scrollY;
-            
-            document.getElementById('report-modal-overlay').style.display = 'flex';
-            document.getElementById('report-form-content').style.display = 'block';
-            document.getElementById('report-success-msg').style.display = 'none';
-            document.getElementById('report-loading-msg').style.display = 'none';
-        }
-
-        function closeReportModal() {
-            document.getElementById('report-modal-overlay').style.display = 'none';
-            
-            // Restore scroll position
-            const scrollY = document.body.dataset.scrollY || 0;
-            document.body.style.position = '';
-            document.body.style.top = '';
-            document.body.style.width = '';
-            document.body.style.overflow = '';
-            document.body.classList.remove('modal-open');
-            
-            // Restore scroll position
-            window.scrollTo(0, parseInt(scrollY) || 0);
-        }
 
         async function submitReport() {
-            const desc = document.getElementById('report-desc').value;
+            const descEl = document.getElementById('report-description');
+            const desc = descEl ? descEl.value : '';
+            
             if (!desc.trim()) {
                 alert('Por favor describí el problema.');
                 return;
             }
 
-            // Show loading
-            document.getElementById('report-form-content').style.display = 'none';
-            document.getElementById('report-loading-msg').style.display = 'block';
+            const formContent = document.getElementById('report-form-content');
+            const preloader = document.getElementById('report-preloader');
+            const successMsg = document.getElementById('report-success-msg');
+
+            formContent.style.display = 'none';
+            preloader.style.display = 'block';
 
             try {
-                // Capture Screenshot
-                const canvas = await html2canvas(document.body);
-                const screenshotData = canvas.toDataURL('image/png');
-
-                // Send to backend
-                const response = await fetch("{{ route('api.tickets.store') }}", {
+                const response = await fetch("{{ route('tickets.store') }}", {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
+                        'Accept': 'application/json',
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
                     },
                     body: JSON.stringify({
+                        subject: document.getElementById('report-subject').value,
                         description: desc,
-                        metadata: {
-                            screenshot: screenshotData,
-                            url: window.location.href,
-                            user_agent: navigator.userAgent
-                        }
+                        url_origen: window.location.href
                     })
                 });
 
                 if (response.ok) {
-                    document.getElementById('report-loading-msg').style.display = 'none';
-                    document.getElementById('report-success-msg').style.display = 'block';
+                    preloader.style.display = 'none';
+                    successMsg.style.display = 'block';
                 } else {
-                    throw new Error('Error al enviar');
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || 'Error al enviar');
                 }
             } catch (error) {
                 console.error(error);
-                alert('Hubo un error al enviar el reporte. Por favor intentá de nuevo.');
-                document.getElementById('report-loading-msg').style.display = 'none';
-                document.getElementById('report-form-content').style.display = 'block';
+                alert('Hubo un error al enviar el reporte: ' + error.message);
+                preloader.style.display = 'none';
+                formContent.style.display = 'block';
             }
         }
     </script>
@@ -1335,8 +1380,11 @@
                 const res = await fetch('{{ route("notifications.latest") }}');
                 const data = await res.json();
                 
-                lastNotifCount = data ? data.length : 0;
-
+                // Buscar elementos tanto de admin como de paciente
+                const countDesktop = document.getElementById('notif-count') || document.getElementById('patient-notif-count');
+                const countMobile = document.getElementById('notif-count-mobile');
+                const items = document.getElementById('notif-items') || document.getElementById('patient-notif-items');
+                
                 if (data && data.length > 0) {
                     if (countDesktop) {
                         countDesktop.innerText = data.length;
@@ -1347,13 +1395,9 @@
                         countMobile.style.display = 'flex';
                     }
                     
-                    // Add animation only if there are new notifications (DISABLED PER USER REQUEST)
-                    // if(bellDesktop) bellDesktop.classList.add('fa-shake');
-                    // if(bellMobile) bellMobile.classList.add('fa-shake');
-                    
                     if (items) {
                         items.innerHTML = data.map(n => `
-                            <div class="notification-item" data-id="${n.id}" style="border-bottom: 1px solid #f0f0f0; padding: 16px 24px; display: block; text-decoration: none; transition: background 0.2s; cursor: pointer; background: white;" onmouseover="this.style.background='#fcfcfc'" onmouseout="this.style.background='white'" onclick="markAsRead(${n.id})">
+                            <div class="notification-item" data-id="${n.id}" style="border-bottom: 1px solid #f0f0f0; padding: 16px 24px; display: block; text-decoration: none; cursor: pointer; background: white;" onclick="markAsRead(${n.id})">
                                 <div style="display: flex; justify-content: space-between; align-items: start; gap: 12px;">
                                     <div style="flex: 1;">
                                         <p style="margin:0; font-size: 0.9rem; font-weight: 500; font-family: 'Inter', sans-serif; color: #1f2937; line-height: 1.5;">${n.mensaje}</p>
@@ -1367,41 +1411,22 @@
                         `).join('');
                     }
                 } else {
-                    // Suppress visual indicators cleanly if 0
-                    // Suppress visual indicators cleanly if 0
                     if (countDesktop) countDesktop.style.display = 'none';
                     if (countMobile) countMobile.style.display = 'none';
-                        
-                        // Remove animation
-                        // Remove animation
-                        if(bellDesktop) bellDesktop.classList.remove('fa-shake');
-                        if(bellMobile) bellMobile.classList.remove('fa-shake');
-                    }
                     if (showInDropdown && items) {
                         items.innerHTML = '<div class="notification-empty" style="padding: 4rem 2rem; text-align: center; color: #a1a1a1; font-family: \'Inter\', sans-serif;"><p style="margin: 0; font-weight: 500; font-size: 0.95rem;">No tienes nuevas notificaciones</p></div>';
                     }
-
+                }
             } catch (e) { console.error("Error fetching notifications", e); }
         }
 
         async function markAsRead(id) {
-            // Opacar la notificación antes de eliminarla
-            const notifElement = document.querySelector(`.notification-item[data-id="${id}"]`);
-            if (notifElement) {
-                notifElement.style.opacity = '0.3';
-                notifElement.style.transform = 'translateX(20px)';
-                notifElement.style.pointerEvents = 'none';
-            }
-            
+            // Sin animaciones ni demoras, acción instantánea y estática
             await fetch(`/notifications/${id}/read`, {
                 method: 'POST',
                 headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' }
             });
-            
-            // Esperar un momento y luego refrescar
-            setTimeout(() => {
-                fetchNotifications();
-            }, 300);
+            fetchNotifications();
         }
 
         async function markAllRead() {
@@ -1572,19 +1597,7 @@
 
             /* Duplicate sendGeminiMessage Removed */
 
-            @if(auth()->check() && auth()->user()->rol == 'admin')
-            // Auto-Sync Holidays (Background)
-            fetch('{{ route("admin.calendar.import-holidays") }}', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                }
-            }).then(res => res.json())
-              .then(d => console.log('Holidays synced:', d))
-              .catch(e => console.error('Sync failed:', e));
-            @endif
+
         });
 
         // Show modal if there are password errors (validation redirect)
@@ -1632,7 +1645,7 @@
 
             <!-- Body -->
             <div style="padding: 1.2rem; background: #fff; display: flex; flex-direction: column; justify-content: center;">
-                <p style="margin: 0 0 1rem 0; font-size: 0.75rem; color: #444; line-height: 1.4; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                <p style="margin: 0 0 1rem 0; font-size: 0.95rem; color: #444; line-height: 1.4; font-weight: 700; font-family: 'Syne', sans-serif;">
                     Hola 👋 ¿Cómo puedo ayudarte hoy?
                 </p>
                 <div style="display: flex; flex-direction: column; gap: 0.5rem;">
@@ -1778,16 +1791,52 @@
 
 
 
-        function openReportModal() {
-            document.getElementById('report-modal-overlay').style.display = 'flex';
-            document.getElementById('report-form-content').style.display = 'block';
-            document.getElementById('report-success-msg').style.display = 'none';
+        window.openReportModal = function(event) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            
+            // Save current scroll position
+            const scrollY = window.scrollY;
+            
+            // Prevent body scroll
+            document.body.style.position = 'fixed';
+            document.body.style.top = `-${scrollY}px`;
+            document.body.style.width = '100%';
+            document.body.style.overflow = 'hidden';
             document.body.classList.add('modal-open');
+            
+            // Store scroll position for restoration
+            document.body.dataset.scrollY = scrollY;
+            
+            const overlay = document.getElementById('report-modal-overlay');
+            const content = document.getElementById('report-form-content');
+            const success = document.getElementById('report-success-msg');
+            
+            if (overlay) overlay.style.display = 'flex';
+            if (content) content.style.display = 'block';
+            if (success) success.style.display = 'none';
+            
+            // Clear previous description
+            const descEl = document.getElementById('report-description');
+            if (descEl) descEl.value = '';
         }
 
-        function closeReportModal() {
-            document.getElementById('report-modal-overlay').style.display = 'none';
+        window.closeReportModal = function() {
+            const overlay = document.getElementById('report-modal-overlay');
+            if (overlay) overlay.style.display = 'none';
+            
+            // Restore scroll position
+            const scrollY = document.body.dataset.scrollY || 0;
+            document.body.style.position = '';
+            document.body.style.top = '';
+            document.body.style.width = '';
+            document.body.style.overflow = '';
             document.body.classList.remove('modal-open');
+            
+            // Restore scroll position
+            window.scrollTo(0, parseInt(scrollY) || 0);
         }
 
         // Notification Bell Toggle Improved for Mobile
@@ -1849,7 +1898,7 @@
         <div style="max-width: 1200px; width: 100%; text-align: center;">
             <h2 style="color: white; font-family: 'Syne', sans-serif; margin-bottom: 0.5rem;">Lic. Nazarena De Luca</h2>
             
-            @if(!auth()->check() || (auth()->check() && auth()->user()->email !== 'joacooodelucaaa16@gmail.com'))
+            @if(!auth()->check() || (auth()->check()))
                 @if(request()->routeIs('login'))
                     <button type="button" onclick="openReportModal(event)" style="background: transparent; border: none; color: rgb(255, 255, 255); font-size: 0.9rem; cursor: pointer; margin-bottom: 1rem; display: inline-flex; align-items: center; gap: 8px; font-family: Manrope, sans-serif; opacity: 1; text-decoration: underline;">
                         <i class="fa-solid fa-circle-exclamation"></i> ¿Problemas para logearte? Reportar fallo

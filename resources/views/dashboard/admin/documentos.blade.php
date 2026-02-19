@@ -70,8 +70,25 @@
                     </thead>
                     <tbody id="materialesTableBody">
                     @forelse($resources as $res)
+                        @php
+                            $isImage = in_array(strtolower($res->file_type), ['jpg', 'jpeg', 'png', 'webp', 'gif']);
+                            $isPdf = strtolower($res->file_type) === 'pdf';
+                        @endphp
                         <tr style="border-bottom: 2px solid #000;">
-                            <td data-label="Título" style="padding: 0.8rem; font-weight: 700;">{{ $res->title }}</td>
+                            <td data-label="Título" style="padding: 0.8rem;">
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    @if($isImage)
+                                        <div style="width: 35px; height: 35px; border: 1px solid #000; border-radius: 4px; overflow: hidden; flex-shrink: 0;">
+                                            <img src="{{ asset('storage/' . $res->file_path) }}" style="width: 100%; height: 100%; object-fit: cover;">
+                                        </div>
+                                    @else
+                                        <div style="width: 35px; height: 35px; border: 1px solid #000; border-radius: 4px; background: #eee; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                            <i class="fa-solid {{ $isPdf ? 'fa-file-pdf' : 'fa-file' }}" style="color: {{ $isPdf ? '#e11d48' : '#666' }}; font-size: 1rem;"></i>
+                                        </div>
+                                    @endif
+                                    <span style="font-weight: 700;">{{ $res->title }}</span>
+                                </div>
+                            </td>
                             <td data-label="Tipo" style="padding: 0.8rem; font-size: 0.8rem; color: #666; font-family: monospace;">{{ strtoupper($res->file_type) }}</td>
                             <td data-label="Para" style="padding: 0.8rem;">
                                 @if($res->patient)

@@ -143,7 +143,8 @@ class CalendarController extends Controller
         $request->validate([
             'dia_semana' => 'required',
             'hora_inicio' => 'required',
-            'hora_fin' => 'required'
+            'hora_fin' => 'required',
+            'modalidad' => 'required|in:presencial,virtual,cualquiera'
         ]);
 
         if ($request->dia_semana === 'all') {
@@ -151,16 +152,16 @@ class CalendarController extends Controller
                 \App\Models\Availability::create([
                     'dia_semana' => $i,
                     'hora_inicio' => $request->hora_inicio,
-                    'hora_fin' => $request->hora_fin
+                    'hora_fin' => $request->hora_fin,
+                    'modalidad' => $request->modalidad
                 ]);
             }
-            return back()->with('success', 'Horario de atención agregado para todos los días.');
+        } else {
+            $request->validate(['dia_semana' => 'integer|min:0|max:6']);
+            \App\Models\Availability::create($request->all());
         }
 
-        $request->validate(['dia_semana' => 'integer|min:0|max:6']);
-        \App\Models\Availability::create($request->all());
-
-        return back()->with('success', 'Horario de atención agregado.');
+        return redirect()->to(route('admin.configuracion') . '#horarios')->with('success', 'Horario de atención agregado.');
     }
 
     /**
@@ -169,7 +170,7 @@ class CalendarController extends Controller
     public function deleteAvailability($id)
     {
         \App\Models\Availability::findOrFail($id)->delete();
-        return back()->with('success', 'Horario de atención eliminado.');
+        return redirect()->to(route('admin.configuracion') . '#horarios')->with('success', 'Horario de atención eliminado.');
     }
 
     /**
@@ -218,7 +219,7 @@ class CalendarController extends Controller
         }
 
         $msg = $count > 1 ? "Período bloqueado con éxito." : "Día bloqueado con éxito.";
-        return back()->with('success', $msg);
+        return redirect()->to(route('admin.configuracion') . '#bloqueos')->with('success', $msg);
     }
 
     /**
@@ -227,7 +228,7 @@ class CalendarController extends Controller
     public function destroyBlockedDay($id)
     {
         \App\Models\BlockedDay::findOrFail($id)->delete();
-        return back()->with('success', 'Día desbloqueado.');
+        return redirect()->to(route('admin.configuracion') . '#bloqueos')->with('success', 'Día desbloqueado.');
     }
 
     /**
@@ -370,7 +371,7 @@ class CalendarController extends Controller
             \App\Models\Setting::set('precio_base_sesion', $request->precio_base_sesion);
         }
 
-        return back()->with('success', 'Configuración de sesiones actualizada.');
+        return redirect()->to(route('admin.configuracion') . '#general')->with('success', 'Configuración de sesiones actualizada.');
     }
 
     /**

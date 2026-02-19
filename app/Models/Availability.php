@@ -16,5 +16,6 @@ class Availability extends Model
         'hora_inicio',
         'hora_fin',
         'es_recurrente',
+        'modalidad',
     ];
 }

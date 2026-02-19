@@ -94,6 +94,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/admin/historial', [DashboardController::class, 'adminHistorial'])->name('admin.historial');
         // Clinical History Routes
         Route::get('/admin/pacientes/{pacienteId}/historia-clinica', [App\Http\Controllers\ClinicalHistoryController::class, 'index'])->name('admin.clinical-history.index');
+        Route::get('/admin/pacientes/{userId}/historia-clinica/initialize', [App\Http\Controllers\ClinicalHistoryController::class, 'initialize'])->name('admin.clinical-history.initialize');
         Route::post('/admin/pacientes/{pacienteId}/historia-clinica/{turnoId}', [App\Http\Controllers\ClinicalHistoryController::class, 'store'])->name('admin.clinical-history.store');
         Route::put('/admin/pacientes/{pacienteId}/historia-clinica/{turnoId}', [App\Http\Controllers\ClinicalHistoryController::class, 'update'])->name('admin.clinical-history.update');
         Route::get('/admin/pacientes/{pacienteId}/historia-clinica/search', [App\Http\Controllers\ClinicalHistoryController::class, 'search'])->name('admin.clinical-history.search');

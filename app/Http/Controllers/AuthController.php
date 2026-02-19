@@ -6,10 +6,9 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Validation\ValidationException;
-use Illuminate\Support\Facades\Password;
-use Illuminate\Auth\Events\PasswordReset;
-use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Password; // Facade for password reset
 
 class AuthController extends Controller
 {
@@ -44,20 +43,41 @@ class AuthController extends Controller
 
     public function register(Request $request)
     {
+        $response = Http::asForm()->post('https://www.google.com/recaptcha/api/siteverify', [
+            'secret' => config('services.recaptcha.secret_key'),
+            'response' => $request->input('g-recaptcha-response'),
+        ]);
+
+        if (!$response->json('success')) {
+            return back()->withErrors(['captcha' => 'La verificación de seguridad de Google falló. Por favor intente de nuevo.'])->withInput();
+        }
+
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:usuarios', // Tabla usuarios
-            'telefono' => 'required|string|max:20',
+            // Phone validation: Allow +, spaces, and numbers. More permissive for international formats.
+            'telefono' => ['required', 'string', 'max:25', 'regex:/^[\+\d\s]+$/'], 
             'password' => [
                 'required',
                 'confirmed',
-                Password::min(12)
-                    ->letters()
-                    ->mixedCase()
-                    ->numbers()
-                    ->symbols()
-                    ->uncompromised(),
+                'min:8',
+                'regex:/[a-z]/',      // At least one lowercase
+                'regex:/[A-Z]/',      // At least one uppercase
+                'regex:/[0-9]/',      // At least one number
             ],
+        ], [
+            'name.required' => 'El nombre es obligatorio.',
+            'name.max' => 'El nombre no puede tener más de 255 caracteres.',
+            'email.required' => 'El email es obligatorio.',
+            'email.email' => 'El email debe ser una dirección válida.',
+            'email.unique' => 'Este email ya está registrado.',
+            'telefono.required' => 'El teléfono es obligatorio.',
+            'telefono.max' => 'El teléfono no puede tener más de 20 caracteres.',
+            'telefono.regex' => 'El formato del teléfono no es válido.',
+            'password.required' => 'La contraseña es obligatoria.',
+            'password.confirmed' => 'Las contraseñas no coinciden.',
+            'password.min' => 'La contraseña debe tener al menos 8 caracteres.',
+            'password.regex' => 'La contraseña debe incluir mayúsculas, minúsculas y números.',
         ]);
 
         $user = User::create([
@@ -84,10 +104,9 @@ class AuthController extends Controller
             \Illuminate\Support\Facades\Log::error("Error al enviar mail de bienvenida: " . $e->getMessage());
         }
         
-        // Seteamos una bandera para mostrar el prompt de sesión recordada
-        session()->flash('show_session_prompt', true);
-
-        return redirect()->route('patient.dashboard');
+        // No iniciamos sesión automáticamente, mostramos pantalla de éxito
+        Auth::logout(); // Logout just in case Auth::login was still there from line 88
+        return view('auth.registro-exitoso');
     }
 
     public function rememberSession(Request $request)
@@ -99,10 +118,11 @@ class AuthController extends Controller
     public function logout(Request $request)
     {
         Auth::logout();
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
-
-        return redirect('/');
+        
+        // Ensure session is cleared but don't perform heavy regeneration if not needed
+        $request->session()->flush();
+        
+        return redirect()->route('login'); // Redirect to login directly instead of home to avoid landing page load
     }
 
     public function destroyPatient($id)
@@ -226,7 +246,7 @@ class AuthController extends Controller
         );
 
         return $status === Password::RESET_LINK_SENT
-            ? back()->with('success', 'Te enviamos un link para restablecer tu contraseña a tu email.')
+            ? view('auth.passwords.sent')
             : back()->withErrors(['email' => __($status)]);
     }
 

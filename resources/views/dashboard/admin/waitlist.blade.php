@@ -51,7 +51,7 @@
                         <th style="padding: 0.8rem; text-align: left;">Paciente</th>
                         <th style="padding: 0.8rem; text-align: left;">Teléfono</th>
                         <th style="padding: 0.8rem; text-align: left;">Preferencia</th>
-                        <th style="padding: 0.8rem; text-align: right;">Acciones</th>
+                        <th style="padding: 0.8rem; text-align: center; width: 150px;">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -68,8 +68,15 @@
                                 @endif
                             </td>
                             <td data-label="Paciente" style="padding: 0.8rem; font-weight: 900;">{{ $entry->name }}</td>
-                            <td data-label="Teléfono" style="padding: 0.8rem;">
-                                <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $entry->phone) }}" target="_blank" style="color: #25D366; font-weight: 800; text-decoration: none;">
+                            <td data-label="Teléfono" style="padding: 0.8rem; font-family: 'Inter', sans-serif;">
+                                @php
+                                    $fechaMsg = $entry->fecha_especifica ? \Carbon\Carbon::parse($entry->fecha_especifica)->format('d/m') : 'próximamente';
+                                    $horaMsg = $entry->hora_inicio ? \Carbon\Carbon::parse($entry->hora_inicio)->format('H:i') : '';
+                                    // Trim name and attach comma directly
+                                    $wpMessage = "Hola " . trim($entry->name) . ", se liberó un lugar para el " . $fechaMsg . ($horaMsg ? " a las " . $horaMsg : "") . ". ¿Te gustaría tomar el turno? Saludos, Lic. Nazarena De Luca.";
+                                    $wpUrl = "https://wa.me/" . preg_replace('/[^0-9]/', '', $entry->phone) . "?text=" . urlencode($wpMessage);
+                                @endphp
+                                <a href="{{ $wpUrl }}" target="_blank" style="color: #25D366; font-weight: 500; text-decoration: none;">
                                     <i class="fa-brands fa-whatsapp"></i> {{ $entry->phone }}
                                 </a>
                             </td>
@@ -83,7 +90,7 @@
                                     </div>
                                 </div>
                             </td>
-                            <td data-label="Acciones" style="padding: 0.8rem; text-align: right;">
+                            <td data-label="Acciones" style="padding: 0.8rem; text-align: center; width: 150px;">
                                 <form id="delete-waitlist-{{ $entry->id }}" action="{{ route('admin.waitlist.destroy', $entry->id) }}" method="POST" style="margin:0;">
                                     @csrf
                                     @method('DELETE')

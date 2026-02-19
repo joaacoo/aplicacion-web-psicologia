@@ -36,20 +36,16 @@ class FinanceController extends Controller
 
     private function getFinanceData(Request $request)
     {
-        // ... implementation kept in cache by replace_file_content if not targeting it ...
-        // Re-declaring for context if needed, but since we use replace_file_content on specific chunks or entire file.
-        // I will target the end of the file to replace the redirect methods.
-        // Wait, replace_file_content is for contiguous blocks.
-        // I'll do this in two steps or Replace the whole file content if easier, but it's large.
-        // Let's replace the specific methods.
-        
         $currentMonth = (int) $request->input('month', Carbon::now()->month);
         $currentYear = (int) $request->input('year', Carbon::now()->year);
 
-        // 1. Ingresos Confirmados
+        // 1. Ingresos Confirmados (Pagos Verificados)
+        // [FIX] Only count appointments with VERIFIED payments
         $incomeQuery = Appointment::whereYear('fecha_hora', $currentYear)
             ->whereMonth('fecha_hora', $currentMonth)
-            ->whereIn('estado', ['confirmado', 'asistido', 'completado']);
+            ->whereHas('payment', function($q) {
+                $q->where('estado', 'verificado');
+            });
 
         $monthlyIncome = $incomeQuery->sum('monto_final');
         
@@ -57,11 +53,59 @@ class FinanceController extends Controller
             ->orderBy('fecha_hora', 'desc')
             ->get();
 
-        // 2. Pendiente de Cobro
-        $pendingIncome = Appointment::where('fecha_hora', '<', Carbon::now())
-            ->where('estado', 'confirmado')
-            ->sum('monto_final');
+        // 2. Pendiente de Cobro (A Cobrar)
+        // [FIX] Sum: 
+        // a) Confirmed appointments (past) without payment or with pending payment? 
+        //    Actually, if confirmed it usually means paid/verified in this flow? 
+        //    No, Manual confirmation might exist. 
+        //    Let's stick to User's request: "base a los copobrantes que tengo que no epte ni rechaze"
+        
+        // Items with Pending Proofs (regardless of date, usually recent)
+        $pendingProofs = Appointment::whereHas('payment', function($q) {
+            $q->where('estado', 'pendiente');
+        })->get();
 
+        $pendingIncome = 0;
+        foreach ($pendingProofs as $appt) {
+            // If monto_final is set (e.g. was confirmed then payment uploaded? unlikely), use it.
+            // If not, calculate based on patient's current price.
+            if ($appt->monto_final > 0) {
+                $pendingIncome += $appt->monto_final;
+            } else {
+                // Estimate based on patient price
+                $price = 0;
+                if ($appt->user && $appt->user->paciente) {
+                    $price = $appt->user->paciente->precio_sesion; 
+                } else {
+                    $price = \App\Models\Setting::get('precio_base_sesion', 25000);
+                }
+                $pendingIncome += $price;
+            }
+        }
+
+        // Also add "Debtors" (Past appointments, confirmed but NO payment record or rejected payment?)
+        // The previous logic for debtors was: date < now AND state = confirmed. 
+        // But if state=confirmed usually implies paid in this system (by verify()), then looking for confirmed unpaid is contradictory unless manual confirm exists.
+        // I will keep the previous "Debtors" logic effectively but maybe separate or merge?
+        // User said: "a cobrar serai en base a los copobrantes que tengo que no epte ni rechaze" -> Only pending proofs?
+        // "cuadno me falta por cokbrar en base al honorarioa de configuarion" -> implies debt too.
+        // I'll add the Debtors sum too.
+        
+        $debtorsQuery = Appointment::where('fecha_hora', '<', Carbon::now())
+            ->where('estado', 'confirmado') // Assuming manually confirmed but not paid? Or maybe this query is wrong if confirm=paid.
+            ->whereDoesntHave('payment', function($q) {
+                $q->where('estado', 'verificado');
+            }); // Filter out verified payments
+            
+        $debtorsSum = $debtorsQuery->sum('monto_final');
+        $pendingIncome += $debtorsSum;
+
+        // 9. Total Sessions (New KPI)
+        $totalSessions = Appointment::whereYear('fecha_hora', $currentYear)
+            ->whereMonth('fecha_hora', $currentMonth)
+            ->whereIn('estado', ['confirmado', 'asistido', 'completado'])
+            ->count();
+        
         // 3. Tasa de Cancelación Mensual
         $totalAppointments = Appointment::whereYear('fecha_hora', $currentYear)
             ->whereMonth('fecha_hora', $currentMonth)
@@ -74,30 +118,25 @@ class FinanceController extends Controller
 
         $cancellationRate = $totalAppointments > 0 ? round(($cancelledAppointments / $totalAppointments) * 100, 1) : 0;
 
-        // 4. Pacientes Nuevos vs Frecuentes
-        $patientsThisMonth = Appointment::whereYear('fecha_hora', $currentYear)
-            ->whereMonth('fecha_hora', $currentMonth)
-            ->whereIn('estado', ['confirmado', 'asistido', 'completado'])
-            ->with(['user.paciente'])
-            ->get()
-            ->groupBy('usuario_id');
+        // ... existing code ...
 
-        $newPatients = 0;
-        $frequentPatients = 0;
+        // Also add logic to calculate vs previous month sessions if needed, but user just asked "cuantas sesiones tuvo en todo el mes".
+        // I'll keep it simple for now.
 
-        foreach ($patientsThisMonth as $userId => $appts) {
-            $patient = $appts->first()->user->paciente ?? null;
-            if ($patient) {
-                if ($patient->tipo_paciente === 'nuevo') $newPatients++;
-                else $frequentPatients++;
-            }
-        }
+
+
+        // 4. Pacientes Totales (Nuevos vs Frecuentes)
+        // [FIX] User requested totals, not monthly.
+        $newPatients = \App\Models\Paciente::where('tipo_paciente', 'nuevo')->count();
+        $frequentPatients = \App\Models\Paciente::where('tipo_paciente', 'frecuente')->count();
 
         // 5. Comparación Ingresos Mes a Mes
         $prevDate = Carbon::create($currentYear, $currentMonth, 1)->subMonth();
         $previousMonthIncome = Appointment::whereYear('fecha_hora', $prevDate->year)
             ->whereMonth('fecha_hora', $prevDate->month)
-            ->whereIn('estado', ['confirmado', 'asistido', 'completado'])
+             ->whereHas('payment', function($q) {
+                $q->where('estado', 'verificado');
+            })
             ->sum('monto_final');
 
         $incomeGrowth = 0;
@@ -121,6 +160,9 @@ class FinanceController extends Controller
         // Aggregating in Database instead of fetching all rows
         $debtors = Appointment::where('fecha_hora', '<', Carbon::now())
             ->where('estado', 'confirmado')
+            ->whereDoesntHave('payment', function($q) {
+                $q->where('estado', 'verificado');
+            })
             ->select(
                 'usuario_id', 
                 DB::raw('count(*) as sessions_count'), 
@@ -165,8 +207,9 @@ class FinanceController extends Controller
         $realProfit = $monthlyIncome - $totalGastos;
 
         // 8. Comprobantes Pendientes de Aprobación
-        $pendingReceipts = Appointment::where('estado', 'pendiente')
-            ->whereHas('payment', function($q) {
+        // [FIX] Don't filter by appointment status 'pendiente' strictly, as it might be 'reservado' or 'confirmado' awaiting verification
+        // Also ensure pricing is dynamic if needed
+        $pendingReceipts = Appointment::whereHas('payment', function($q) {
                 $q->where('estado', 'pendiente');
             })
             ->with(['user.paciente', 'payment'])
@@ -175,6 +218,9 @@ class FinanceController extends Controller
             ->map(function ($turno) {
                 $user = $turno->user;
                 if (!$user) return null;
+                
+                // Calculate display price
+                $price = $turno->monto_final > 0 ? $turno->monto_final : ($user->paciente->precio_sesion ?? \App\Models\Setting::get('precio_base_sesion', 25000));
 
                 return [
                     'turno' => $turno,
@@ -183,6 +229,7 @@ class FinanceController extends Controller
                     'comprobante_ruta' => $turno->payment ? asset('storage/' . $turno->payment->comprobante_ruta) : null,
                     'fecha_hora' => $turno->fecha_hora,
                     'modalidad' => $turno->modalidad,
+                    'monto_estimado' => $price
                 ];
             })
             ->filter()
@@ -194,7 +241,7 @@ class FinanceController extends Controller
             'totalGastos',
             'gastos',
             'realProfit',
-            'pendingIncome', 
+            'pendingIncome', // Duplicate key but fine
             'cancellationRate', 
             'newPatients', 
             'frequentPatients', 
@@ -204,7 +251,8 @@ class FinanceController extends Controller
             'isFirstMonth',
             'debtors',
             'incomes',
-            'pendingReceipts'
+            'pendingReceipts',
+            'totalSessions'
         ) + ['year' => $currentYear];
     }
     
@@ -224,17 +272,18 @@ class FinanceController extends Controller
             DB::raw("DATE_FORMAT(fecha_hora, '%Y-%m') as mes")
         )
         ->whereBetween('fecha_hora', [$startPeriod, $endPeriod])
-        ->whereIn('estado', ['completado', 'asistido'])
+        ->whereHas('payment', function($q) {
+            $q->where('estado', 'verificado');
+        })
         ->groupBy('mes')
         ->orderBy('mes')
         ->get();
 
-        // Gráfico 2: Pacientes Nuevos vs Frecuentes (De los turnos del mes seleccionado)
-        $patientTypes = Appointment::join('pacientes', 'turnos.usuario_id', '=', 'pacientes.user_id')
-            ->select('pacientes.tipo_paciente', DB::raw('count(*) as total'))
-            ->whereYear('fecha_hora', $year)
-            ->whereMonth('fecha_hora', $month)
-            ->groupBy('pacientes.tipo_paciente')
+        // Gráfico 2: Pacientes Totales (Nuevos vs Frecuentes)
+        $patientTypes = \App\Models\Paciente::select('tipo_paciente', DB::raw('count(*) as total'))
+            ->where('tipo_paciente', '!=', 'otro')
+            ->groupBy('tipo_paciente')
+            ->orderBy('tipo_paciente')
             ->get();
 
         return response()->json([

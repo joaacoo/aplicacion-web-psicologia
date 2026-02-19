@@ -107,6 +107,53 @@
             padding-top: 1rem;
             border-top: 2px dashed #eee !important;
         }
+        
+        /* MOBILE: Stack Modal Footer Buttons */
+        #proofModal .modal-footer {
+            flex-direction: column !important;
+            gap: 0.8rem !important;
+        }
+        
+        #proofModal .modal-footer > div {
+            width: 100% !important;
+            justify-content: center !important;
+        }
+        
+        #proofModal .modal-footer button,
+        #proofModal .modal-footer a {
+            flex: 1 !important;
+            min-width: 120px !important;
+        }
+        
+        /* MOBILE: Fit Modal Without Scroll */
+        #proofModal > div {
+            max-height: 95vh !important;
+            height: auto !important;
+        }
+        
+        #proofModal img {
+            max-height: 35vh !important;
+        }
+        
+        #proofModal > div > div:first-child {
+            padding: 1rem !important;
+        }
+        
+        #proofModal > div > div:nth-child(2) {
+            padding: 1rem !important;
+        }
+        
+        #proofModal .modal-footer {
+            padding: 0.8rem !important;
+        }
+        
+        #proofModal h3 {
+            font-size: 1rem !important;
+        }
+        
+        #proofModal p {
+            font-size: 0.7rem !important;
+        }
     }
     /* Safer Minmax for desktop */
     .dashboard-grid {
@@ -161,6 +208,14 @@
     @keyframes fadeIn {
         from { opacity: 0; transform: translateY(10px); }
         to { opacity: 1; transform: translateY(0); }
+    }
+    /* Subtle Bell Interaction */
+    .notification-bell-container {
+        transition: transform 0.2s ease, opacity 0.2s ease;
+    }
+    .notification-bell-container:hover {
+        transform: scale(1.1);
+        opacity: 0.8;
     }
     /* Fixed Height Controls */
     .filter-control {
@@ -235,7 +290,7 @@
     <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; margin-bottom: 2rem; gap: 1rem;">
 
         
-        <div style="display: flex; align-items: stretch; gap: 0.5rem; height: 42px;">
+        <div id="financeFilters" style="display: flex; align-items: stretch; gap: 0.5rem; height: 42px;">
             @php
                 $currMonth = request('month', now()->month);
                 $currYear = request('year', now()->year);
@@ -341,7 +396,7 @@
             <!-- Real Profit (New) -->
             <div class="neobrutalist-card" style="background: white; border: 3px solid #000; padding: 1.2rem; display: flex; flex-direction: column; gap: 0.5rem; box-shadow: 4px 4px 0px rgba(0,0,0,1);">
                 <div style="display: flex; justify-content: space-between; align-items: start;">
-                    <span style="font-size: 0.75rem; color: #666; font-weight: 800; text-transform: uppercase;">Ganancia Real</span>
+                    <span style="font-size: 0.75rem; color: #666; font-weight: 800; text-transform: uppercase;">Ganancia Real ({{ $monthName }})</span>
                     <div style="background: #fff8e1; padding: 5px; border-radius: 6px; border: 2px solid #000;">
                         <i class="fa-solid fa-wallet" style="font-size: 1.1rem; color: #fbc02d;"></i>
                     </div>
@@ -360,7 +415,7 @@
                         <i class="fa-solid {{ $pendingIncome > 0 ? 'fa-hourglass-half' : 'fa-check' }}" style="font-size: 1.1rem; color: {{ $pendingIncome > 0 ? '#ef6c00' : '#2e7d32' }};"></i>
                     </div>
                 </div>
-                <h2 style="margin: 0; font-size: 1.8rem; font-weight: 900; color: #000;">{{ $pendingIncome }}</h2>
+                <h2 style="margin: 0; font-size: 1.8rem; font-weight: 900; color: #000;">${{ number_format($pendingIncome, 0, ',', '.') }}</h2>
                 @if($pendingIncome > 0)
                     <div style="font-size: 0.75rem; font-weight: 700; color: #ef6c00;">
                         <i class="fa-solid fa-circle-exclamation"></i> Pendiente de regularizar
@@ -375,7 +430,7 @@
             <!-- Patients Stats -->
             <div class="neobrutalist-card" style="background: white; border: 3px solid #000; padding: 1.2rem; display: flex; flex-direction: column; gap: 0.5rem; box-shadow: 4px 4px 0px rgba(0,0,0,1);">
                 <div style="display: flex; justify-content: space-between; align-items: start;">
-                    <span style="font-size: 0.75rem; color: #666; font-weight: 800; text-transform: uppercase;">Pacientes Activos</span>
+                    <span style="font-size: 0.75rem; color: #666; font-weight: 800; text-transform: uppercase;">Pacientes Totales</span>
                     <div style="background: #e1f5fe; padding: 5px; border-radius: 6px; border: 2px solid #000;">
                         <i class="fa-solid fa-users" style="font-size: 1.1rem; color: #0277bd;"></i>
                     </div>
@@ -390,9 +445,27 @@
                         <i class="fa-solid fa-circle" style="font-size: 0.5rem;"></i> {{ $newPatients }} Nuevos
                     </span>
                     <span style="color: #4caf50; font-weight: 800; display: inline-flex; align-items: center; gap: 4px;">
-                        <i class="fa-solid fa-circle" style="font-size: 0.5rem;"></i> {{ $frequentPatients }} Frec.
+                        <i class="fa-solid fa-circle" style="font-size: 0.5rem;"></i> {{ $frequentPatients }} Frecuentes
                     </span>
                 </div>
+            </div>
+
+            <!-- Total Sessions (New) -->
+            <div class="neobrutalist-card" style="background: white; border: 3px solid #000; padding: 1.2rem; display: flex; flex-direction: column; gap: 0.5rem; box-shadow: 4px 4px 0px rgba(0,0,0,1);">
+                <div style="display: flex; justify-content: space-between; align-items: start;">
+                    <span style="font-size: 0.75rem; color: #666; font-weight: 800; text-transform: uppercase;">Sesiones ({{ $monthName }})</span>
+                    <div style="background: #e3f2fd; padding: 5px; border-radius: 6px; border: 2px solid #000;">
+                        <i class="fa-solid fa-calendar-check" style="font-size: 1.1rem; color: #1565c0;"></i>
+                    </div>
+                </div>
+                <h2 style="margin: 0; font-size: 1.8rem; font-weight: 900; color: #000;">{{ $totalSessions }}</h2>
+                <div style="font-size: 0.75rem; font-weight: 700; color: #666;">
+                    Confirmadas / Realizadas
+                </div>
+                <!-- Optional: Link to Agenda if needed -->
+                 <a href="{{ route('admin.agenda') }}" style="margin-top: auto; font-size: 0.75rem; font-weight: 800; color: #000; text-decoration: none; display: flex; align-items: center; gap: 5px;">
+                    Ver agenda <i class="fa-solid fa-arrow-right" style="font-size: 0.7rem;"></i>
+                </a>
             </div>
         </div>
 
@@ -408,7 +481,7 @@
 
             <!-- Patient Type Chart -->
             <div class="neobrutalist-card" style="background: white; border: 3px solid #000; padding: 1.5rem; box-shadow: 5px 5px 0px rgba(0,0,0,1);">
-                <h3 style="margin: 0 0 1rem 0; font-size: 1rem; font-weight: 800; color: #000; text-transform: uppercase;"><i class="fa-solid fa-chart-pie"></i> Distribución de Pacientes</h3>
+                <h3 style="margin: 0 0 1rem 0; font-size: 1rem; font-weight: 800; color: #000; text-transform: uppercase;"><i class="fa-solid fa-chart-pie"></i> Distribución de Pacientes (Total)</h3>
                 <div style="width: 100%; display: flex; flex-direction: column; align-items: center;">
                     <div style="height: 200px; width: 100%; position: relative;">
                         <canvas id="patientChart"></canvas>
@@ -520,7 +593,7 @@
         
         {{-- NEW: Pending Receipts Section (Full Width) --}}
         <div class="neobrutalist-card" style="background: #fff3e0; border: 3px solid #ffb74d; padding: 1.5rem; box-shadow: 5px 5px 0px rgba(255, 183, 77, 0.4); margin-bottom: 2rem;">
-            <h3 style="margin: 0 0 1.5rem 0; font-size: 1.1rem; font-weight: 900; color: #ef6c00; text-transform: uppercase;">
+            <h3 style="margin: 0 0 1.5rem 0; font-size: 0.95rem; font-weight: 900; color: #ef6c00; text-transform: uppercase;">
                 <i class="fa-solid fa-file-invoice"></i> Comprobantes Pendientes de Aprobación
             </h3>
             
@@ -535,16 +608,20 @@
                         <div class="carousel-item" style="flex: 0 0 300px; scroll-snap-align: start; background: white; border: 3px solid #000; border-radius: 12px; padding: 1.5rem; box-shadow: 4px 4px 0px #000; display: flex; flex-direction: column; justify-content: space-between; user-select: none;">
                             <div>
                                 <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
-                                    <div>
-                                        <h4 style="margin: 0 0 0.5rem 0; font-weight: 800; font-size: 0.95rem; line-height: 1.2; word-wrap: break-word; white-space: normal;">{{ $receipt['user']->nombre }}</h4>
-                                        <p style="margin: 0; color: #666; font-size: 0.9rem;">
-                                            <i class="fa-solid fa-calendar"></i> {{ \Carbon\Carbon::parse($receipt['fecha_hora'])->format('d/m H:i') }}
-                                        </p>
-                                        <p style="margin: 0.3rem 0 0 0; color: #666; font-size: 0.9rem;">
-                                            <i class="fa-solid fa-{{ $receipt['modalidad'] === 'virtual' ? 'video' : 'building' }}"></i> 
-                                            {{ ucfirst($receipt['modalidad']) }}
-                                        </p>
-                                    </div>
+                                    <div style="flex: 1;">
+                                <div style="font-weight: 800; color: #000;">
+                                    {{ $receipt['user']->nombre }}
+                                    @if($receipt['paciente']->precio_personalizado)
+                                        <i class="fa-solid fa-tag" style="color: #ef6c00; font-size: 0.7rem;" title="Precio personalizado"></i>
+                                    @endif
+                                </div>
+                                <div style="font-size: 0.8rem; color: #666;">
+                                    {{ \Carbon\Carbon::parse($receipt['fecha_hora'])->format('d/m H:i') }} - {{ ucfirst($receipt['modalidad']) }}
+                                </div>
+                                <div style="font-size: 0.85rem; font-weight: 700; color: #2e7d32;">
+                                    ${{ number_format($receipt['monto_estimado'], 0, ',', '.') }}
+                                </div>
+                            </div>
                                     @if($receipt['paciente'])
                                         <span style="background: {{ $receipt['paciente']->tipo_paciente === 'nuevo' ? '#ede7f6' : '#e8f5e9' }}; 
                                                      color: {{ $receipt['paciente']->tipo_paciente === 'nuevo' ? '#5e35b1' : '#2e7d32' }}; 
@@ -557,7 +634,7 @@
                                 @if($receipt['comprobante_ruta'])
                                     <div style="margin: 1rem 0;">
                                         <button type="button" class="neobrutalist-btn" 
-                                                onclick="openProofModalHelper('{{ route('payments.showProof', $receipt['turno']->payment->id) }}', '{{ $receipt['user']->nombre }}', '{{ $receipt['turno']->payment->created_at->format('d/m H:i') }}')"
+                                                onclick="openProofModalHelper('{{ route('payments.showProof', $receipt['turno']->payment->id) }}', '{{ $receipt['user']->nombre }}', '{{ \Carbon\Carbon::parse($receipt['fecha_hora'])->format('d/m H:i') }}')"
                                            style="width: 100%; background: #60a5fa; color: white; padding: 0.6rem; font-size: 0.85rem; border: 2px solid #000; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; box-shadow: 2px 2px 0px #000;">
                                             <i class="fa-solid fa-file-image"></i> Ver Comprobante
                                         </button>
@@ -591,77 +668,26 @@
             
             {{-- REMOVED: Old Pending Receipts Section Location --}}
 
-            
-            <!-- Smart Debtors Table (Seguimiento) -->
-            @if($debtors->count() > 0)
-            <div class="neobrutalist-card" style="background: white; border: 3px solid #000; padding: 1.5rem; box-shadow: 5px 5px 0px rgba(0,0,0,1);">
-                <h3 style="margin: 0 0 1.5rem 0; font-size: 1.1rem; font-weight: 900; color: #000; text-transform: uppercase;">
-                    <i class="fa-solid fa-hand-holding-dollar"></i> Seguimiento de Sesiones (Por Cobrar)
-                </h3>
-                
-                <div class="debtors-table-container" style="overflow-x: auto;">
-                    <table class="debtors-table" style="width: 100%; border-collapse: collapse; font-family: 'Inter', sans-serif;">
-                        <thead>
-                            <tr style="border-bottom: 3px solid #000; text-align: left;">
-                                <th style="padding: 1rem; font-size: 0.8rem; font-weight: 800; color: #000; text-transform: uppercase;">Paciente</th>
-                                <th style="padding: 1rem; font-size: 0.8rem; font-weight: 800; color: #000; text-transform: uppercase;">Última Sesión</th>
-                                <th style="padding: 1rem; font-size: 0.8rem; font-weight: 800; color: #000; text-transform: uppercase; text-align: center;">Cant.</th>
-                                <th style="padding: 1rem; font-size: 0.8rem; font-weight: 800; color: #000; text-transform: uppercase;">Total</th>
-                                <th style="padding: 1rem; text-align: right; font-size: 0.8rem; font-weight: 800; color: #000; text-transform: uppercase;">Acción</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach($debtors as $dept)
-                                <tr style="border-bottom: 1px solid #eee;">
-                                    <td data-label="Paciente" style="padding: 1rem; font-weight: 700; color: #333;">
-                                        {{ $dept['user']->nombre }}
-                                        @if($dept['is_frequent'])
-                                            <span style="font-size: 0.65rem; background: #e8f5e9; color: #2e7d32; padding: 2px 5px; border-radius: 4px; border: 1px solid #c8e6c9;">FREC</span>
-                                        @endif
-                                    </td>
-                                    <td data-label="Última Sesión" style="padding: 1rem; color: #555;">{{ \Carbon\Carbon::parse($dept['last_session_date'])->format('d/m/Y') }}</td>
-                                    <td data-label="Cantidad" style="padding: 1rem; text-align: center;">
-                                        <span style="background: #fff3e0; border: 2px solid #ffb74d; padding: 2px 8px; border-radius: 20px; font-size: 0.8rem; font-weight: 800; color: #ef6c00;">{{ $dept['sessions_count'] }}</span>
-                                    </td>
-                                    <td data-label="Total" style="padding: 1rem; font-weight: 800; color: #000;">${{ number_format($dept['total_debt'], 0, ',', '.') }}</td>
-                                    <td data-label="Acción" style="padding: 1rem; text-align: right;">
-                                        <a href="{{ $dept['whatsapp_link'] }}" target="_blank" 
-                                           class="neobrutalist-btn" 
-                                           style="background: #25D366; color: white; padding: 6px 15px; font-size: 0.8rem; text-decoration: none; border: 2px solid #000; display: inline-flex; align-items: center; gap: 5px; box-shadow: 2px 2px 0px #000; transition: all 0.2s;"
-                                           onclick="this.style.background='#128C7E'; this.innerHTML='<i class=\'fa-solid fa-check\'></i> Enviado';">
-                                            <i class="fa-brands fa-whatsapp"></i> Recordar
-                                        </a>
-                                    </td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            @endif
 
-            <!-- Inflation Tool -->
+            {{-- REMOVED: Debtors Table --}}
+
+
+            <!-- Link to Honorarios Configuration -->
             <div class="neobrutalist-card" style="background: #e3f2fd; border: 3px solid #1565c0; padding: 1.5rem; box-shadow: 4px 4px 0px rgba(21, 101, 192, 0.3); align-self: start; max-width: 500px; width: 100%;">
                 <div style="display: flex; gap: 0.8rem; align-items: center; margin-bottom: 1rem;">
                      <div style="background: white; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 50%; border: 3px solid #1565c0;">
                          <i class="fa-solid fa-money-bill-trend-up" style="color: #0d47a1; font-size: 1.1rem;"></i>
                      </div>
-                     <h3 style="margin: 0; color: #0d47a1; font-weight: 900; font-size: 1.1rem; text-transform: uppercase;">Ajuste Inflación</h3>
+                     <h3 style="margin: 0; color: #0d47a1; font-weight: 900; font-size: 1.1rem; text-transform: uppercase;">Configurar Honorarios</h3>
                 </div>
                 
                 <p style="color: #0d47a1; margin-bottom: 1.2rem; font-size: 0.8rem; line-height: 1.4; font-weight: 600;">
-                    Aumenta el <strong>Honorario Pactado</strong> de todos tus pacientes activos automáticamente.
+                    Accedé a la configuración de honorarios y sesiones para ajustar precios y parámetros.
                 </p>
                 
-                <form action="{{ route('admin.finance.update-prices') }}" method="POST" style="display: flex; gap: 0.5rem; width: 100%;">
-                    @csrf
-                    <div style="flex: 1;">
-                        <input type="number" name="porcentaje" min="1" step="0.1" placeholder="% Aumento" class="neobrutalist-input" style="width: 100%; margin: 0; padding: 0.6rem; border: 2px solid #1565c0; font-weight: 700; height: 45px;">
-                    </div>
-                    <button type="submit" class="neobrutalist-btn" style="background: #1565c0; color: white; margin: 0; font-size: 0.85rem; padding: 0 1.2rem; border: 2px solid #000; box-shadow: 3px 3px 0px rgba(0,0,0,0.4); height: 45px; display: flex; align-items: center; justify-content: center;" onclick="return confirm('¿Confirmás el aumento masivo?')">
-                        Aplicar
-                    </button>
-                </form>
+                <a href="{{ route('admin.configuracion') }}#honorarios" class="neobrutalist-btn" style="background: #1565c0; color: white; margin: 0; font-size: 0.9rem; padding: 0.8rem 1.5rem; border: 2px solid #000; box-shadow: 3px 3px 0px rgba(0,0,0,0.4); display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; text-decoration: none; width: 100%;">
+                    <i class="fa-solid fa-gear"></i> Ir a Configuración
+                </a>
             </div>
 
         </div>
@@ -720,6 +746,14 @@
         }, 10);
        
         evt.currentTarget.classList.add("active");
+        
+        // Hide/Show filters based on tab
+        const filters = document.getElementById('financeFilters');
+        if (tabName === 'honorarios') {
+            filters.style.display = 'none';
+        } else {
+            filters.style.display = 'flex';
+        }
     }
 
     document.addEventListener('DOMContentLoaded', function() {
@@ -820,9 +854,6 @@
                             <span class="badge-new" style="background: #e8f5e9; color: #2e7d32; border-color: #c8e6c9;">
                                 <i class="fa-solid fa-circle" style="font-size: 0.5rem;"></i> Frecuentes
                             </span>
-                             <span class="badge-new" style="background: #e3f2fd; color: #1565c0; border-color: #90caf9;">
-                                <i class="fa-solid fa-circle" style="font-size: 0.5rem;"></i> Otros
-                            </span>
                         </div>
                     `;
                 }
@@ -878,7 +909,7 @@
 
 <!-- Modal de Comprobante (Moved to end) -->
 <div id="proofModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 10000; align-items: center; justify-content: center; backdrop-filter: blur(5px);">
-    <div style="background: white; width: 90%; max-width: 600px; max-height: 90vh; overflow-y: auto; border: 4px solid #000; border-radius: 12px; box-shadow: 8px 8px 0px #000;">
+    <div style="background: white; width: 90%; max-width: 800px; max-height: 90vh; overflow-y: auto; border: 4px solid #000; border-radius: 12px; box-shadow: 8px 8px 0px #000;">
         <div style="padding: 1.5rem; border-bottom: 3px solid #000; display: flex; justify-content: space-between; align-items: center; background: #f0f0f0;">
             <div>
                 <h3 id="proofModalTitle" style="margin: 0; font-weight: 900; font-size: 1.2rem;">Comprobante de Pago</h3>
@@ -887,31 +918,152 @@
             <button onclick="closeProofModal()" class="neobrutalist-btn" style="background: #ff5252; color: white; padding: 0.4rem 0.8rem; font-size: 1rem;"><i class="fa-solid fa-times"></i></button>
         </div>
         <div style="padding: 2rem; text-align: center; background: #333;">
-            <img id="proofModalImg" src="" alt="Comprobante" style="max-width: 100%; max-height: 60vh; border: 2px solid #fff; box-shadow: 0 0 15px rgba(0,0,0,0.5);">
+            <div id="proofLoader" style="display: none; padding: 2rem; text-align: center;">
+                <i class="fa-solid fa-spinner fa-spin" style="font-size: 2rem; color: white;"></i>
+            </div>
+            <img id="proofModalImg" src="" alt="Comprobante" style="max-width: 100%; max-height: 60vh; border: 2px solid #fff; box-shadow: 0 0 15px rgba(0,0,0,0.5); display: none;" onload="document.getElementById('proofLoader').style.display='none'; this.style.display='block';">
         </div>
-        <div style="padding: 1rem; text-align: center; border-top: 3px solid #000; background: white;">
-            <a id="proofModalDownload" href="#" download class="neobrutalist-btn bg-amarillo" style="text-decoration: none;">
-                <i class="fa-solid fa-download"></i> Descargar Imagen
+        <div class="modal-footer" style="padding: 1rem; border-top: 3px solid #000; background: white; display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap;">
+            <!-- Navigation Buttons -->
+            <div style="display: flex; gap: 0.5rem;">
+                <button id="proofModalPrev" onclick="navigateProof(-1)" class="neobrutalist-btn" style="background: white; color: #000; padding: 0.6rem 1rem; border: 2px solid #000; box-shadow: 3px 3px 0px #000;">
+                    <i class="fa-solid fa-chevron-left"></i>
+                </button>
+                <button id="proofModalNext" onclick="navigateProof(1)" class="neobrutalist-btn" style="background: white; color: #000; padding: 0.6rem 1rem; border: 2px solid #000; box-shadow: 3px 3px 0px #000;">
+                    <i class="fa-solid fa-chevron-right"></i>
+                </button>
+            </div>
+            
+            <!-- Action Buttons -->
+            <div style="display: flex; gap: 0.5rem; flex: 1; justify-content: center;">
+                <button id="proofModalApprove" onclick="approveFromModal()" class="neobrutalist-btn" style="background: #10b981; color: white; padding: 0.6rem 1.5rem; border: 2px solid #000; box-shadow: 3px 3px 0px #000; display: inline-flex; align-items: center; gap: 0.5rem;">
+                    <i class="fa-solid fa-check"></i> Aprobar
+                </button>
+                <button id="proofModalReject" onclick="rejectFromModal()" class="neobrutalist-btn" style="background: #ef4444; color: white; padding: 0.6rem 1.5rem; border: 2px solid #000; box-shadow: 3px 3px 0px #000; display: inline-flex; align-items: center; gap: 0.5rem;">
+                    <i class="fa-solid fa-times"></i> Rechazar
+                </button>
+            </div>
+            
+            <!-- Download Button (Icon Only) -->
+            <a id="proofModalDownload" href="#" download class="neobrutalist-btn bg-amarillo" style="text-decoration: none; padding: 0.6rem 1rem;" title="Descargar Imagen">
+                <i class="fa-solid fa-download"></i>
             </a>
         </div>
     </div>
 </div>
 
 <script>
-    function openProofModalHelper(url, userName, date) {
-        document.getElementById('proofModalImg').src = url;
-        document.getElementById('proofModalTitle').innerText = 'Comprobante: ' + userName;
-        document.getElementById('proofModalSubtitle').innerText = 'Subido el ' + date;
-        document.getElementById('proofModalDownload').href = url;
+    let currentProofIndex = 0;
+    let allProofs = [];
+
+    function openProofModalHelper(url, userName, date, appointmentId) {
+        // Reset state
+        document.getElementById('proofLoader').style.display = 'block';
+        document.getElementById('proofModalImg').style.display = 'none';
+        
+        // Collect all proofs from the carousel
+        const carouselItems = document.querySelectorAll('.carousel-item');
+        allProofs = Array.from(carouselItems).map((item, index) => {
+            const viewButton = item.querySelector('button[onclick*="openProofModalHelper"]');
+            if (viewButton) {
+                const onclickAttr = viewButton.getAttribute('onclick');
+                const match = onclickAttr.match(/openProofModalHelper\('([^']+)',\s*'([^']+)',\s*'([^']+)'(?:,\s*(\d+))?\)/);
+                if (match) {
+                    const approveForm = item.querySelector('form[action*="confirm"]');
+                    const rejectForm = item.querySelector('form[action*="cancel"]');
+                    return {
+                        url: match[1],
+                        userName: match[2],
+                        date: match[3],
+                        appointmentId: approveForm ? approveForm.action.match(/\/(\d+)\/confirm/)[1] : null,
+                        approveAction: approveForm ? approveForm.action : null,
+                        rejectAction: rejectForm ? rejectForm.action : null
+                    };
+                }
+            }
+            return null;
+        }).filter(p => p !== null);
+        
+        // Find current index
+        currentProofIndex = allProofs.findIndex(p => p.url === url);
+        if (currentProofIndex === -1) currentProofIndex = 0;
+        
+        loadProofAtIndex(currentProofIndex);
         
         document.getElementById('proofModal').style.display = 'flex';
         document.body.style.overflow = 'hidden';
+    }
+    
+    function loadProofAtIndex(index) {
+        if (index < 0 || index >= allProofs.length) return;
+        
+        const proof = allProofs[index];
+        document.getElementById('proofLoader').style.display = 'block';
+        document.getElementById('proofModalImg').style.display = 'none';
+        document.getElementById('proofModalImg').src = proof.url;
+        document.getElementById('proofModalTitle').innerText = 'Comprobante: ' + proof.userName;
+        document.getElementById('proofModalSubtitle').innerText = 'Subido el ' + proof.date;
+        document.getElementById('proofModalDownload').href = proof.url;
+        
+        // Update navigation buttons
+        document.getElementById('proofModalPrev').disabled = (index === 0);
+        document.getElementById('proofModalNext').disabled = (index === allProofs.length - 1);
+        document.getElementById('proofModalPrev').style.opacity = (index === 0) ? '0.5' : '1';
+        document.getElementById('proofModalNext').style.opacity = (index === allProofs.length - 1) ? '0.5' : '1';
+        
+        // Store current appointment ID for approve/reject
+        document.getElementById('proofModalApprove').setAttribute('data-approve-action', proof.approveAction || '');
+        document.getElementById('proofModalReject').setAttribute('data-reject-action', proof.rejectAction || '');
+    }
+    
+    function navigateProof(direction) {
+        const newIndex = currentProofIndex + direction;
+        if (newIndex >= 0 && newIndex < allProofs.length) {
+            currentProofIndex = newIndex;
+            loadProofAtIndex(currentProofIndex);
+        }
+    }
+    
+    function approveFromModal() {
+        const action = document.getElementById('proofModalApprove').getAttribute('data-approve-action');
+        if (action) {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = action;
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = '_token';
+            csrfInput.value = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+            form.appendChild(csrfInput);
+            document.body.appendChild(form);
+            form.submit();
+        }
+    }
+    
+    function rejectFromModal() {
+        if (confirm('¿Rechazar este turno?')) {
+            const action = document.getElementById('proofModalReject').getAttribute('data-reject-action');
+            if (action) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = action;
+                const csrfInput = document.createElement('input');
+                csrfInput.type = 'hidden';
+                csrfInput.name = '_token';
+                csrfInput.value = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+                form.appendChild(csrfInput);
+                document.body.appendChild(form);
+                form.submit();
+            }
+        }
     }
 
     function closeProofModal() {
         document.getElementById('proofModal').style.display = 'none';
         document.body.style.overflow = 'auto';
         document.getElementById('proofModalImg').src = '';
+        allProofs = [];
+        currentProofIndex = 0;
     }
     
     // Close on outside click
