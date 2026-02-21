@@ -44,6 +44,18 @@
             flex-wrap: wrap;
         }
     </style>
+    <style>
+      @media (max-width: 768px) {
+        .appt-mobile-btn { display: inline-flex; justify-content: center; align-items: center; width: 100%; }
+        .center-on-mobile { display: flex; justify-content: center; align-items: center; text-align: center; }
+      }
+    </style>
+    <style>
+      @media (max-width: 768px) {
+        .center-on-mobile { display:flex; justify-content:center; align-items:center; text-align:center; }
+        .appt-mobile-btn { display:inline-flex; justify-content:center; align-items:center; width:100%; height:32px; padding:0.25rem 0.5rem; font-size:0.75rem; background:#f5f5f5; border:2px solid #ddd; color:#aaa; border-radius:4px; }
+      }
+    </style>
     <div style="width: 100%; flex-grow: 1;">
         <!-- Desktop Table -->
         <div class="appointments-table">
@@ -196,10 +208,10 @@
                     </div>
                     <div class="actions-wrapper">
                         @if($appt->estado != 'cancelado')
-                            @if(($appt->modalidad ?? 'virtual') == 'virtual' && $appt->estado == 'confirmado')
-                                <a href="{{ $appt->meet_link ?: ($patient->meet_link ?: '#') }}" target="_blank" class="neobrutalist-btn" style="flex: 1; padding: 0.3rem 0.6rem; font-size: 0.75rem; background: #fff; border: 2px solid #000; text-decoration: none; color: #000; display: inline-flex; align-items: center; gap: 4px; justify-content: center; min-width: 90px; height: 32px; white-space: nowrap;">
-                                    <i class="fa-solid fa-video"></i> Unirse
-                                </a>
+                                @if(($appt->modalidad ?? 'virtual') == 'virtual' && $appt->estado == 'confirmado')
+                                    <a href="{{ $appt->meet_link ?: ($patient->meet_link ?: '#') }}" target="_blank" class="neobrutalist-btn appt-mobile-btn" style="flex: 1; max-width: 100%; min-width: 90px; height: 32px; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; color: #000;">
+                                        <i class="fa-solid fa-video"></i> Unirse
+                                    </a>
                             @endif
                             
                             @if($appt->estado != 'realizado' && $appt->fecha_hora->isFuture())
@@ -221,9 +233,7 @@
         </div>
     </div>
 
-    <div style="margin-top: 1.5rem;">
-        {{ $appointments->appends(request()->query())->links() }}
-    </div>
+
 @else
     <div style="flex-grow: 1; display: flex; align-items: center; justify-content: center; flex-direction: column; padding: 2rem; border: 2px dashed #ccc; border-radius: 8px;">
         <i class="fa-solid fa-calendar-xmark" style="font-size: 3rem; color: #ccc; margin-bottom: 1rem;"></i>
