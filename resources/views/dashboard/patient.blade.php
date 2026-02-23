@@ -407,7 +407,7 @@ function togglePatientMenu() {
                         <form action="{{ route('appointments.cancelFixed') }}" method="POST" style="width: 100%;">
                             @csrf
                             <button type="button" 
-                                    onclick="window.showConfirm('⚠️ ¿ESTÁS SEGURO? Esto cancelará todas tus sesiones fijas de aquí en adelante y liberarás tu horario permanently.', () => this.closest('form').submit())"
+                                    onclick="window.showConfirm('⚠️ ¿ESTÁS SEGURO? Esto cancelará todas tus sesiones fijas de aquí en adelante y liberarás tu horario de forma permanente.', () => this.closest('form').submit())"
                                     class="neobrutalist-btn" 
                                     style="width: 100%; background: #fee2e2; color: #e11d48; border: 2px solid #e11d48; padding: 0.8rem; font-weight: 800; font-size: 0.8rem; box-shadow: 3px 3px 0px #e11d48;">
                                 <i class="fa-solid fa-calendar-xmark"></i> CANCELAR MI RESERVA FIJA
@@ -908,9 +908,9 @@ function togglePatientMenu() {
                     });
                 </script>
             </div>
-            <!-- Biblioteca de Materiales (NEW) -->
-        <!-- Mis Documentos (Inline) -->
-        <!-- Mis Documentos (Inline) -->
+        </div> <!-- End right-column -->
+
+        <!-- Mis Documentos (full-width, separate section) -->
         <div id="documentos" class="neobrutalist-card" style="padding: 2.5rem !important; border: 3px solid #000; box-shadow: 8px 8px 0px #000; background: white;">
             <h3 style="margin-bottom: 1.5rem; border-bottom: 4px solid #000; padding-bottom: 0.8rem; font-size: 1.4rem; font-family: 'Syne', sans-serif; font-weight: 700;">
                 <i class="fa-solid fa-file-contract"></i> Mis Documentos
@@ -1003,7 +1003,6 @@ function togglePatientMenu() {
 
 
 
-    </div>
         <!-- Custom Alert Modal (Cartel) -->
         <div id="alert-modal-overlay" class="confirm-modal-overlay" style="display: none; align-items: center; justify-content: center; background: rgba(0,0,0,0.7);">
             <div class="confirm-modal" style="max-width: 400px; padding: 0 !important; border: 5px solid #000; box-shadow: 10px 10px 0px #000; border-radius: 20px;">

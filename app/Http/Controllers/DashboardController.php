@@ -180,19 +180,21 @@ class DashboardController extends Controller
             $fixedDay = $fixedReservation->fecha_hora->dayOfWeek; // 0=Sun, 1=Mon...
             $fixedTime = $fixedReservation->fecha_hora->format('H:i:s');
             
-            // Generate up to 4 total future sessions (Real + Projected)
+            // Generate up to $targetFutureCount total future sessions (Real + Projected)
             $needed = $targetFutureCount - $realFutureCount;
             $currentDate = $lastDate->copy();
+            $frecuencia = $fixedReservation->frecuencia; // 'semanal' or 'quincenal'
+            $baseDate = $fixedReservation->fecha_hora->copy()->startOfDay();
             
             for ($i = 0; $i < $needed; $i++) {
-                // Find next occurrence of fixed day
-                // If currentDate is already past the time on the same day?
-                // Just keep adding days until dayOfWeek matches
-                
+                // Find next occurrence matching day + frequency
                 $nextDate = $currentDate->copy();
                 do {
                     $nextDate->addDay();
-                } while ($nextDate->dayOfWeek !== $fixedDay);
+                    $diffWeeks = $baseDate->diffInWeeks($nextDate->copy()->startOfDay());
+                    $dayMatches = ($nextDate->dayOfWeek === $fixedDay);
+                    $weekMatches = ($frecuencia === 'quincenal') ? ($diffWeeks % 2 === 0) : true;
+                } while (!$dayMatches || !$weekMatches);
                 
                 // Set Time
                 $parts = explode(':', $fixedTime);
@@ -205,6 +207,7 @@ class DashboardController extends Controller
                 $virtual->fecha_hora = $nextDate;
                 $virtual->estado = 'confirmado'; // Assumed
                 $virtual->es_recurrente = true;
+                $virtual->frecuencia = $frecuencia;
                 $virtual->modalidad = $fixedReservation->modalidad;
                 $virtual->monto_final = $fixedReservation->monto_final;
                 $virtual->is_virtual = true; // Flag for View
