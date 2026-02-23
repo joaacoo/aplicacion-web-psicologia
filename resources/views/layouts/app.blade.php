@@ -1492,7 +1492,7 @@
                                         ${new Date(n.created_at).toLocaleDateString()} a las ${new Date(n.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                                     </small>
                                 </div>
-                                ${!n.leido ? '<div style="width: 8px; height: 8px; background: #3b82f6; border-radius: 50%; margin-top: 6px;"></div>' : ''}
+                                ${!n.leido ? '<div style="width: 8px; height: 8px; background: #3b82f6; border-radius: 50%; margin-top: 6px;" class="unread-dot"></div>' : ''}
                             </div>
                         </div>
                     `).join('');
@@ -1524,11 +1524,24 @@
         }
 
         async function markAllRead() {
+            // Optimistic UI update: instantly mark UI as read before wait
+            document.querySelectorAll('.notification-item').forEach(item => {
+                item.style.background = 'white';
+                const text = item.querySelector('p');
+                if (text) text.style.fontWeight = '400';
+                const dot = item.querySelector('.unread-dot');
+                if (dot) dot.remove();
+            });
+            const counters = [document.getElementById('notif-count'), document.getElementById('notif-count-mobile'), document.getElementById('patient-notif-count')];
+            counters.forEach(c => { if(c) c.style.display = 'none'; });
+
             await fetch('{{ route("notifications.read-all") }}', {
                 method: 'POST',
                 headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' }
             });
-            fetchNotifications();
+            
+            // Re-fetch strictly to keep state synced without hiding the dropdown
+            fetchNotifications(false);
         }
         
         // Mobile Menu Logic

@@ -9,8 +9,12 @@ class NotificationController extends Controller
 {
     public function getLatest()
     {
-        // Fetch last 15 notifications from standard Laravel table
-        $notifications = auth()->user()->notifications()->latest()->limit(15)->get()->map(function ($n) {
+        // Fetch notifications up to 3 months ago instead of a fixed limit
+        $notifications = auth()->user()->notifications()
+            ->where('created_at', '>=', now()->subMonths(3))
+            ->latest()
+            ->get()
+            ->map(function ($n) {
             return [
                 'id' => $n->id,
                 'mensaje' => $n->data['mensaje'] ?? 'Nueva notificación',

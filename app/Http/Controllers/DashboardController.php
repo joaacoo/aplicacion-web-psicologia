@@ -494,6 +494,60 @@ class DashboardController extends Controller
             ->where('fecha_hora', '>=', now()) // Filter past appointments
             ->orderBy('fecha_hora', 'asc')
             ->get();
+            
+        // Proyectar citas fijas para hoy (Turnos de Hoy widget)
+        $fixedReservationsToday = Appointment::where('es_recurrente', true)
+            ->where('estado', '!=', 'cancelado')
+            ->whereNotNull('fecha_hora')
+            ->orderBy('fecha_hora', 'asc')
+            ->with(['user', 'payment'])
+            ->get()
+            ->unique('usuario_id');
+            
+        $todayStart = now()->startOfDay();
+        $todayEnd = now()->endOfDay();
+        $projectedToday = collect();
+        
+        foreach($fixedReservationsToday as $fixed) {
+            $frecuencia = $fixed->frecuencia; 
+            $baseDate = $fixed->fecha_hora->copy(); 
+            $intervalDays = ($frecuencia === 'quincenal') ? 14 : 7;
+            
+            $iterDate = $baseDate->copy();
+            while ($iterDate->copy()->addDays($intervalDays)->lt($todayStart)) {
+                $iterDate->addDays($intervalDays);
+            }
+            if ($iterDate->lt($todayStart)) {
+                 $iterDate->addDays($intervalDays);
+            }
+             
+            if ($iterDate->gte($todayStart) && $iterDate->lte($todayEnd) && $iterDate->gte(now())) {
+                $apptDateTime = $iterDate->copy();
+                
+                $exists = $todayAppointments->contains(function($appt) use ($apptDateTime, $fixed) {
+                    return $appt->usuario_id == $fixed->usuario_id 
+                        && $appt->fecha_hora->format('Y-m-d H:i') == $apptDateTime->format('Y-m-d H:i');
+                });
+                
+                if(!$exists) {
+                    $virtual = new Appointment();
+                    $virtual->id = - abs(crc32('proj_home_' . $fixed->usuario_id . '_' . $apptDateTime->timestamp));
+                    $virtual->usuario_id = $fixed->usuario_id;
+                    $virtual->fecha_hora = $apptDateTime;
+                    $virtual->estado = 'confirmado';
+                    $virtual->es_recurrente = true;
+                    $virtual->frecuencia = $frecuencia;
+                    $virtual->is_projected = true;
+                    $virtual->user = $fixed->user;
+                    $virtual->payment = null; // Projected so not paid yet possibly
+                    $projectedToday->push($virtual);
+                }
+            }
+        }
+        
+        if($projectedToday->count() > 0) {
+            $todayAppointments = $todayAppointments->concat($projectedToday)->sortBy('fecha_hora')->values();
+        }
 
         // Próximo turno
         $nextAdminAppointment = Appointment::with('user')

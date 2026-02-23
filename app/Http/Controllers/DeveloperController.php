@@ -77,7 +77,7 @@ class DeveloperController extends Controller
         // Send Email Notification to Admin
         try {
             // Replace with actual dev email, potentially from config
-            \Illuminate\Support\Facades\Mail::to('joacooodelucaaa16@gmail.com')->queue(new \App\Mail\TicketAlert($ticket));
+            \Illuminate\Support\Facades\Mail::to(env('SUPPORT_EMAIL', 'joacooodelucaaa16@gmail.com'))->queue(new \App\Mail\TicketAlert($ticket));
         } catch (\Exception $e) {
             // Log dont fail request
             \Illuminate\Support\Facades\Log::error('Failed to send ticket email: ' . $e->getMessage());

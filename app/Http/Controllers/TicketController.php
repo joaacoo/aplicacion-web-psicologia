@@ -53,7 +53,7 @@ class TicketController extends Controller
             } else {
                 // Fallback manual email if no admin user found
                 Mail::raw("Se ha reportado un nuevo problema:\n\nAsunto: {$ticket->subject}\nDescripción: {$ticket->description}", function ($message) use ($ticket) {
-                    $message->to('joacodeluca2009@gmail.com')
+                    $message->to(env('SUPPORT_EMAIL', 'joacodeluca2009@gmail.com'))
                         ->subject("Nuevo Reporte de Problema: {$ticket->subject}");
                 });
             }

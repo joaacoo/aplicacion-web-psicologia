@@ -287,7 +287,7 @@
                     $isBlocked = $blockedDays->firstWhere('date', $dayStr);
                 @endphp
 
-                <div class="calendar-day {{ $isCurrentMonth ? '' : 'other-month' }} {{ $isToday ? 'today' : '' }}" onclick="showDayDetails('{{ $dayStr }}', '{{ $dayDisplay }}')">
+                <div class="calendar-day {{ $isCurrentMonth ? '' : 'other-month' }} {{ $isToday ? 'today' : '' }}" onclick="showDayDetails('{{ $dayStr }}', '{{ $dayDisplay }}', true)">
                     <div class="day-number">{{ $day->day }}</div>
                     <div class="event-dots">
                         @if($isBlocked)<span class="event-dot blocked"></span>@endif
@@ -365,8 +365,6 @@
             
             return matchesDate && isNotCancelled;
         });
-        
-        // Use a Set to track seen appointments to avoid duplicates
         const seen = new Set();
         const dayApps = dayAppsRaw.filter(app => {
             const time = typeof app.fecha_hora === 'string'
@@ -382,7 +380,11 @@
         });
 
         // Sort by time
-        dayApps.sort((a, b) => a.fecha_hora.localeCompare(b.fecha_hora));
+        dayApps.sort((a, b) => {
+            const timeA = typeof a.fecha_hora === 'string' ? a.fecha_hora : new Date(a.fecha_hora).toISOString();
+            const timeB = typeof b.fecha_hora === 'string' ? b.fecha_hora : new Date(b.fecha_hora).toISOString();
+            return timeA.localeCompare(timeB);
+        });
 
         const internalContainer = document.getElementById('internal-appointments');
         const noInternal = document.getElementById('no-internal');
@@ -391,7 +393,17 @@
         if (dayApps.length > 0) {
             noInternal.style.display = 'none';
             dayApps.forEach(app => {
-                const time = app.fecha_hora.substring(11, 16);
+                const time = typeof app.fecha_hora === 'string'
+                    ? app.fecha_hora.substring(11, 16)
+                    : new Date(app.fecha_hora).toISOString().substring(11, 16);
+                    
+                // Calculate end time (+1 hour typically)
+                let [hours, minutes] = time.split(':').map(Number);
+                hours = (hours + 1) % 24;
+                const endTime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+                    
+                const userName = app.user ? app.user.nombre + (app.user.apellido ? ' ' + app.user.apellido : '') : 'Paciente Desconocido';
+                    
                 const div = document.createElement('div');
                 div.className = 'event-pill internal';
                 div.style.padding = '10px 15px';
@@ -404,11 +416,12 @@
                 div.style.alignItems = 'center';
                 div.style.gap = '10px';
                 div.innerHTML = `
-                    <span style="background: var(--color-celeste); padding: 3px 10px; border: 2px solid #000; border-radius: 6px; font-size: 0.95rem; white-space: nowrap;">${time} hs</span> 
-                    <a href="/admin/pacientes?search=${encodeURIComponent(app.user.nombre)}" 
+                    <span style="background: var(--color-celeste); padding: 3px 10px; border: 2px solid #000; border-radius: 6px; font-size: 0.95rem; white-space: nowrap;">${time} - ${endTime} hs</span> 
+                    <a href="/admin/pacientes?search=${encodeURIComponent(userName)}" 
                        style="color: #000; text-decoration: underline; font-weight: 800; font-size: 1rem; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
                        title="Gestionar paciente">
-                        ${app.user.nombre}
+                        ${userName}
+                        ${app.is_projected ? '<span style="font-size: 0.75rem; background: var(--color-amarillo); padding: 2px 6px; border-radius: 4px; border: 1px solid #000; margin-left: 5px;">Proyectado</span>' : ''}
                     </a>
                 `;
                 internalContainer.appendChild(div);

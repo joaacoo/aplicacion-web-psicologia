@@ -413,6 +413,17 @@
                     letter-spacing: -0.5px !important;
                     margin: 0 auto;
                 }
+                .pagination-mobile-btn {
+                    padding: 0.4rem 0.6rem !important;
+                    font-size: 0.75rem !important;
+                }
+                .pagination-mobile-indicator {
+                    font-size: 0.8rem !important;
+                    padding: 0.4rem 0.1rem !important;
+                }
+                .pagination-container {
+                    gap: 0.4rem !important;
+                }
             }
         </style>
         
