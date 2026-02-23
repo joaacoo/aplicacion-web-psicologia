@@ -28,40 +28,27 @@ class DashboardController extends Controller
             $isMobile = true;
         }
 
-        $perPage = 4; // Updated as requested
+        $perPage = 4; // User requested 4 per page
 
         $query = Appointment::where('usuario_id', Auth::id())
             ->with(['payment'])
-            ->orderByRaw('fecha_hora >= NOW() DESC, fecha_hora ASC');
+            ->when(request('fecha_desde'), function($q) {
+                $q->whereDate('fecha_hora', '>=', request('fecha_desde'));
+            })
+            ->when(request('fecha_hasta'), function($q) {
+                $q->whereDate('fecha_hora', '<=', request('fecha_hasta'));
+            })
+            ->when(request('status'), function($q) {
+                $q->where('estado', request('status'));
+            })
+            ->when(request('pago_estado'), function($q) {
+                $q->whereHas('payment', function($pq) {
+                    $pq->where('estado', request('pago_estado'));
+                });
+            })
+            ->orderBy('fecha_hora', 'desc');
 
-        // Apply Month Filter
-        if (request('month')) {
-            $date = \Carbon\Carbon::parse(request('month'));
-            $query->whereMonth('fecha_hora', $date->month)
-                  ->whereYear('fecha_hora', $date->year);
-        }
-
-        // Apply Status Filter
-        if (request('status')) {
-            switch (request('status')) {
-                case 'cancelado':
-                    $query->where('estado', 'cancelado');
-                    break;
-                case 'realizado':
-                    $query->where('estado', 'confirmado')
-                          ->where('fecha_hora', '<', now());
-                    break;
-                case 'proximo':
-                    $query->where('estado', 'confirmado')
-                          ->where('fecha_hora', '>=', now());
-                    break;
-                case 'eventual':
-                    $query->where('es_recurrente', false);
-                    break;
-            }
-        }
-
-        $appointments = $query->paginate($perPage);
+        $appointments = $query->paginate($perPage)->appends(request()->query());
 
         if (request()->ajax()) {
             return view('dashboard.patient', [
@@ -582,6 +569,64 @@ class DashboardController extends Controller
         ]);
     }
 
+    public function patientHome(Request $request)
+    {
+        $isMobile = is_mobile();
+        $perPage = 2; // User requested 2 per page
+
+        $query = Appointment::where('usuario_id', Auth::id())
+            ->with(['payment'])
+            ->when(request('month_filter'), function($q) {
+                $q->whereMonth('fecha_hora', request('month_filter'));
+            })
+            ->when(request('status'), function($q) {
+                $q->where('estado', request('status'));
+            })
+            ->when(request('pago_estado'), function($q) {
+                $q->whereHas('payment', function($pq) {
+                    $pq->where('estado', request('pago_estado'));
+                });
+            })
+            ->orderBy('fecha_hora', 'asc'); // User requested "proximo arriba" (ASC)
+
+        // Global Sequential Payment Helper: find the absolute first one that needs payment
+        $firstUnpaidId = Appointment::where('usuario_id', Auth::id())
+            ->where('estado', '!=', 'cancelado')
+            ->where(function($q) {
+                $q->whereDoesntHave('payment')
+                  ->orWhereHas('payment', function($pq) {
+                      $pq->where('estado', '!=', 'verificado');
+                  });
+            })
+            ->orderBy('fecha_hora', 'asc')
+            ->value('id');
+
+        $appointments = $query->paginate($perPage)->appends(request()->query());
+
+        // Fetch Credit Balance
+        $creditBalance = 0;
+        $paciente = Auth::user()->paciente;
+        if ($paciente) {
+            $creditBalance = \App\Models\PatientCredit::where('paciente_id', $paciente->id)
+                ->where('is_used', false)
+                ->sum('amount');
+        }
+
+        if (request()->ajax()) {
+            return view('dashboard.patient', [
+                'appointments' => $appointments,
+                'isMobile' => $isMobile,
+                'isAjax' => true,
+                'firstUnpaidId' => $firstUnpaidId,
+                'creditBalance' => $creditBalance
+            ])->render();
+        }
+
+        return view('dashboard.patient', compact('appointments', 'isMobile', 'creditBalance'))->with([
+            'firstUnpaidId' => $firstUnpaidId
+        ]);
+    }
+
     public function adminAgenda(Request $request)
     {
         // Sincronización automática de Google Calendar removida por rendimiento
@@ -619,13 +664,9 @@ class DashboardController extends Controller
         $fixedReservations = Appointment::where('es_recurrente', true)
             ->where('estado', 'confirmado')
             ->whereNotNull('fecha_hora')
-            ->get()
-            ->groupBy('usuario_id')
-            ->map(function($group) {
-                return $group->sortBy('fecha_hora')->first();
-            });
+            ->with('user')
+            ->get();
 
-        $now = now();
         $startOfMonth = $currentDate->copy()->startOfMonth();
         $endOfMonth = $currentDate->copy()->endOfMonth();
         
@@ -634,48 +675,25 @@ class DashboardController extends Controller
             $fixedDay = $fixedReservation->fecha_hora->dayOfWeek;
             $fixedTime = $fixedReservation->fecha_hora->format('H:i:s');
             
-            // Get existing future appointments for this user
-            $userFutureAppointments = Appointment::where('usuario_id', $userId)
-                ->where('fecha_hora', '>=', $now)
-                ->orderBy('fecha_hora', 'asc')
-                ->get();
-            
-            // Start from now or from last appointment
-            $lastDate = $userFutureAppointments->count() > 0 
-                ? $userFutureAppointments->last()->fecha_hora 
-                : $now->copy();
-            
-            // Optimización: solo proyectar desde el mes seleccionado actual o la última fecha (lo que sea mayor)
             $iterDate = $startOfMonth->copy()->startOfDay();
-            if ($iterDate->lt($lastDate)) {
-                $iterDate = $lastDate->copy()->startOfDay();
-            }
-            $iterDate->subDay();
             
-            // Project all remaining sessions for the viewed month
-            while($iterDate->lt($endOfMonth)) {
-                // Find next occurrence of fixed day
-                do {
-                    $iterDate->addDay();
-                } while($iterDate->dayOfWeek !== $fixedDay);
-                
-                $parts = explode(':', $fixedTime);
-                $iterDate->setTime($parts[0], $parts[1], 0);
-                
-                // Only project if after now and within the viewed month
-                if($iterDate->gte($now) && $iterDate->lte($endOfMonth)) {
-                    // Check if this date already exists in real appointments
-                    $exists = $appointments->contains(function($appt) use ($iterDate, $userId) {
+            while($iterDate->lte($endOfMonth)) {
+                if($iterDate->dayOfWeek === $fixedDay) {
+                    $parts = explode(':', $fixedTime);
+                    $apptDateTime = $iterDate->copy()->setTime($parts[0], $parts[1], 0);
+                    
+                    // Check if exists
+                    $exists = $appointments->contains(function($appt) use ($apptDateTime, $userId) {
                         return $appt->usuario_id == $userId 
-                            && $appt->fecha_hora->format('Y-m-d') == $iterDate->format('Y-m-d');
+                            && $appt->fecha_hora->format('Y-m-d H:i') == $apptDateTime->format('Y-m-d H:i');
                     });
                     
                     if(!$exists) {
                         $virtual = new Appointment();
                         // Asignar un ID entero negativo para evitar conflictos y que JS no lo convierta a 0
-                        $virtual->id = - abs(crc32('proj_' . $userId . '_' . $iterDate->timestamp));
+                        $virtual->id = - abs(crc32('proj_' . $userId . '_' . $apptDateTime->timestamp));
                         $virtual->usuario_id = $userId;
-                        $virtual->fecha_hora = $iterDate->copy();
+                        $virtual->fecha_hora = $apptDateTime;
                         $virtual->estado = 'confirmado';
                         $virtual->es_recurrente = true;
                         $virtual->modalidad = $fixedReservation->modalidad;
@@ -685,9 +703,7 @@ class DashboardController extends Controller
                         $projectedAppointments->push($virtual);
                     }
                 }
-                
-                // Stop if we've projected enough
-                if($iterDate->gte($endOfMonth)) break;
+                $iterDate->addDay();
             }
         }
 

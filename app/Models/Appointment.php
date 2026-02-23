@@ -11,6 +11,8 @@ class Appointment extends Model
 {
     use HasFactory, SoftDeletes;
     
+    const ESTADO_CONFIRMADO = 'confirmado';
+    const ESTADO_CANCELADO = 'cancelado';
     const ESTADO_FINALIZADO = 'finalizado';
     const ESTADO_SESION_PERDIDA = 'sesion_perdida';
     
@@ -191,13 +193,12 @@ class Appointment extends Model
         $inicio = $this->fecha_hora->copy()->subMinutes(10);
         $fin = $this->fecha_hora->copy()->addMinutes(45);
 
-        // Se habilita 10 minutos antes y desaparece al terminar la sesión
         return $ahora->between($inicio, $fin);
     }
 
     public function isInCriticalZone()
     {
-        // Retorna true si falta menos de 24hs para el turno
+        // Retorna true si faltan menos de 24hs para el inicio del turno
         return now()->diffInHours($this->fecha_hora, false) < 24;
     }
 

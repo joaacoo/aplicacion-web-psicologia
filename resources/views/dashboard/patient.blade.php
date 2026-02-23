@@ -1,25 +1,5 @@
 @if(isset($isAjax) && $isAjax)
-    <div id="appointments-table-container" style="width: 100%; flex-grow: 1;">
-        @include('dashboard.partials.appointments_table')
-        
-        @if ($appointments->hasPages())
-            <div class="pagination-container" style="display: flex; justify-content: center; gap: 0.8rem; margin-top: auto; padding-top: 1.5rem; align-items: center; flex-wrap: nowrap; overflow-x: auto; padding-bottom: 0.5rem; width: 100%;">
-                @if ($appointments->onFirstPage())
-                    <span class="neobrutalist-btn pagination-mobile-btn" style="background: #eee; cursor: not-allowed; opacity: 0.6; box-shadow: none;">Anterior</span>
-                @else
-                    <a href="{{ $appointments->previousPageUrl() }}#mis-turnos" class="neobrutalist-btn bg-amarillo pagination-mobile-btn">Anterior</a>
-                @endif
-                
-                <span class="pagination-mobile-indicator" style="font-weight: 800; font-family: 'Inter', sans-serif; font-size: 0.9rem; color: #000; padding: 0.4rem 0.2rem; white-space: nowrap;">{{ $appointments->currentPage() }} / {{ $appointments->lastPage() }}</span>
-
-                @if ($appointments->hasMorePages())
-                    <a href="{{ $appointments->nextPageUrl() }}#mis-turnos" class="neobrutalist-btn bg-amarillo pagination-mobile-btn">Siguiente</a>
-                @else
-                    <span class="neobrutalist-btn pagination-mobile-btn" style="background: #eee; cursor: not-allowed; opacity: 0.6; box-shadow: none;">Siguiente</span>
-                @endif
-            </div>
-        @endif
-    </div>
+    @include('dashboard.partials.appointments_table')
     @php return; @endphp
 @endif
 
@@ -753,31 +733,170 @@ function togglePatientMenu() {
         <div id="right-column">
             
             <!-- Mis Turnos y Pagos -->
-            <div id="mis-turnos" class="neobrutalist-card" style="margin-bottom: 2rem; padding: 2.5rem !important; border: 3px solid #000; box-shadow: 8px 8px 0px #000; background: white;">
+            <div id="mis-turnos" class="neobrutalist-card" style="margin-bottom: 2rem; padding: 2rem !important; border: 3px solid #000; box-shadow: 8px 8px 0px #000; background: white;">
                 <h3 style="margin-bottom: 1.5rem; border-bottom: 4px solid #000; padding-bottom: 0.8rem; font-size: 1.4rem; font-family: 'Syne', sans-serif; font-weight: 700; display: flex; align-items: center; gap: 10px;">
-                    <i class="fa-solid fa-clock-rotate-left"></i> Mis Turnos y Pagos
-                    @if(isset($totalCredits) && $totalCredits > 0)
-                        <span style="margin-left: auto; background: #e0f2fe; color: #0369a1; border: 2px solid #0369a1; padding: 2px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: 800; display: inline-flex; align-items: center; gap: 5px; box-shadow: 2px 2px 0px #0369a1;">
-                            <i class="fa-solid fa-coins"></i> Crédito: ${{ number_format($totalCredits, 0, ',', '.') }}
-                        </span>
-                    @endif
+                    <i class="fa-solid fa-calendar-check"></i> Mis Turnos y Pagos
                 </h3>
-                
-                @if(isset($appointments) && $appointments->isEmpty())
-                    <div style="text-align: center; padding: 2rem; background: #f9f9f9; border: 2px dashed #ccc; border-radius: 10px;">
-                        <i class="fa-solid fa-calendar-xmark" style="font-size: 2rem; color: #ccc; margin-bottom: 1rem;"></i>
-                        <p style="color: #666; font-weight: 700; margin: 0;">No tenés turnos registrados todavía.</p>
-                    </div>
-                @else
 
-
-                    <div id="appointments-table-container">
-                        @include('dashboard.partials.appointments_table')
-                        
-
+                @if(isset($creditBalance) && $creditBalance > 0)
+                    <!-- Credit Balance Banner (NEW) -->
+                    <div class="neobrutalist-card bg-verde" style="margin-bottom: 1.5rem; padding: 1.2rem; border: 3px solid #000; box-shadow: 4px 4px 0px #000; display: flex; align-items: center; gap: 15px;">
+                        <div style="background: white; border: 2px solid #000; border-radius: 50%; width: 45px; height: 45px; display: flex; align-items: center; justify-content: center; box-shadow: 2px 2px 0px #000;">
+                            <i class="fa-solid fa-piggy-bank" style="font-size: 1.5rem;"></i>
+                        </div>
+                        <div>
+                            <p style="margin: 0; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; color: #000;">Saldo a tu favor</p>
+                            <h4 style="margin: 0; font-size: 1.4rem; font-weight: 900; font-family: 'Syne', sans-serif;">${{ number_format($creditBalance, 0, ',', '.') }}</h4>
+                        </div>
                     </div>
                 @endif
-            </div>            <!-- Biblioteca de Materiales (NEW) -->
+
+                <!-- Advanced Filters Bar -->
+                <div class="neobrutalist-card" style="margin-bottom: 2rem; padding: 1rem; background: #fafafa; border: 3px solid #000; box-shadow: 4px 4px 0px #000;">
+                    <form id="appointments-filter-form" action="{{ route('patient.dashboard') }}" method="GET" style="display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: flex-end; width: 100%;">
+                        <input type="hidden" name="filter" value="1">
+                        
+                        <div class="filter-selects" style="display: flex; gap: 0.6rem; flex: 1; min-width: 100%; flex-wrap: wrap;">
+                            <div style="flex: 1; min-width: 120px;">
+                                <label style="display: block; font-weight: 800; font-size: 0.65rem; margin-bottom: 3px; text-transform: uppercase; color: #666;">Mes</label>
+                                <select name="month_filter" class="neobrutalist-input" style="width: 100%; padding: 6px; font-size: 0.8rem; cursor: pointer; height: 38px; background-color: white !important; color: black !important; border: 2px solid #000;">
+                                    <option value="">Todos</option>
+                                    @for($m = 1; $m <= 12; $m++)
+                                        <option value="{{ $m }}" {{ request('month_filter') == $m ? 'selected' : '' }}>
+                                            {{ ucfirst(\Carbon\Carbon::create(null, $m, 1)->locale('es')->monthName) }}
+                                        </option>
+                                    @endfor
+                                </select>
+                            </div>
+
+                            <div style="flex: 1; min-width: 120px;">
+                                <label style="display: block; font-weight: 800; font-size: 0.65rem; margin-bottom: 3px; text-transform: uppercase; color: #666;">Estado</label>
+                                <select name="status" class="neobrutalist-input" style="width: 100%; padding: 6px; font-size: 0.8rem; cursor: pointer; height: 38px; background-color: white !important; color: black !important; border: 2px solid #000;">
+                                    <option value="">Todos</option>
+                                    <option value="confirmado" {{ request('status') == 'confirmado' ? 'selected' : '' }}>Confirmado</option>
+                                    <option value="cancelado" {{ request('status') == 'cancelado' ? 'selected' : '' }}>Cancelado</option>
+                                    <option value="finalizado" {{ request('status') == 'finalizado' ? 'selected' : '' }}>Finalizado</option>
+                                    <option value="sesion_perdida" {{ request('status') == 'sesion_perdida' ? 'selected' : '' }}>Sesión Perdida</option>
+                                </select>
+                            </div>
+
+                            <div style="flex: 1; min-width: 120px;">
+                                <label style="display: block; font-weight: 800; font-size: 0.65rem; margin-bottom: 3px; text-transform: uppercase; color: #666;">Pago</label>
+                                <select name="pago_estado" class="neobrutalist-input" style="width: 100%; padding: 6px; font-size: 0.8rem; cursor: pointer; height: 38px; background-color: white !important; color: black !important; border: 2px solid #000;">
+                                    <option value="">Todos</option>
+                                    <option value="verificado" {{ request('pago_estado') == 'verificado' ? 'selected' : '' }}>Verificado</option>
+                                    <option value="pendiente" {{ request('pago_estado') == 'pendiente' ? 'selected' : '' }}>Pendiente</option>
+                                    <option value="rechazado" {{ request('pago_estado') == 'rechazado' ? 'selected' : '' }}>Rechazado</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div style="display: flex; gap: 0.4rem; flex-wrap: nowrap; flex: 0 0 auto;">
+                            <button type="submit" class="neobrutalist-btn bg-celeste" style="padding: 0px 10px; font-size: 0.8rem; font-weight: 800; height: 38px; min-width: 40px; border: 2px solid #000; box-shadow: 2px 2px 0px #000;">
+                                <i class="fa-solid fa-magnifying-glass"></i>
+                            </button>
+                            <a href="{{ route('patient.dashboard') }}" id="clear-filters" class="neobrutalist-btn bg-amarillo text-center" style="padding: 0px 10px; font-size: 0.7rem; font-weight: 800; text-decoration: none; color: #000; height: 38px; min-width: 70px; display: flex; align-items: center; justify-content: center; white-space: nowrap; border: 2px solid #000; box-shadow: 2px 2px 0px #000;">
+                                <i class="fa-solid fa-eraser"></i> Limpiar
+                            </a>
+                        </div>
+                    </form>
+                </div>
+                <style>
+                    @media (max-width: 480px) {
+                        #appointments-filter-form {
+                            flex-direction: column !important;
+                            align-items: stretch !important;
+                        }
+                        #appointments-filter-form .filter-selects {
+                            flex-direction: column !important;
+                            min-width: 100% !important;
+                        }
+                        #appointments-filter-form .filter-selects > div {
+                            min-width: 100% !important;
+                        }
+                        #appointments-filter-form .filter-buttons {
+                            width: 100% !important;
+                            justify-content: stretch !important;
+                        }
+                        #appointments-filter-form .filter-buttons button {
+                            flex: 1 !important;
+                        }
+                    }
+                </style>
+
+                <div id="appointments-loading" style="display: none; text-align: center; padding: 2rem;">
+                    <i class="fa-solid fa-spinner fa-spin" style="font-size: 2rem; color: #000;"></i>
+                </div>
+
+                <div id="appointments-table-container">
+                    @include('dashboard.partials.appointments_table')
+                </div>
+
+                <script>
+                    document.addEventListener('DOMContentLoaded', function() {
+                        const filterForm = document.getElementById('appointments-filter-form');
+                        const tableContainer = document.getElementById('appointments-table-container');
+                        const loadingIndicator = document.getElementById('appointments-loading');
+                        const clearBtn = document.getElementById('clear-filters');
+
+                        function updateTable(url) {
+                            loadingIndicator.style.display = 'block';
+                            tableContainer.style.opacity = '0.5';
+                            
+                            fetch(url, {
+                                headers: {
+                                    'X-Requested-With': 'XMLHttpRequest'
+                                }
+                            })
+                            .then(response => response.text())
+                            .then(html => {
+                                tableContainer.innerHTML = html;
+                                loadingIndicator.style.display = 'none';
+                                tableContainer.style.opacity = '1';
+                                
+                                // Re-bind pagination links
+                                bindPagination();
+                            })
+                            .catch(error => {
+                                console.error('Error:', error);
+                                loadingIndicator.style.display = 'none';
+                                tableContainer.style.opacity = '1';
+                            });
+                        }
+
+                        function bindPagination() {
+                            document.querySelectorAll('#appointments-table-container .pagination-container a').forEach(link => {
+                                link.addEventListener('click', function(e) {
+                                    e.preventDefault();
+                                    updateTable(this.href);
+                                    // Scroll slightly to table top
+                                    document.getElementById('mis-turnos').scrollIntoView({ behavior: 'smooth' });
+                                });
+                            });
+                        }
+
+                        filterForm.addEventListener('submit', function(e) {
+                            e.preventDefault();
+                            const formData = new FormData(this);
+                            const params = new URLSearchParams(formData).toString();
+                            const url = this.getAttribute('action') + '?' + params;
+                            updateTable(url);
+                        });
+
+                        clearBtn.addEventListener('click', function(e) {
+                            e.preventDefault();
+                            filterForm.reset();
+                            // Also clear select values explicitly if reset() doesn't hit all cases
+                            filterForm.querySelectorAll('select').forEach(s => s.selectedIndex = 0);
+                            updateTable(this.href || filterForm.getAttribute('action'));
+                        });
+
+                        // Initial bind
+                        bindPagination();
+                    });
+                </script>
+            </div>
+            <!-- Biblioteca de Materiales (NEW) -->
         <!-- Mis Documentos (Inline) -->
         <!-- Mis Documentos (Inline) -->
         <div id="documentos" class="neobrutalist-card" style="padding: 2.5rem !important; border: 3px solid #000; box-shadow: 8px 8px 0px #000; background: white;">
@@ -1563,6 +1682,8 @@ $blockedDays = $blockedDays ?? [];
         const sidebar = document.getElementById('patient-sidebar');
         const overlay = document.getElementById('patient-overlay');
         
+        if (!sidebar || !overlay) return; // Fix: check for existence
+
         if (sidebar.classList.contains('open')) {
             sidebar.classList.remove('open');
             overlay.style.display = 'none';

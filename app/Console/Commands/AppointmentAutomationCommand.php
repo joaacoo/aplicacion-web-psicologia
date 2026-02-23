@@ -62,15 +62,30 @@ class AppointmentAutomationCommand extends Command
 
     private function handleAutoCancellation24h()
     {
-        $appointments = Appointment::where('estado', 'confirmed')
+        $appointments = Appointment::where('estado', Appointment::ESTADO_CONFIRMADO)
             ->where('estado_pago', '!=', 'verificado')
             ->where('fecha_hora', '<=', Carbon::now()->addHours(24))
             ->where('fecha_hora', '>', Carbon::now())
+            ->with('payment')
             ->get();
 
         foreach ($appointments as $appt) {
+            // SEGURIDAD: Si subió comprobante (pendiente de revisión), no cancelar automáticamente
+            if ($appt->payment && $appt->payment->estado == 'pendiente') {
+                $admin = \App\Models\User::where('rol', 'admin')->first();
+                if ($admin) {
+                    $admin->notify(new \App\Notifications\AdminNotification([
+                        'title' => '🚨 URGENTE: Pago Pendiente',
+                        'mensaje' => 'El turno de ' . $appt->user->nombre . ' está en zona de cancelación (24hs) pero tene un pago pendiente de revisión. ¡Verificalo pronto!',
+                        'link' => route('admin.agenda'),
+                        'type' => 'alert'
+                    ]));
+                }
+                continue; // Skip cancellation
+            }
+
             $appt->update([
-                'estado' => 'cancelado',
+                'estado' => Appointment::ESTADO_CANCELADO,
                 'motivo_cancelacion' => 'Cancelación automática por falta de pago (24hs antes).'
             ]);
             
@@ -97,7 +112,7 @@ class AppointmentAutomationCommand extends Command
     private function handleSessionCompletion()
     {
         // Turno + 45 min = Finalizado
-        $appointments = Appointment::where('estado', 'confirmado')
+        $appointments = Appointment::where('estado', Appointment::ESTADO_CONFIRMADO)
             ->where('fecha_hora', '<=', Carbon::now()->subMinutes(45))
             ->get();
 

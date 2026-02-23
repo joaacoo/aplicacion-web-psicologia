@@ -140,9 +140,15 @@
                                         @endif
                                         
                                         @if(!($appt->payment && $appt->payment->estado == 'verificado'))
-                                            <button onclick="openPaymentModal({{ $appt->id }}, {{ $appt->monto_final }})" class="neobrutalist-btn bg-verde" style="flex: 1 1 0%; padding: 0.3rem 0.6rem; font-size: 0.75rem; min-width: 90px; height: 32px; display: inline-flex; align-items: center; justify-content: center; white-space: nowrap;">
-                                                <i class="fa-solid fa-dollar-sign"></i> Pagar
-                                            </button>
+                                            @if(isset($firstUnpaidId) && $appt->id == $firstUnpaidId)
+                                                <button onclick="openPaymentModal({{ $appt->id }}, {{ $appt->monto_final }})" class="neobrutalist-btn bg-verde" style="flex: 1 1 0%; padding: 0.3rem 0.6rem; font-size: 0.75rem; min-width: 90px; height: 32px; display: inline-flex; align-items: center; justify-content: center; white-space: nowrap;">
+                                                    <i class="fa-solid fa-dollar-sign"></i> Pagar
+                                                </button>
+                                            @else
+                                                <button class="neobrutalist-btn disabled-btn" style="flex: 1 1 0%; padding: 0.3rem 0.6rem; font-size: 0.75rem; min-width: 90px; height: 32px; filter: grayscale(1); opacity: 0.5;" title="Debes pagar la sesión anterior primero">
+                                                    Pagar
+                                                </button>
+                                            @endif
                                         @endif
 
                                         <form action="{{ route('appointments.cancel', $appt->id) }}" method="POST" style="display:inline; flex: 1 1 0%; min-width: 90px;">
@@ -258,9 +264,15 @@
                             @endif
                             
                             @if(!($appt->payment && $appt->payment->estado == 'verificado'))
-                                <button onclick="openPaymentModal({{ $appt->id }}, {{ $appt->monto_final }})" class="neobrutalist-btn bg-verde" style="flex: 1; padding: 0.3rem 0.6rem; font-size: 0.75rem; display: inline-flex; align-items: center; justify-content: center; height: 32px;">
-                                    <i class="fa-solid fa-dollar-sign"></i> Pagar
-                                </button>
+                                @if(isset($firstUnpaidId) && $appt->id == $firstUnpaidId)
+                                    <button onclick="openPaymentModal({{ $appt->id }}, {{ $appt->monto_final }})" class="neobrutalist-btn bg-verde" style="flex: 1; padding: 0.3rem 0.6rem; font-size: 0.75rem; display: inline-flex; align-items: center; justify-content: center; height: 32px;">
+                                        <i class="fa-solid fa-dollar-sign"></i> Pagar
+                                    </button>
+                                @else
+                                    <button class="neobrutalist-btn disabled-btn" style="flex: 1; padding: 0.3rem 0.6rem; font-size: 0.75rem; width: 100%; height: 32px; filter: grayscale(1); opacity: 0.5;">
+                                        Pagar
+                                    </button>
+                                @endif
                             @endif
 
                             <form action="{{ route('appointments.cancel', $appt->id) }}" method="POST" style="display:inline; flex: 1;">
@@ -285,25 +297,21 @@
         </div>
 
         <!-- Pagination -->
-        <div style="margin-top: 1.5rem; display: flex; justify-content: center; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+        <div class="pagination-container" style="display: flex; justify-content: center; gap: 0.8rem; margin-top: auto; padding-top: 1.5rem; align-items: center; flex-wrap: nowrap; overflow-x: auto; padding-bottom: 0.5rem; width: 100%;">
             @if($appointments->onFirstPage())
-                <span class="neobrutalist-btn disabled-btn" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;"><i class="fa-solid fa-arrow-left"></i> Anterior</span>
+                <span class="neobrutalist-btn pagination-mobile-btn" style="background: #eee; cursor: not-allowed; opacity: 0.6; box-shadow: none;">Anterior</span>
             @else
-                <a href="{{ $appointments->previousPageUrl() }}" class="neobrutalist-btn bg-amarillo" style="padding: 0.4rem 0.8rem; font-size: 0.8rem; text-decoration: none; color: #000;">
-                    <i class="fa-solid fa-arrow-left"></i> Anterior {{ $appointments->currentPage() - 1 }}
-                </a>
+                <a href="{{ $appointments->previousPageUrl() }}#mis-turnos" class="neobrutalist-btn bg-amarillo pagination-mobile-btn" style="text-decoration: none; color: #000;">Anterior</a>
             @endif
-
-            <span style="font-weight: 900; background: transparent; color: #000; padding: 0.4rem 0.8rem; border-radius: 4px; border: 2px solid #000; font-size: 0.8rem;">
-                 {{ $appointments->currentPage() }}
+        
+            <span class="pagination-mobile-indicator" style="font-weight: 800; font-family: 'Inter', sans-serif; font-size: 0.9rem; color: #000; padding: 0.4rem 0.2rem; white-space: nowrap;">
+                {{ $appointments->currentPage() }} / {{ $appointments->lastPage() }}
             </span>
 
             @if($appointments->hasMorePages())
-                <a href="{{ $appointments->nextPageUrl() }}" class="neobrutalist-btn bg-celeste" style="padding: 0.4rem 0.8rem; font-size: 0.8rem; text-decoration: none; color: #000;">
-                    Siguiente {{ $appointments->currentPage() + 1 }} <i class="fa-solid fa-arrow-right"></i>
-                </a>
+                <a href="{{ $appointments->nextPageUrl() }}#mis-turnos" class="neobrutalist-btn bg-amarillo pagination-mobile-btn" style="text-decoration: none; color: #000;">Siguiente</a>
             @else
-                <span class="neobrutalist-btn disabled-btn" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;">Siguiente <i class="fa-solid fa-arrow-right"></i></span>
+                <span class="neobrutalist-btn pagination-mobile-btn" style="background: #eee; cursor: not-allowed; opacity: 0.6; box-shadow: none;">Siguiente</span>
             @endif
         </div>
     </div>
@@ -330,8 +338,11 @@
     </script>
 
 @else
-    <div style="flex-grow: 1; display: flex; align-items: center; justify-content: center; flex-direction: column; padding: 2rem; border: 2px dashed #ccc; border-radius: 8px;">
+    <div style="flex-grow: 1; display: flex; align-items: center; justify-content: center; flex-direction: column; padding: 3rem; border: 3px dashed #000; border-radius: 12px; background: #fafafa; margin: 1rem 0;">
         <i class="fa-solid fa-calendar-xmark" style="font-size: 3rem; color: #ccc; margin-bottom: 1rem;"></i>
-        <p style="font-weight: 800; color: #666; text-align: center;">No se encontraron turnos próximos.</p>
+        <p style="font-weight: 800; color: #000; text-align: center; font-size: 1.1rem; margin-bottom: 1.5rem;">No hay turnos que coincidan con tu búsqueda.</p>
+        <a href="{{ route('patient.dashboard') }}" class="neobrutalist-btn bg-amarillo" style="text-decoration: none; color: #000; padding: 0.8rem 1.5rem; font-weight: 800; border: 3px solid #000; box-shadow: 4px 4px 0px #000;">
+            <i class="fa-solid fa-list"></i> Ver todos los turnos
+        </a>
     </div>
 @endif
