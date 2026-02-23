@@ -40,13 +40,16 @@ class AppointmentController extends Controller
         $patient = \App\Models\Paciente::where('user_id', Auth::id())->first();
         $meetLink = $patient ? $patient->meet_link : null;
 
-        // Determine how many appointments to create
-        // If frequency is weekly (default) and it's a fixed reservation (new logic implied by user request)
-        // We will create appointments for the next 12 months (approx 52 weeks)
-        
+        // Determine iterations and step based on frequency
+        // Always cover ~1 month:
+        //   semanal  → 4 iterations × 1 week  = 4 weeks
+        //   quincenal → 2 iterations × 2 weeks = 4 weeks
+        //   eventual  → 1 iteration
         $iterations = 1;
-        if ($request->frecuencia !== 'eventual') {
-            $iterations = 52; // 1 year of weekly appointments
+        if ($request->frecuencia === 'quincenal') {
+            $iterations = 2;
+        } elseif ($request->frecuencia !== 'eventual') {
+            $iterations = 4; // semanal
         }
 
         $createdAppointments = [];
@@ -65,24 +68,22 @@ class AppointmentController extends Controller
                     'fecha_hora' => $currentDate->copy(),
                     'modalidad' => $request->modalidad,
                     'frecuencia' => $request->frecuencia,
-                    'estado' => 'confirmed', // Fixed reservations are confirmed by default? Or pending? User said "reserva", usually implies confirmed if it blocks the agenda. Let's stick to 'pendiente' or 'confirmado' based on payment? 
-                                             // Actually, for fixed reservations, they usually start confirmed or pending approval. 
-                                             // The original code was 'pendiente'. I'll keep 'pendiente' for the first one, but maybe 'confirmado' for the rest? 
-                                             // User said "una vez que reserva... es para todos los días". This implies they are BLOCKED. 
-                                             // So I will set them as 'pendiente' (waiting for admin approval/payment) BUT they exist in DB so they block the slot.
-                                             // Wait, previous code had 'pendiente'.
-                    'estado' => 'pendiente', 
-                    'es_recurrente' => true, 
+                    'estado' => 'pendiente',
+                    'es_recurrente' => ($request->frecuencia !== 'eventual'),
                     'notas' => $request->notes,
                     'vence_en' => $currentDate->copy()->subHours(20),
-                    'meet_link' => $meetLink, // Assign patient's meet link
-                    'link_reunion' => $meetLink, // Assign to both widely used columns just in case
+                    'meet_link' => $meetLink,
+                    'link_reunion' => $meetLink,
                 ]);
                 $createdAppointments[] = $appt;
             }
-            
-            // Move to next week
-            $currentDate->addWeek();
+
+            // Advance to next slot based on frequency
+            if ($request->frecuencia === 'quincenal') {
+                $currentDate->addWeeks(2);
+            } elseif ($request->frecuencia !== 'eventual') {
+                $currentDate->addWeek();
+            }
         }
 
         // Use the FIRST created appointment for the payment proof logic attachment
@@ -305,6 +306,76 @@ class AppointmentController extends Controller
         if (str_contains(url()->previous(), 'finanzas')) {
             return redirect()->route('admin.finanzas')->withFragment('honorarios')->with('success', $msg);
         }
+        return back()->with('success', $msg);
+    }
+
+    public function cancelFixedReservation()
+    {
+        $user = Auth::user();
+        
+        // Buscar todos los turnos futuros de reserva fija del paciente
+        $turnosFijos = Appointment::where('usuario_id', $user->id)
+            ->where('es_recurrente', true)
+            ->where('fecha_hora', '>', now())
+            ->where('estado', '!=', 'cancelado')
+            ->get();
+
+        if ($turnosFijos->isEmpty()) {
+            return back()->with('error', 'No tienes reservas fijas activas para cancelar.');
+        }
+
+        $cancelados = 0;
+        $creditosGenerados = 0;
+
+        foreach ($turnosFijos as $turno) {
+            $isPaid = $turno->payment && $turno->payment->estado === 'verificado';
+
+            // Cancelar el turno
+            $turno->update([
+                'estado' => 'cancelado',
+                'es_recurrente' => false, // Quitar la marca de recurrente
+                'motivo_cancelacion' => 'Cancelación de reserva fija por el paciente.'
+            ]);
+
+            // Si estaba pagado, generar crédito
+            if ($isPaid) {
+                \App\Models\PatientCredit::create([
+                    'paciente_id' => $user->paciente->id,
+                    'appointment_id' => $turno->id,
+                    'amount' => $turno->monto_final,
+                    'reason' => 'Crédito por cancelación de reserva fija del ' . $turno->fecha_hora->format('d/m H:i'),
+                    'status' => 'active'
+                ]);
+                $creditosGenerados++;
+            }
+
+            $cancelados++;
+        }
+
+        // Notificar a la paciente
+        $user->notify(new \App\Notifications\PatientNotification([
+            'title' => 'Reserva Fija Cancelada',
+            'mensaje' => "Has cancelado tu lugar fijo. Se cancelaron {$cancelados} turnos futuros." . ($creditosGenerados > 0 ? " Se generaron {$creditosGenerados} crédito(s) a tu favor." : ""),
+            'link' => route('patient.dashboard'),
+            'type' => 'cancelado'
+        ]));
+
+        // Notificar a la admin
+        $admin = \App\Models\User::where('rol', 'admin')->first();
+        if ($admin) {
+            $admin->notify(new \App\Notifications\AdminNotification([
+                'title' => 'Reserva Fija Cancelada por Paciente',
+                'mensaje' => "El paciente {$user->nombre} canceló su lugar fijo. Se cancelaron {$cancelados} turnos.",
+                'link' => route('admin.agenda'),
+                'type' => 'cancelacion_paciente'
+            ]));
+        }
+
+        $msg = "Reserva fija cancelada. {$cancelados} turno(s) cancelado(s).";
+        if ($creditosGenerados > 0) {
+            $msg .= " Se generaron {$creditosGenerados} crédito(s).";
+        }
+
         return back()->with('success', $msg);
     }
 }

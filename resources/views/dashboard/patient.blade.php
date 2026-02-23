@@ -402,6 +402,18 @@ function togglePatientMenu() {
                             <i class="fa-solid fa-video"></i> Unirse a la sesión
                         </a>
                     @endif
+
+                    <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 1.5rem;">
+                        <form action="{{ route('appointments.cancelFixed') }}" method="POST" style="width: 100%;">
+                            @csrf
+                            <button type="button" 
+                                    onclick="window.showConfirm('⚠️ ¿ESTÁS SEGURO? Esto cancelará todas tus sesiones fijas de aquí en adelante y liberarás tu horario permanently.', () => this.closest('form').submit())"
+                                    class="neobrutalist-btn" 
+                                    style="width: 100%; background: #fee2e2; color: #e11d48; border: 2px solid #e11d48; padding: 0.8rem; font-weight: 800; font-size: 0.8rem; box-shadow: 3px 3px 0px #e11d48;">
+                                <i class="fa-solid fa-calendar-xmark"></i> CANCELAR MI RESERVA FIJA
+                            </button>
+                        </form>
+                    </div>
                 </div>
 
                 <p style="margin-top: 0; font-size: 0.75rem; color: #666; font-weight: 600; text-align: center; line-height: 1.4;">

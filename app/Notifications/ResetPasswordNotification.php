@@ -48,7 +48,7 @@ class ResetPasswordNotification extends Notification
             ->action('Restablecer Contraseña', $url)
             ->line('Este enlace expirará en 60 minutos.')
             ->line('Si no fuiste vos quien solicitó esto, no hace falta que hagas nada.')
-            ->salutation('Saludos, Lic. Nazarena De Luca');
+            ->salutation('Lic. Nazarena De Luca');
     }
 
     /**

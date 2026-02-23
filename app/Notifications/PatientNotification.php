@@ -41,7 +41,8 @@ class PatientNotification extends Notification
             ->greeting('Hola ' . $notifiable->nombre . '!')
             ->line($this->data['mensaje'])
             ->action('Ver mi portal', $this->data['link'] ?? route('patient.dashboard'))
-            ->line('¡Nos vemos pronto!');
+            ->line('¡Nos vemos pronto!')
+            ->salutation('Lic. Nazarena De Luca');
     }
 
     /**

@@ -35,5 +35,5 @@
     @endif
 
     <p>Si ya lo subiste o ya realizaste el pago, por favor desestimá este mail.</p>
-    <p>Saludos,<br><strong>Lic. Nazarena De Luca</strong></p>
+    <p><strong>Lic. Nazarena De Luca</strong></p>
 @endsection

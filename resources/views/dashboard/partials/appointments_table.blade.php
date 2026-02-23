@@ -80,25 +80,29 @@
                             </td>
                             <td style="padding: 0.5rem; white-space: nowrap;">
                                 @php
+                                    $isRecuperada = $appt->recuperada ?? false;
                                     $statusName = match($appt->estado) {
                                         'confirmado' => 'Confirmado',
                                         'cancelado' => 'Cancelado',
+                                        'recuperada' => 'Recuperada',
                                         \App\Models\Appointment::ESTADO_SESION_PERDIDA => 'Sesión Perdida',
                                         \App\Models\Appointment::ESTADO_FINALIZADO => 'Finalizado',
                                         default => ucfirst($appt->estado)
                                     };
-                                    $statusBg = match($appt->estado) {
-                                        'confirmado' => '#f0fdf4',
-                                        'cancelado' => '#fef2f2',
-                                        \App\Models\Appointment::ESTADO_SESION_PERDIDA => '#fff1f2',
-                                        \App\Models\Appointment::ESTADO_FINALIZADO => '#f1f5f9',
+                                    $statusBg = match(true) {
+                                        $isRecuperada => '#e0e7ff',
+                                        $appt->estado === 'confirmado' => '#f0fdf4',
+                                        $appt->estado === 'cancelado' => '#fef2f2',
+                                        $appt->estado === \App\Models\Appointment::ESTADO_SESION_PERDIDA => '#fff1f2',
+                                        $appt->estado === \App\Models\Appointment::ESTADO_FINALIZADO => '#f1f5f9',
                                         default => '#fffbeb'
                                     };
-                                    $statusColor = match($appt->estado) {
-                                        'confirmado' => '#166534',
-                                        'cancelado' => '#991b1b',
-                                        \App\Models\Appointment::ESTADO_SESION_PERDIDA => '#e11d48',
-                                        \App\Models\Appointment::ESTADO_FINALIZADO => '#475569',
+                                    $statusColor = match(true) {
+                                        $isRecuperada => '#4338ca',
+                                        $appt->estado === 'confirmado' => '#166534',
+                                        $appt->estado === 'cancelado' => '#991b1b',
+                                        $appt->estado === \App\Models\Appointment::ESTADO_SESION_PERDIDA => '#e11d48',
+                                        $appt->estado === \App\Models\Appointment::ESTADO_FINALIZADO => '#475569',
                                         default => '#92400e'
                                     };
                                 @endphp
@@ -141,12 +145,15 @@
                                         
                                         @if(!($appt->payment && $appt->payment->estado == 'verificado'))
                                             @if(isset($firstUnpaidId) && $appt->id == $firstUnpaidId)
-                                                <button onclick="openPaymentModal({{ $appt->id }}, {{ $appt->monto_final }})" class="neobrutalist-btn bg-verde" style="flex: 1 1 0%; padding: 0.3rem 0.6rem; font-size: 0.75rem; min-width: 90px; height: 32px; display: inline-flex; align-items: center; justify-content: center; white-space: nowrap;">
+                                                @php
+                                                    $montoAPagar = auth()->user()->paciente->precio_sesion ?? $appt->monto_final;
+                                                @endphp
+                                                <button onclick="openPaymentModal({{ $appt->id }}, {{ $montoAPagar }})" class="neobrutalist-btn bg-verde" style="flex: 1 1 0%; padding: 0.3rem 0.6rem; font-size: 0.75rem; min-width: 90px; height: 32px; display: inline-flex; align-items: center; justify-content: center; white-space: nowrap;">
                                                     <i class="fa-solid fa-dollar-sign"></i> Pagar
                                                 </button>
                                             @else
                                                 <button class="neobrutalist-btn disabled-btn" style="flex: 1 1 0%; padding: 0.3rem 0.6rem; font-size: 0.75rem; min-width: 90px; height: 32px; filter: grayscale(1); opacity: 0.5;" title="Debes pagar la sesión anterior primero">
-                                                    Pagar
+                                                    Pendiente
                                                 </button>
                                             @endif
                                         @endif
@@ -154,9 +161,14 @@
                                         <form action="{{ route('appointments.cancel', $appt->id) }}" method="POST" style="display:inline; flex: 1 1 0%; min-width: 90px;">
                                             @csrf
                                             @php
-                                                $cancelMsg = $isCriticalZone 
-                                                    ? '¡ATENCIÓN! Faltan menos de 24hs. No se reintegra el valor por política de la clínica. ¿Seguro querés cancelar?' 
-                                                    : '¿Seguro querés cancelar este turno? Se generará crédito a tu favor si ya pagaste.';
+                                                $isPaid = $appt->payment && $appt->payment->estado === 'verificado';
+                                                if ($isCriticalZone) {
+                                                    $cancelMsg = '¡ATENCIÓN! Faltan menos de 24hs. No se reintegra el valor por política de la clínica. ¿Seguro querés cancelar?';
+                                                } elseif ($isPaid) {
+                                                    $cancelMsg = '¿Seguro querés cancelar este turno? Se generará crédito a tu favor.';
+                                                } else {
+                                                    $cancelMsg = '¿Seguro querés cancelar este turno?';
+                                                }
                                             @endphp
                                             <button type="button" class="neobrutalist-btn bg-lila" style="padding: 0.3rem 0.6rem; font-size: 0.75rem; width: 100%; height: 32px; display: inline-flex; align-items: center; justify-content: center; white-space: nowrap;" onclick="window.showConfirm('{{ $cancelMsg }}', () => this.closest('form').submit())">
                                                 Cancelar
@@ -265,12 +277,15 @@
                             
                             @if(!($appt->payment && $appt->payment->estado == 'verificado'))
                                 @if(isset($firstUnpaidId) && $appt->id == $firstUnpaidId)
-                                    <button onclick="openPaymentModal({{ $appt->id }}, {{ $appt->monto_final }})" class="neobrutalist-btn bg-verde" style="flex: 1; padding: 0.3rem 0.6rem; font-size: 0.75rem; display: inline-flex; align-items: center; justify-content: center; height: 32px;">
+                                    @php
+                                        $montoAPagar = auth()->user()->paciente->precio_sesion ?? $appt->monto_final;
+                                    @endphp
+                                    <button onclick="openPaymentModal({{ $appt->id }}, {{ $montoAPagar }})" class="neobrutalist-btn bg-verde" style="flex: 1; padding: 0.3rem 0.6rem; font-size: 0.75rem; display: inline-flex; align-items: center; justify-content: center; height: 32px;">
                                         <i class="fa-solid fa-dollar-sign"></i> Pagar
                                     </button>
                                 @else
                                     <button class="neobrutalist-btn disabled-btn" style="flex: 1; padding: 0.3rem 0.6rem; font-size: 0.75rem; width: 100%; height: 32px; filter: grayscale(1); opacity: 0.5;">
-                                        Pagar
+                                        Pendiente
                                     </button>
                                 @endif
                             @endif
@@ -278,9 +293,14 @@
                             <form action="{{ route('appointments.cancel', $appt->id) }}" method="POST" style="display:inline; flex: 1;">
                                 @csrf
                                 @php
-                                    $cancelMsg = $isCriticalZone 
-                                        ? '¡ATENCIÓN! Faltan menos de 24hs. No se reintegra el valor por política de la clínica. ¿Seguro querés cancelar?' 
-                                        : '¿Seguro querés cancelar este turno? Se generará crédito a tu favor si ya pagaste.';
+                                    $isPaid = $appt->payment && $appt->payment->estado === 'verificado';
+                                    if ($isCriticalZone) {
+                                        $cancelMsg = '¡ATENCIÓN! Faltan menos de 24hs. No se reintegra el valor por política de la clínica. ¿Seguro querés cancelar?';
+                                    } elseif ($isPaid) {
+                                        $cancelMsg = '¿Seguro querés cancelar este turno? Se generará crédito a tu favor.';
+                                    } else {
+                                        $cancelMsg = '¿Seguro querés cancelar este turno?';
+                                    }
                                 @endphp
                                 <button type="button" class="neobrutalist-btn bg-lila" style="padding: 0.3rem 0.6rem; font-size: 0.75rem; width: 100%; height: 32px; display: inline-flex; align-items: center; justify-content: center; white-space: nowrap;" onclick="window.showConfirm('{{ $cancelMsg }}', () => this.closest('form').submit())">
                                     Cancelar
@@ -297,6 +317,7 @@
         </div>
 
         <!-- Pagination -->
+        @if(method_exists($appointments, 'onFirstPage'))
         <div class="pagination-container" style="display: flex; justify-content: center; gap: 0.8rem; margin-top: auto; padding-top: 1.5rem; align-items: center; flex-wrap: nowrap; overflow-x: auto; padding-bottom: 0.5rem; width: 100%;">
             @if($appointments->onFirstPage())
                 <span class="neobrutalist-btn pagination-mobile-btn" style="background: #eee; cursor: not-allowed; opacity: 0.6; box-shadow: none;">Anterior</span>
@@ -314,7 +335,33 @@
                 <span class="neobrutalist-btn pagination-mobile-btn" style="background: #eee; cursor: not-allowed; opacity: 0.6; box-shadow: none;">Siguiente</span>
             @endif
         </div>
-    </div>
+        <div class="pagination-container" style="display: flex; justify-content: center; gap: 0.8rem; margin-top: auto; padding-top: 1.5rem; align-items: center; flex-wrap: nowrap; overflow-x: auto; padding-bottom: 0.5rem; width: 100%;">
+            <span style="font-weight: 800; font-family: 'Inter', sans-serif; font-size: 0.85rem; color: #666;">
+                Mostrando {{ $appointments->count() }} turno(s)
+            </span>
+        </div>
+        @endif
+
+        {{-- Toggle: Ver todos / Ver menos --}}
+        @if(!method_exists($appointments, 'onFirstPage'))
+            @if(!request()->ver_todo)
+            <div style="text-align: center; margin-top: 1rem;">
+                <a href="{{ route('patient.dashboard', ['ver_todo' => 1]) }}"
+                   class="neobrutalist-btn bg-white"
+                   style="font-size: 0.75rem; padding: 0.5rem 1rem; text-decoration: none; color: #000; font-weight: 800; border: 2px solid #000;">
+                    <i class="fa-solid fa-eye"></i> VER TODOS LOS TURNOS DEL AÑO
+                </a>
+            </div>
+            @else
+            <div style="text-align: center; margin-top: 1rem;">
+                <a href="{{ route('patient.dashboard') }}"
+                   class="neobrutalist-btn bg-white"
+                   style="font-size: 0.75rem; padding: 0.5rem 1rem; text-decoration: none; color: #000; font-weight: 800; border: 2px solid #000;">
+                    <i class="fa-solid fa-eye-slash"></i> VER MENOS TURNOS
+                </a>
+            </div>
+            @endif
+        @endif
 
     <script>
         // Lógica de "Botón Inteligente" local
