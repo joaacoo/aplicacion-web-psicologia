@@ -276,7 +276,8 @@
                     
                     // Re-implement filtering logic
                     $dayAppointments = $appointments->filter(function($app) use ($dayStr) {
-                         return \Carbon\Carbon::parse($app->fecha_hora)->format('Y-m-d') == $dayStr;
+                         $appDate = is_string($app->fecha_hora) ? substr($app->fecha_hora, 0, 10) : $app->fecha_hora->format('Y-m-d');
+                         return $appDate == $dayStr && $app->estado != 'cancelado';
                     });
                     
                     $dayExternal = $externalEvents->filter(function($evt) use ($day) {
@@ -352,19 +353,29 @@
         // Filter appointments: must match date AND NOT be cancelled
         // Include both regular appointments AND projected fixed appointments (is_projected)
         const dayAppsRaw = appointments.filter(app => {
-            const matchesDate = app.fecha_hora.startsWith(dateStr);
-            const isNotCancelled = app.estado !== 'cancelado' && app.estado !== 'cancelled';
-            const isProjected = app.is_projected === true || app.is_projected === 'true';
-            // Show if: matches date, not cancelled, AND (not projected OR is projected and confirmed)
-            return matchesDate && isNotCancelled && (app.estado === 'confirmado' || isProjected);
+            if (!app.fecha_hora) return false;
+            
+            // Handle both string and object dates (if passed poorly through JSON)
+            const dateStrApp = typeof app.fecha_hora === 'string' 
+                ? app.fecha_hora.substring(0, 10) 
+                : new Date(app.fecha_hora).toISOString().split('T')[0];
+                
+            const matchesDate = dateStrApp === dateStr;
+            const isNotCancelled = app.estado !== 'cancelado';
+            
+            return matchesDate && isNotCancelled;
         });
         
         // Use a Set to track seen appointments to avoid duplicates
         const seen = new Set();
         const dayApps = dayAppsRaw.filter(app => {
-            const time = app.fecha_hora.substring(11, 16);
+            const time = typeof app.fecha_hora === 'string'
+                ? app.fecha_hora.substring(11, 16)
+                : new Date(app.fecha_hora).toISOString().substring(11, 16);
+                
             // Deduplicate by time and userId to be safe
-            const key = `${time}-${app.user_id}`;
+            const userId = app.usuario_id || (app.user ? app.user.id : 'unknown');
+            const key = `${time}-${userId}`;
             if (seen.has(key)) return false;
             seen.add(key);
             return true;
@@ -435,7 +446,7 @@
         // Ensure no redundant year or extra text that forces wrap
         dateDisplay = dateDisplay.split(',')[0] + ' ' + dateDisplay.split(',').slice(1).join(',').trim();
         
-        showDayDetails(dateStr, dateDisplay, false); // No scroll on init
+        showDayDetails(dateStr, dateDisplay, true); // Auto scroll to details on init
     });
 </script>
 @endsection

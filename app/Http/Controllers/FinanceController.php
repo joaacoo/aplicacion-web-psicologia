@@ -323,15 +323,26 @@ class FinanceController extends Controller
         );
 
         if ($request->has('use_custom_price')) {
-            if (is_null($request->honorario_pactado)) {
-                 return redirect()->back()->with('error', 'Debés ingresar un monto si activás el precio personalizado.')->withFragment('honorarios');
+            // Se asume que si ingresa una cadena vacía y uso custom price, lo guardamos como nulo para que use el base.
+            // Si el paciente quiere, ingresa el precio.
+            if (is_null($request->honorario_pactado) || trim($request->honorario_pactado) === '') {
+                 $paciente->precio_personalizado = null; // Volver al precio base
+            } else {
+                 $paciente->precio_personalizado = $request->honorario_pactado;
             }
-            $paciente->precio_personalizado = $request->honorario_pactado;
         } else {
             $paciente->precio_personalizado = null;
         }
 
         $paciente->save();
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Honorario actualizado correctamente.',
+                'precio_personalizado' => $paciente->precio_personalizado
+            ]);
+        }
 
         return redirect()->back()->with('success', 'Honorario actualizado correctamente.')->withFragment('honorarios');
     }

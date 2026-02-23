@@ -277,6 +277,46 @@
                     this.submit();
                 });
             });
+        } // Missing closing brace here!
+
+        const honorarioFormSubmit = document.getElementById('manage-honorario-form');
+        if (honorarioFormSubmit) {
+            honorarioFormSubmit.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const formData = new FormData(this);
+                const action = this.action;
+                const submitBtn = this.querySelector('button[type="submit"]');
+                const originalContent = submitBtn.innerHTML;
+
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+
+                fetch(action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    submitBtn.innerHTML = '<i class="fa-solid fa-check"></i> Editado';
+                    submitBtn.style.background = '#86efac';
+                    
+                    // Show success state
+                    setTimeout(() => {
+                        submitBtn.innerHTML = originalContent;
+                        submitBtn.style.background = '#86efac';
+                        submitBtn.disabled = false;
+                    }, 2000);
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    // Fallback to normal submit if AJAX fails
+                    this.submit();
+                });
+            });
         }
     });
 </script>

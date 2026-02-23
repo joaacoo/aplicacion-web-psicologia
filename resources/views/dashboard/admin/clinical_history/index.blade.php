@@ -39,7 +39,7 @@
                 <i class="fa-solid fa-arrow-left"></i> Volver
             </a>
             <a href="{{ route('admin.clinical-history.export-pdf', $paciente->id) }}" class="neobrutalist-btn" style="text-decoration: none; color: white; background: #dc2626; border: 3px solid #000; margin-bottom: 1.5rem;">
-                <i class="fa-solid fa-file-pdf"></i> Descargar Historial Completo (PDF)
+                <i class="fa-solid fa-file-pdf"></i> Descargar PDF
             </a>
         </div>
     </div>
@@ -257,6 +257,10 @@
                             @endif
                         </div>
                     @endforeach
+                </div>
+                
+                <div class="mt-4 d-flex justify-content-center">
+                    {{ $turnos->links() }}
                 </div>
             @endif
         </div>

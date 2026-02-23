@@ -214,20 +214,27 @@ class AppointmentController extends Controller
         // Authorization check - admin or owner can cancel
         $this->authorize('cancel', $appointment);
 
+        $authUserId = auth()->id();
+        $isAdmin = auth()->user() && auth()->user()->rol === 'admin';
         $ahora = now();
         $isCriticalZone = $appointment->isInCriticalZone();
         $isPaid = $appointment->payment && $appointment->payment->estado === 'verificado';
 
-        if ($isCriticalZone) {
-            // Lógica < 24hs: Sesión Perdida, no se reintegra
+        // Si es el paciente quien cancela en zona crítica y no pagó, no lo dejamos.
+        if (!$isAdmin && $isCriticalZone && !$isPaid) {
+            return back()->with('error', 'No puedes cancelar el turno con menos de 24 horas de anticipación sin antes haberlo abonado. Debes abonar la sesión.');
+        }
+
+        if (!$isAdmin && $isCriticalZone) {
+            // Lógica < 24hs (solo para paciente): Sesión Perdida, no se reintegra
             $appointment->update([
                 'estado' => Appointment::ESTADO_SESION_PERDIDA,
                 'debe_pagarse' => true,
                 'motivo_cancelacion' => 'Cancelación en zona crítica (< 24hs).'
             ]);
-            $msg = 'Sesión marcada como perdida por política de 24hs.';
+            $msg = 'Sesión marcada como perdida por política de 24hs, no se generará crédito.';
         } else {
-            // Lógica > 24hs: Cancelación normal, generar crédito si estaba paga
+            // Lógica > 24hs (o Admin cancelando): Cancelación normal, generar crédito si estaba paga
             $appointment->update([
                 'estado' => 'cancelado',
                 'debe_pagarse' => false
@@ -307,6 +314,45 @@ class AppointmentController extends Controller
             return redirect()->route('admin.finanzas')->withFragment('honorarios')->with('success', $msg);
         }
         return back()->with('success', $msg);
+    }
+
+    public function cancelProjected(Request $request)
+    {
+        $request->validate([
+            'date' => 'required|date'
+        ]);
+
+        $user = auth()->user();
+        $date = \Carbon\Carbon::parse($request->date);
+
+        // Validar zona crítica
+        $isCriticalZone = $date->diffInHours(now()) < 24 && $date->isFuture();
+        if ($isCriticalZone) {
+            return back()->with('error', 'No puedes cancelar una proyección con menos de 24 horas de anticipación. Debes abonar y cancelar o esperar a que se genere la sesión.');
+        }
+
+        // Buscar reserva fija base
+        $baseReservation = Appointment::where('usuario_id', $user->id)
+                                    ->where('es_recurrente', true)
+                                    ->first();
+
+        if (!$baseReservation) {
+            return back()->with('error', 'No se encontró tu reserva fija.');
+        }
+
+        // Crear el turno directamente como cancelado pero manteniendo el flag recurrente
+        Appointment::create([
+            'usuario_id' => $user->id,
+            'fecha_hora' => $date,
+            'modalidad' => $baseReservation->modalidad,
+            'monto_final' => $baseReservation->monto_final,
+            'estado' => 'cancelado',
+            'notas' => 'Turno proyectado cancelado por el paciente.',
+            'es_recurrente' => true,
+            'frecuencia' => $baseReservation->frecuencia,
+        ]);
+
+        return back()->with('success', 'Turno proyectado cancelado correctamente. Podrás recuperarlo.');
     }
 
     public function cancelFixedReservation()

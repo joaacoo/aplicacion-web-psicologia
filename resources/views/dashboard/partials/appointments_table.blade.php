@@ -1,4 +1,19 @@
 @if(isset($appointments) && $appointments->count() > 0)
+    @php
+        $payableApptIds = [];
+        $foundUnfinished = false;
+        foreach($appointments as $appt) {
+            $isFinished = $appt->estado === \App\Models\Appointment::ESTADO_FINALIZADO || ($appt->fecha_hora->copy()->addMinutes(45)->isPast());
+            if (!$isFinished) {
+                if (!$foundUnfinished) {
+                    $payableApptIds[] = $appt->id ?? $appt->fecha_hora->timestamp;
+                    $foundUnfinished = true;
+                }
+            } else {
+                $payableApptIds[] = $appt->id ?? $appt->fecha_hora->timestamp;
+            }
+        }
+    @endphp
     <style>
         @media (max-width: 768px) {
             .appointments-table {
@@ -71,6 +86,8 @@
                             $isFinished = $appt->estado === \App\Models\Appointment::ESTADO_FINALIZADO || ($appt->fecha_hora->copy()->addMinutes(45)->isPast());
                             $isCriticalZone = $appt->isInCriticalZone();
                             $paymentStatus = $appt->payment->estado ?? 'pendiente_pago';
+                            $isPaid = $paymentStatus === 'verificado';
+                            $canPayThisOne = in_array($appt->id ?? $appt->fecha_hora->timestamp, $payableApptIds);
                         @endphp
                         <tr style="border-bottom: 1px solid #2D2D2D;">
                             <td style="padding: 0.5rem; white-space: nowrap; text-align: center;">{{ $appt->fecha_hora->format('d/m') }}</td>
@@ -133,54 +150,72 @@
                                     <div style="text-align: center; color: #666; font-weight: 900;">—</div>
                                 @elseif($appt->estado != 'cancelado' && $appt->estado != \App\Models\Appointment::ESTADO_SESION_PERDIDA)
                                     <div class="actions-wrapper" style="display: flex; gap: 5px; flex-wrap: wrap; justify-content: center;">
-                                        @if($isVirtual)
-                                            <a href="{{ $appt->meet_link ?: '#' }}" 
-                                               target="_blank" 
-                                               class="neobrutalist-btn join-btn {{ $canJoin ? 'bg-celeste' : 'disabled-btn' }}" 
-                                               style="flex: 1 1 0%; padding: 0.3rem 0.6rem; font-size: 0.75rem; border: 2px solid #000; text-decoration: none; color: #000; display: inline-flex; align-items: center; gap: 4px; justify-content: center; min-width: 90px; height: 32px; white-space: nowrap;"
-                                               data-start="{{ $appt->fecha_hora->toISOString() }}">
-                                                <i class="fa-solid fa-video"></i> Unirse
-                                            </a>
-                                        @endif
-                                        
-                                        @if(!($appt->payment && $appt->payment->estado == 'verificado'))
-                                            @if(isset($firstUnpaidId) && $appt->id == $firstUnpaidId)
-                                                @php
-                                                    $montoAPagar = auth()->user()->paciente->precio_sesion ?? $appt->monto_final;
-                                                @endphp
-                                                <button onclick="openPaymentModal({{ $appt->id }}, {{ $montoAPagar }})" class="neobrutalist-btn bg-verde" style="flex: 1 1 0%; padding: 0.3rem 0.6rem; font-size: 0.75rem; min-width: 90px; height: 32px; display: inline-flex; align-items: center; justify-content: center; white-space: nowrap;">
+                                        @if($isPaid)
+                                            @if($isVirtual && $appt->estado != 'pendiente' && $appt->estado != 'cancelado')
+                                                <a href="{{ $appt->meet_link ?: '#' }}" 
+                                                   target="_blank" 
+                                                   class="neobrutalist-btn join-btn {{ $canJoin ? 'bg-celeste' : 'disabled-btn' }}" 
+                                                   style="flex: 1 1 0%; padding: 0.3rem 0.6rem; font-size: 0.75rem; border: 2px solid #000; text-decoration: none; color: #000; display: inline-flex; align-items: center; gap: 4px; justify-content: center; min-width: 90px; height: 32px; white-space: nowrap;"
+                                                   data-start="{{ $appt->fecha_hora->toISOString() }}"
+                                                   data-paid="true"
+                                                   data-estado="{{ $appt->estado }}">
+                                                    <i class="fa-solid fa-video"></i> Unirse
+                                                </a>
+                                            @endif
+                                        @else
+                                            @php
+                                                $montoAPagar = auth()->user()->paciente->precio_sesion ?? $appt->monto_final;
+                                            @endphp
+                                            @if($canPayThisOne)
+                                                <button onclick="openPaymentModal({{ $appt->id ?? 0 }}, {{ $montoAPagar }})" class="neobrutalist-btn bg-verde" style="flex: 1 1 0%; padding: 0.3rem 0.6rem; font-size: 0.75rem; min-width: 90px; height: 32px; display: inline-flex; align-items: center; justify-content: center; white-space: nowrap;">
                                                     <i class="fa-solid fa-dollar-sign"></i> Pagar
                                                 </button>
                                             @else
-                                                <button class="neobrutalist-btn disabled-btn" style="flex: 1 1 0%; padding: 0.3rem 0.6rem; font-size: 0.75rem; min-width: 90px; height: 32px; filter: grayscale(1); opacity: 0.5;" title="Tenés que esperar a que finalice la sesión de esta semana para poder pagar la próxima">
-                                                    Pendiente
+                                                <button class="neobrutalist-btn bg-verde disabled-btn" disabled style="flex: 1 1 0%; padding: 0.3rem 0.6rem; font-size: 0.75rem; min-width: 90px; height: 32px; display: inline-flex; align-items: center; justify-content: center; white-space: nowrap;" title="Pagá la sesión anterior primero">
+                                                    <i class="fa-solid fa-dollar-sign"></i> Pagar
                                                 </button>
                                             @endif
                                         @endif
 
-                                         @if($appt->id)
-                                        <form action="{{ route('appointments.cancel', $appt->id) }}" method="POST" style="display:inline; flex: 1 1 0%; min-width: 90px;">
-                                            @csrf
-                                            @php
-                                                $isPaid = $appt->payment && $appt->payment->estado === 'verificado';
-                                                if ($isCriticalZone) {
-                                                    $cancelMsg = '¡ATENCIÓN! Faltan menos de 24hs. No se reintegra el valor por política de la clínica. ¿Seguro querés cancelar?';
-                                                } elseif ($isPaid) {
-                                                    $cancelMsg = '¿Seguro querés cancelar este turno? Se generará crédito a tu favor.';
-                                                } else {
-                                                    $cancelMsg = '¿Seguro querés cancelar este turno?';
-                                                }
-                                            @endphp
-                                            <button type="button" class="neobrutalist-btn bg-lila" style="padding: 0.3rem 0.6rem; font-size: 0.75rem; width: 100%; height: 32px; display: inline-flex; align-items: center; justify-content: center; white-space: nowrap;" onclick="window.showConfirm('{{ $cancelMsg }}', () => this.closest('form').submit())">
-                                                Cancelar
-                                            </button>
-                                        </form>
+                                         @if($isPaid || !$isCriticalZone)
+                                            @if($appt->id)
+                                                <form action="{{ route('appointments.cancel', $appt->id) }}" method="POST" style="display:inline; flex: 1 1 0%; min-width: 90px;">
+                                                    @csrf
+                                                    @php
+                                                        if ($isPaid) {
+                                                            $cancelMsg = '¿Seguro querés cancelar este turno? Se generará crédito a tu favor.';
+                                                        } else {
+                                                            $cancelMsg = '¿Seguro querés cancelar este turno?';
+                                                        }
+                                                    @endphp
+                                                    <button type="button" class="neobrutalist-btn bg-lila" style="padding: 0.3rem 0.6rem; font-size: 0.75rem; width: 100%; height: 32px; display: inline-flex; align-items: center; justify-content: center; white-space: nowrap;" onclick="window.showConfirm('{{ $cancelMsg }}', () => this.closest('form').submit())">
+                                                        Cancelar
+                                                    </button>
+                                                </form>
+                                            @else
+                                                <form action="{{ route('appointments.cancelProjected') }}" method="POST" style="display:inline; flex: 1 1 0%; min-width: 90px;">
+                                                    @csrf
+                                                    <input type="hidden" name="date" value="{{ $appt->fecha_hora->format('Y-m-d H:i:s') }}">
+                                                    <button type="button" class="neobrutalist-btn bg-lila" style="padding: 0.3rem 0.6rem; font-size: 0.75rem; width: 100%; height: 32px; display: inline-flex; align-items: center; justify-content: center; white-space: nowrap;" onclick="window.showConfirm('¿Seguro querés cancelar este turno proyectado? Podrás recuperarlo luego.', () => this.closest('form').submit())">
+                                                        Cancelar
+                                                    </button>
+                                                </form>
+                                            @endif
                                         @endif
                                     </div>
                                 @else
-                                    {{-- Turno virtual (proyectado, sin ID) --}}
                                     <div style="text-align: center;">
-                                        <span class="neobrutalist-btn disabled-btn" style="font-size: 0.7rem; padding: 0.3rem 0.8rem; opacity: 0.6; cursor: default;"><i class="fa-solid fa-clock"></i> Programada</span>
+                                        @if($appt->estado === \App\Models\Appointment::ESTADO_SESION_PERDIDA)
+                                            <span class="neobrutalist-btn disabled-btn" style="font-size: 0.7rem; padding: 0.3rem 0.8rem; opacity: 0.6; cursor: default; background: #ffe4e6; color: #e11d48;"><i class="fa-solid fa-xmark"></i> Perdida</span>
+                                        @elseif($appt->recuperada ?? false)
+                                            <span class="neobrutalist-btn disabled-btn" style="font-size: 0.7rem; padding: 0.3rem 0.8rem; opacity: 0.6; cursor: default; background: #e0e7ff; color: #4338ca;"><i class="fa-solid fa-check-double"></i> Recuperada</span>
+                                        @elseif($appt->id)
+                                            <button onclick="openRecoveryModal({{ $appt->id }}, '{{ $appt->fecha_hora->format('Y-m-d H:i') }}')" class="neobrutalist-btn" style="background: var(--color-amarillo); color: #000; font-size: 0.7rem; padding: 0.3rem 0.8rem; border: 2px solid #000; box-shadow: 2px 2px 0px #000;">
+                                                <i class="fa-solid fa-rotate-left"></i> Recuperar
+                                            </button>
+                                        @else
+                                            <span class="neobrutalist-btn disabled-btn" style="font-size: 0.7rem; padding: 0.3rem 0.8rem; opacity: 0.6; cursor: default;"><i class="fa-solid fa-clock"></i> Programada</span>
+                                        @endif
                                     </div>
                                 @endif
                             </td>
@@ -198,6 +233,9 @@
                     $canJoin = $appt->canJoinMeet();
                     $isFinished = $appt->estado === \App\Models\Appointment::ESTADO_FINALIZADO || ($appt->fecha_hora->copy()->addMinutes(45)->isPast());
                     $isCriticalZone = $appt->isInCriticalZone();
+                    $paymentStatus = $appt->payment->estado ?? 'pendiente_pago';
+                    $isPaid = $paymentStatus === 'verificado';
+                    $canPayThisOne = in_array($appt->id ?? $appt->fecha_hora->timestamp, $payableApptIds);
                 @endphp
                 <div class="appointment-card">
                     <div class="card-row">
@@ -266,56 +304,71 @@
                         @if($isFinished)
                             <div style="width: 100%; text-align: center; color: #666; font-weight: 900; padding: 0.5rem;">—</div>
                         @elseif($appt->estado != 'cancelado' && $appt->estado != \App\Models\Appointment::ESTADO_SESION_PERDIDA)
-                            @if($isVirtual)
-                                <a href="{{ $appt->meet_link ?: '#' }}" 
-                                   target="_blank" 
-                                   class="neobrutalist-btn join-btn {{ $canJoin ? 'bg-celeste' : 'disabled-btn' }}" 
-                                   style="flex: 1; padding: 0.3rem 0.6rem; font-size: 0.75rem; border: 2px solid #000; text-decoration: none; color: #000; display: inline-flex; align-items: center; gap: 4px; justify-content: center; min-width: 90px; height: 32px; white-space: nowrap;"
-                                   data-start="{{ $appt->fecha_hora->toISOString() }}">
-                                    <i class="fa-solid fa-video"></i> Unirse
-                                </a>
-                            @endif
-                            
-                            @if(!($appt->payment && $appt->payment->estado == 'verificado'))
-                                @if(isset($firstUnpaidId) && $appt->id == $firstUnpaidId)
-                                    @php
-                                        $montoAPagar = auth()->user()->paciente->precio_sesion ?? $appt->monto_final;
-                                    @endphp
-                                    <button onclick="openPaymentModal({{ $appt->id }}, {{ $montoAPagar }})" class="neobrutalist-btn bg-verde" style="flex: 1; padding: 0.3rem 0.6rem; font-size: 0.75rem; display: inline-flex; align-items: center; justify-content: center; height: 32px;">
+                            @if($isPaid)
+                                @if($isVirtual && $appt->estado != 'pendiente' && $appt->estado != 'cancelado')
+                                    <a href="{{ $appt->meet_link ?: '#' }}" 
+                                       target="_blank" 
+                                       class="neobrutalist-btn join-btn {{ $canJoin ? 'bg-celeste' : 'disabled-btn' }}" 
+                                       style="flex: 1; padding: 0.3rem 0.6rem; font-size: 0.75rem; border: 2px solid #000; text-decoration: none; color: #000; display: inline-flex; align-items: center; gap: 4px; justify-content: center; min-width: 90px; height: 32px; white-space: nowrap;"
+                                       data-start="{{ $appt->fecha_hora->toISOString() }}"
+                                       data-paid="true"
+                                       data-estado="{{ $appt->estado }}">
+                                        <i class="fa-solid fa-video"></i> Unirse
+                                    </a>
+                                @endif
+                            @else
+                                @php
+                                    $montoAPagar = auth()->user()->paciente->precio_sesion ?? $appt->monto_final;
+                                @endphp
+                                @if($canPayThisOne)
+                                    <button onclick="openPaymentModal({{ abs($appt->id ?? 0) }}, {{ $montoAPagar }})" class="neobrutalist-btn bg-verde" style="flex: 1; padding: 0.3rem 0.6rem; font-size: 0.75rem; display: inline-flex; align-items: center; justify-content: center; height: 32px;">
                                         <i class="fa-solid fa-dollar-sign"></i> Pagar
                                     </button>
                                 @else
-                                    <button class="neobrutalist-btn disabled-btn" style="flex: 1; padding: 0.3rem 0.6rem; font-size: 0.75rem; width: 100%; height: 32px; filter: grayscale(1); opacity: 0.5;" title="Tenés que esperar a que finalice la sesión de esta semana para poder pagar la próxima">
-                                        Pendiente
+                                    <button class="neobrutalist-btn bg-verde disabled-btn" disabled style="flex: 1; padding: 0.3rem 0.6rem; font-size: 0.75rem; display: inline-flex; align-items: center; justify-content: center; height: 32px;" title="Pagá la sesión anterior primero">
+                                        <i class="fa-solid fa-dollar-sign"></i> Pagar
                                     </button>
                                 @endif
                             @endif
 
-                            @if($appt->id)
-                            <form action="{{ route('appointments.cancel', $appt->id) }}" method="POST" style="display:inline; flex: 1;">
-                                @csrf
-                                @php
-                                    $isPaid = $appt->payment && $appt->payment->estado === 'verificado';
-                                    if ($isCriticalZone) {
-                                        $cancelMsg = '¡ATENCIÓN! Faltan menos de 24hs. No se reintegra el valor por política de la clínica. ¿Seguro querés cancelar?';
-                                    } elseif ($isPaid) {
-                                        $cancelMsg = '¿Seguro querés cancelar este turno? Se generará crédito a tu favor.';
-                                    } else {
-                                        $cancelMsg = '¿Seguro querés cancelar este turno?';
-                                    }
-                                @endphp
-                                <button type="button" class="neobrutalist-btn bg-lila" style="padding: 0.3rem 0.6rem; font-size: 0.75rem; width: 100%; height: 32px; display: inline-flex; align-items: center; justify-content: center; white-space: nowrap;" onclick="window.showConfirm('{{ $cancelMsg }}', () => this.closest('form').submit())">
-                                    Cancelar
-                                </button>
-                            </form>
-                            @else
-                            <div style="text-align: center; padding: 0.3rem;">
-                                <span class="neobrutalist-btn disabled-btn" style="font-size: 0.7rem; padding: 0.3rem 0.8rem; opacity: 0.6; cursor: default;"><i class="fa-solid fa-clock"></i> Programada</span>
-                            </div>
+                            @if($isPaid || !$isCriticalZone)
+                                @if($appt->id)
+                                    <form action="{{ route('appointments.cancel', abs($appt->id)) }}" method="POST" style="display:inline; flex: 1;">
+                                        @csrf
+                                        @php
+                                            if ($isPaid) {
+                                                $cancelMsg = '¿Seguro querés cancelar este turno? Se generará crédito a tu favor.';
+                                            } else {
+                                                $cancelMsg = '¿Seguro querés cancelar este turno?';
+                                            }
+                                        @endphp
+                                        <button type="button" class="neobrutalist-btn bg-lila" style="padding: 0.3rem 0.6rem; font-size: 0.75rem; width: 100%; height: 32px; display: inline-flex; align-items: center; justify-content: center; white-space: nowrap;" onclick="window.showConfirm('{{ $cancelMsg }}', () => this.closest('form').submit())">
+                                            Cancelar
+                                        </button>
+                                    </form>
+                                @else
+                                    <form action="{{ route('appointments.cancelProjected') }}" method="POST" style="display:inline; flex: 1;">
+                                        @csrf
+                                        <input type="hidden" name="date" value="{{ $appt->fecha_hora->format('Y-m-d H:i:s') }}">
+                                        <button type="button" class="neobrutalist-btn bg-lila" style="padding: 0.3rem 0.6rem; font-size: 0.75rem; width: 100%; height: 32px; display: inline-flex; align-items: center; justify-content: center; white-space: nowrap;" onclick="window.showConfirm('¿Seguro querés cancelar este turno proyectado? Podrás recuperarlo luego.', () => this.closest('form').submit())">
+                                            Cancelar
+                                        </button>
+                                    </form>
+                                @endif
                             @endif
                         @else
                             <div style="text-align: center; padding: 0.3rem;">
-                                <span class="neobrutalist-btn disabled-btn" style="font-size: 0.7rem; padding: 0.3rem 0.8rem; opacity: 0.6; cursor: default;"><i class="fa-solid fa-clock"></i> Programada</span>
+                                @if($appt->estado === \App\Models\Appointment::ESTADO_SESION_PERDIDA)
+                                    <span class="neobrutalist-btn disabled-btn" style="font-size: 0.7rem; padding: 0.3rem 0.8rem; opacity: 0.6; cursor: default; background: #ffe4e6; color: #e11d48;"><i class="fa-solid fa-xmark"></i> Perdida</span>
+                                @elseif($appt->recuperada ?? false)
+                                    <span class="neobrutalist-btn disabled-btn" style="font-size: 0.7rem; padding: 0.3rem 0.8rem; opacity: 0.6; cursor: default; background: #e0e7ff; color: #4338ca;"><i class="fa-solid fa-check-double"></i> Recuperada</span>
+                                @elseif($appt->id)
+                                    <button onclick="openRecoveryModal({{ $appt->id }}, '{{ $appt->fecha_hora->format('Y-m-d H:i') }}')" class="neobrutalist-btn" style="background: var(--color-amarillo); color: #000; font-size: 0.7rem; padding: 0.3rem 0.8rem; border: 2px solid #000; box-shadow: 2px 2px 0px #000;">
+                                        <i class="fa-solid fa-rotate-left"></i> Recuperar
+                                    </button>
+                                @else
+                                    <span class="neobrutalist-btn disabled-btn" style="font-size: 0.7rem; padding: 0.3rem 0.8rem; opacity: 0.6; cursor: default;"><i class="fa-solid fa-clock"></i> Programada</span>
+                                @endif
                             </div>
                         @endif
                     </div>
@@ -350,24 +403,35 @@
         @endif
 
         {{-- Toggle: Ver todos / Ver menos --}}
-        @if(!method_exists($appointments, 'onFirstPage'))
-            @if(!request()->ver_todo)
+        <style>
+            @media (max-width: 768px) {
+                .toggle-view-btn-mobile {
+                    width: 90% !important;
+                    display: inline-block !important;
+                    padding: 0.4rem 0.5rem !important;
+                    font-size: 0.70rem !important;
+                    letter-spacing: -0.5px !important;
+                    margin: 0 auto;
+                }
+            }
+        </style>
+        
+        @if(!request()->has('ver_todo'))
             <div style="text-align: center; margin-top: 1rem;">
-                <a href="{{ route('patient.dashboard', ['ver_todo' => 1]) }}" 
-                   class="neobrutalist-btn bg-white toggle-view-btn"
+                <a href="{{ route('patient.dashboard', ['ver_todo' => 1]) }}#mis-turnos" 
+                   class="neobrutalist-btn bg-white toggle-view-btn toggle-view-btn-mobile"
                    style="font-size: 0.75rem; padding: 0.5rem 1rem; text-decoration: none; color: #000; font-weight: 800; border: 2px solid #000; cursor: pointer;">
                     <i class="fa-solid fa-eye"></i> VER TODOS LOS TURNOS DEL AÑO
                 </a>
             </div>
-            @else
+        @else
             <div style="text-align: center; margin-top: 1rem;">
-                <a href="{{ route('patient.dashboard') }}" 
-                   class="neobrutalist-btn bg-white toggle-view-btn"
+                <a href="{{ route('patient.dashboard') }}#mis-turnos" 
+                   class="neobrutalist-btn bg-white toggle-view-btn toggle-view-btn-mobile"
                    style="font-size: 0.75rem; padding: 0.5rem 1rem; text-decoration: none; color: #000; font-weight: 800; border: 2px solid #000; cursor: pointer;">
                     <i class="fa-solid fa-eye-slash"></i> VER MENOS TURNOS
                 </a>
             </div>
-            @endif
         @endif
 
     <script>
@@ -379,7 +443,12 @@
                 const diffMs = startTime - now;
                 const diffMin = diffMs / 1000 / 60;
                 
-                // Si faltan 10 min o menos, y no pasaron 45 min de la hora de inicio
+                // Read payment status and estado from data attribute
+                const isPaid = btn.getAttribute('data-paid') === 'true';
+                const estado = btn.getAttribute('data-estado') || 'confirmado';
+
+                // Si faltan 10 min o menos, y no pasaron 45 min de la hora de inicio, el botón se habilita sin importar el pago ni el estado.
+                // Si faltan MÁS de 10 min, queda desactivado.
                 if (diffMin <= 10 && diffMin > -45) {
                     btn.classList.remove('disabled-btn');
                     btn.classList.add('bg-celeste');
@@ -390,11 +459,13 @@
             });
         }, 60000); // Cada 1 minuto
 
-        // Toggle Ver todos / Ver menos con AJAX
-        document.querySelectorAll('.toggle-view-btn').forEach(btn => {
-            btn.addEventListener('click', function(e) {
+        // Toggle Ver todos / Ver menos con AJAX (usando delegación de eventos)
+        document.addEventListener('click', function(e) {
+            const btn = e.target.closest('.toggle-view-btn');
+            if (btn) {
                 e.preventDefault();
-                const url = this.getAttribute('href');
+                const url = btn.getAttribute('href');
+                
                 // Buscar el container y actualizarlo
                 const container = document.getElementById('appointments-table-container');
                 if (container) {
@@ -425,7 +496,7 @@
                 } else {
                     window.location.href = url;
                 }
-            });
+            }
         });
     </script>
 

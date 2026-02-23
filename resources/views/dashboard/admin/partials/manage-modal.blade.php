@@ -79,7 +79,7 @@
                                 <input type="number" 
                                        name="honorario_pactado" 
                                        id="inputCustomPrice" 
-                                       placeholder="18000" 
+                                       placeholder="{{ \App\Models\Setting::get('precio_base_sesion', 25000) }}" 
                                        style="width: 100px; border: none; padding: 0; margin: 0; font-size: 1rem; font-weight: 800; font-family: 'Inter', sans-serif; background: transparent; text-align: left; outline: none; display: flex; align-items: center; height: 100%; line-height: normal;">
                             </div>
                         </div>

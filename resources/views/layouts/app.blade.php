@@ -441,7 +441,9 @@
                 <nav class="nav-sidebar">
                     <!-- Logo at the very top -->
                     <div class="sidebar-logo" style="padding: 1rem; display: flex; justify-content: center; align-items: center; margin-bottom: 0.5rem;">
-                        <img src="{{ asset('img/logo-nuevo.png') }}" alt="Logo" style="height: 80px; width: auto;">
+                        <a href="{{ route('admin.home') }}" style="display: flex; justify-content: center; align-items: center; text-decoration: none;">
+                            <img src="{{ asset('img/logo-nuevo.png') }}" alt="Logo" style="height: 80px; width: auto;">
+                        </a>
                     </div>
                     
                     <div class="sidebar-header" style="padding: 1rem; border-bottom: 2px solid #eee; margin-bottom: 1rem; display: flex; justify-content: center; flex-direction: column; align-items: center; gap: 10px;">
@@ -1984,7 +1986,7 @@
             }
         };
 
-        // Mark All Notifications as Read
+        // Mark All Notifications as Read (Admin and Patient)
         window.markAllRead = function() {
             fetch('{{ route('notifications.read-all') }}', {
                 method: 'POST',
@@ -1996,14 +1998,28 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    // Hide badge
-                    const badge = document.getElementById('patient-notif-count');
-                    if(badge) badge.style.display = 'none';
+                    // Update Patient UI
+                    const pBadge = document.getElementById('patient-notif-count');
+                    if(pBadge) pBadge.style.display = 'none';
                     
-                    // Replace list with empty state
-                    const container = document.getElementById('patient-notif-items');
-                    if(container) {
-                        container.innerHTML = `
+                    const pContainer = document.getElementById('patient-notif-items');
+                    if(pContainer) {
+                        pContainer.innerHTML = `
+                            <div class="notification-empty" style="padding: 3rem 1.5rem; text-align: center; color: #888;">
+                                <div class="icon-placeholder" style="color: #bbb; font-size: 2rem; margin-bottom: 1rem;"><i class="fa-solid fa-bell-slash"></i></div>
+                                <div style="font-weight: 600; color: #333; margin-bottom: 0.5rem; font-size: 1.1rem;">Todo al día</div>
+                                <div style="font-size: 0.9rem; line-height: 1.4; color: #666;">No tenés notificaciones nuevas por ahora.</div>
+                            </div>
+                        `;
+                    }
+                    
+                    // Update Admin UI
+                    const aBadge = document.getElementById('notif-count');
+                    if(aBadge) aBadge.style.display = 'none';
+                    
+                    const aContainer = document.getElementById('notif-items');
+                    if(aContainer) {
+                        aContainer.innerHTML = `
                             <div class="notification-empty" style="padding: 3rem 1.5rem; text-align: center; color: #888;">
                                 <div class="icon-placeholder" style="color: #bbb; font-size: 2rem; margin-bottom: 1rem;"><i class="fa-solid fa-bell-slash"></i></div>
                                 <div style="font-weight: 600; color: #333; margin-bottom: 0.5rem; font-size: 1.1rem;">Todo al día</div>

@@ -38,10 +38,12 @@ class ClinicalHistoryController extends Controller
         $paciente = Paciente::with('user')->findOrFail($pacienteId);
         
         // Get all turnos for this patient with their clinical history (if exists)
+        // Filter out canceled appointments and paginate to avoid long lists
         $turnos = Turno::where('paciente_id', $pacienteId)
+            ->whereIn('estado', ['confirmado', 'completado', 'finalizado']) // Added filter
             ->with('clinicalHistory')
             ->orderBy('fecha_hora', 'DESC')
-            ->get();
+            ->paginate(5); // Changed to paginate
         
         // Get documents for this patient's user
         $documents = $paciente->user ? $paciente->user->documents()->orderBy('created_at', 'DESC')->get() : collect([]);

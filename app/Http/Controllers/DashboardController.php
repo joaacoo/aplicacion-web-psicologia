@@ -158,9 +158,14 @@ class DashboardController extends Controller
         // LOGICA DE PAGO SECUENCIAL Y VISIBILIDAD (4 SESIONES)
         // ---------------------------------------------------------
         
-        // 1. Obtener todas las sesiones futuras (ordenadas por fecha)
+        // 1. Obtener sesiones futuras o pasadas sin pago
         $allFuture = $allAppointments->filter(function($a) {
-            return $a->fecha_hora->isFuture();
+            return $a->fecha_hora->isFuture() || ($a->isPastSessionTime() && (!$a->payment || $a->payment->estado !== 'verificado'));
+        });
+
+        // 1b. Obtener sesiones pasadas que ya fueron pagadas (finalizadas)
+        $completedAppointmentsCollection = $allAppointments->filter(function($a) {
+            return $a->isPastSessionTime() && $a->payment && $a->payment->estado === 'verificado';
         });
 
         // 2. Tomar las próximas 4 para mostrar (aprox 1 mes)
@@ -168,43 +173,34 @@ class DashboardController extends Controller
         //    Si es reserva fija, aseguramos mostrar las próximas instancias aunque no estén creadas
         
         $projectedAppointments = collect();
-        $realFutureCount = $allFuture->count();
-        $targetFutureCount = request()->ver_todo ? 100 : 2;
-        
-        if ($realFutureCount < $targetFutureCount && $fixedReservation) {
-            // Need to project
+
+        if ($fixedReservation) {
+            // Project up to the end of December of the year the reservation was made
+            $reservationYear = $fixedReservation->fecha_hora->year;
+            $endOfYear = \Carbon\Carbon::create($reservationYear, 12, 31)->endOfDay();
+            
             // Start from the LATEST future appointment's date, OR now if none
             $lastDate = $allFuture->count() > 0 ? $allFuture->last()->fecha_hora : now();
             
             // Fixed details
-            $fixedDay = $fixedReservation->fecha_hora->dayOfWeek; // 0=Sun, 1=Mon...
-            $fixedTime = $fixedReservation->fecha_hora->format('H:i:s');
-            
-            // Generate up to $targetFutureCount total future sessions (Real + Projected)
-            $needed = $targetFutureCount - $realFutureCount;
-            $currentDate = $lastDate->copy();
             $frecuencia = $fixedReservation->frecuencia; // 'semanal' or 'quincenal'
-            $baseDate = $fixedReservation->fecha_hora->copy()->startOfDay();
+            $baseDate = $fixedReservation->fecha_hora->copy(); // Keep the exact time too
+            $intervalDays = ($frecuencia === 'quincenal') ? 14 : 7;
             
-            for ($i = 0; $i < $needed; $i++) {
-                // Find next occurrence matching day + frequency
-                $nextDate = $currentDate->copy();
-                do {
-                    $nextDate->addDay();
-                    $diffWeeks = $baseDate->diffInWeeks($nextDate->copy()->startOfDay());
-                    $dayMatches = ($nextDate->dayOfWeek === $fixedDay);
-                    $weekMatches = ($frecuencia === 'quincenal') ? ($diffWeeks % 2 === 0) : true;
-                } while (!$dayMatches || !$weekMatches);
-                
-                // Set Time
-                $parts = explode(':', $fixedTime);
-                $nextDate->setTime($parts[0], $parts[1], 0);
+            // Align to the grid: find the first occurrence strictly after $lastDate
+            $nextDate = $baseDate->copy();
+            while ($nextDate->lte($lastDate)) {
+                $nextDate->addDays($intervalDays);
+            }
+            
+            // Generate future sessions
+            while ($nextDate->lte($endOfYear)) {
                 
                 // Create Virtual Appointment
                 $virtual = new Appointment();
                 $virtual->id = null; // Virtual
                 $virtual->usuario_id = Auth::id();
-                $virtual->fecha_hora = $nextDate;
+                $virtual->fecha_hora = $nextDate->copy();
                 $virtual->estado = 'confirmado'; // Assumed
                 $virtual->es_recurrente = true;
                 $virtual->frecuencia = $frecuencia;
@@ -215,16 +211,17 @@ class DashboardController extends Controller
                 $virtual->ui_status = 'locked_sequential'; // Default locked
                 
                 $projectedAppointments->push($virtual);
-                $currentDate = $nextDate;
+                
+                $nextDate->addDays($intervalDays);
             }
         }
 
-        // Merge real and projected for the "Next X" logic
-        $visibleFutureSessions = $allFuture->take($targetFutureCount)->concat($projectedAppointments);
+        // Merge real and projected 
+        $allFutureAndProjected = $allFuture->concat($projectedAppointments)->sortBy('fecha_hora')->values();
         
         // Re-apply Sequential Logic on the combined list
         $payableAppointment = null;
-        $visibleFutureSessions->transform(function($appt, $key) use (&$payableAppointment, $visibleFutureSessions) {
+        $allFutureAndProjected->transform(function($appt, $key) use (&$payableAppointment) {
             // Is it the FIRST in this visible list?
             $isFirst = ($key === 0); 
             
@@ -242,8 +239,53 @@ class DashboardController extends Controller
             return $appt;
         });
 
-        // 3. Sesiones COMPLETADAS (Historial)
-        $completedAppointments = $allAppointments->where('estado_realizado', 'realizado');
+        // Append completed sessions AT THE END (sorted most recent first)
+        $allFutureAndProjected = $allFutureAndProjected->concat($completedAppointmentsCollection->sortByDesc('fecha_hora'))->values();
+
+        // Apply filters if present
+        if (request()->has('filter')) {
+            if (request('month_filter')) {
+                $allFutureAndProjected = $allFutureAndProjected->filter(function($a) {
+                    return $a->fecha_hora->format('n') == request('month_filter');
+                })->values();
+            }
+            if (request('status')) {
+                $allFutureAndProjected = $allFutureAndProjected->filter(function($a) {
+                    if (request('status') === 'finalizado') {
+                        return $a->estado === 'finalizado' || $a->is_realizado;
+                    }
+                    if (request('status') === 'recuperada') {
+                        return $a->recuperada ?? false;
+                    }
+                    return $a->estado === request('status');
+                })->values();
+            }
+            if (request('pago_estado')) {
+                $allFutureAndProjected = $allFutureAndProjected->filter(function($a) {
+                    $estadoPago = $a->payment ? $a->payment->estado : 'pendiente';
+                    return $estadoPago === request('pago_estado');
+                })->values();
+            }
+        }
+
+        // Paginate or Take 2 depending on ver_todo OR if filtering
+        if (request()->has('ver_todo') || request()->has('filter')) {
+            $perPage = 4;
+            $page = \Illuminate\Pagination\Paginator::resolveCurrentPage() ?: 1;
+            
+            $visibleFutureSessions = new \Illuminate\Pagination\LengthAwarePaginator(
+                $allFutureAndProjected->forPage($page, $perPage)->values(),
+                $allFutureAndProjected->count(),
+                $perPage,
+                $page,
+                ['path' => \Illuminate\Pagination\Paginator::resolveCurrentPath(), 'query' => request()->query()]
+            );
+        } else {
+            $visibleFutureSessions = $allFutureAndProjected->take(2);
+        }
+
+        // 3. Sesiones COMPLETADAS (Historial para vista)
+        $completedAppointments = $completedAppointmentsCollection;
 
         // Get pending recovery requests keyed by appointment ID
         $pendingRecoveryIds = \App\Models\Waitlist::where('usuario_id', Auth::id())
@@ -638,47 +680,48 @@ class DashboardController extends Controller
         // Proyectar citas futuras para reservas fijas para el MES SELECCIONADO
         $projectedAppointments = collect();
         
-        // Obtenemos una "plantilla" de cada reserva fija única (por usuario, día y hora)
+        // Obtenemos las reservas fijas originales (priorizando las más antiguas como base)
         $fixedReservations = Appointment::where('es_recurrente', true)
             ->where('estado', '!=', 'cancelado')
             ->whereNotNull('fecha_hora')
+            ->orderBy('fecha_hora', 'asc') // Tomar la primera base
             ->with('user')
             ->get()
             ->unique(function ($item) {
-                return $item->usuario_id . $item->fecha_hora->format('wH:i');
+                return $item->usuario_id; // Una sola cadencia base por paciente
             });
 
         $startOfMonth = $currentDate->copy()->startOfMonth();
         $endOfMonth = $currentDate->copy()->endOfMonth();
+        $endOfYear = now()->endOfYear();
         
         foreach($fixedReservations as $fixedReservation) {
             $userId = $fixedReservation->usuario_id;
             $frecuencia = $fixedReservation->frecuencia; // semanal o quincenal
-            $baseDate = $fixedReservation->fecha_hora->copy()->startOfDay();
-            $fixedDay = $fixedReservation->fecha_hora->dayOfWeek;
-            $fixedTime = $fixedReservation->fecha_hora->format('H:i:s');
+            $baseDate = $fixedReservation->fecha_hora->copy(); 
+            $intervalDays = ($frecuencia === 'quincenal') ? 14 : 7;
             
-            $iterDate = $startOfMonth->copy()->startOfDay();
+            // Fast forward from baseDate to the start of the current viewing month
+            $iterDate = $baseDate->copy();
+            while ($iterDate->copy()->addDays($intervalDays)->lt($startOfMonth)) {
+                $iterDate->addDays($intervalDays);
+            }
+            // Ensure first internal generation lands inside this month if originally before
+            if ($iterDate->lt($startOfMonth)) {
+                 $iterDate->addDays($intervalDays);
+             }
             
-            while($iterDate->lte($endOfMonth)) {
-                if($iterDate->dayOfWeek === $fixedDay) {
-                    // Si es quincenal, debemos verificar si esta semana corresponde (basado en la baseDate)
-                    $esSemanaCorrecta = true;
-                    if ($frecuencia === 'quincenal') {
-                        $diffInWeeks = $baseDate->diffInWeeks($iterDate);
-                        $esSemanaCorrecta = ($diffInWeeks % 2 === 0);
-                    }
-
-                    if ($esSemanaCorrecta) {
-                        $parts = explode(':', $fixedTime);
-                        $apptDateTime = $iterDate->copy()->setTime($parts[0], $parts[1], 0);
-                        
-                        // Check if exists in DB (to avoid projecting over a real record)
-                        $exists = $appointments->contains(function($appt) use ($apptDateTime, $userId) {
-                            return $appt->usuario_id == $userId 
-                                && $appt->fecha_hora->format('Y-m-d H:i') == $apptDateTime->format('Y-m-d H:i');
-                        });
-                        
+            // Generate dates hasta fin de año 2026
+            while($iterDate->lte($endOfYear)) {
+                if ($iterDate->gte($startOfMonth) && $iterDate->lte($endOfMonth)) {
+                    $apptDateTime = $iterDate->copy();
+                    
+                    // Check if exists in DB (to avoid projecting over a real record)
+                    $exists = $appointments->contains(function($appt) use ($apptDateTime, $userId) {
+                        return $appt->usuario_id == $userId 
+                            && $appt->fecha_hora->format('Y-m-d H:i') == $apptDateTime->format('Y-m-d H:i');
+                    });
+                    
                         if(!$exists) {
                             $virtual = new Appointment();
                             $virtual->id = - abs(crc32('proj_' . $userId . '_' . $apptDateTime->timestamp));
@@ -694,8 +737,7 @@ class DashboardController extends Controller
                             $projectedAppointments->push($virtual);
                         }
                     }
-                }
-                $iterDate->addDay();
+                $iterDate->addDays($intervalDays);
             }
         }
 

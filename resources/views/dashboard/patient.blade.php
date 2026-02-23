@@ -393,7 +393,7 @@ function togglePatientMenu() {
                         {{ ucfirst(\Carbon\Carbon::parse($fixedReservation->fecha_hora)->isoFormat('dddd')) }} de {{ \Carbon\Carbon::parse($fixedReservation->fecha_hora)->format('H:i') }} a {{ \Carbon\Carbon::parse($fixedReservation->fecha_hora)->addMinutes(45)->format('H:i') }} hs
                     </p>
                     <span style="display: inline-block; background: #166534; color: white; padding: 2px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: 800; margin-top: 8px; text-transform: uppercase;">
-                        Modalidad: {{ ucfirst($fixedReservation->modalidad) }}
+                        Modalidad: {{ ucfirst($fixedReservation->modalidad) }} &nbsp;&bull;&nbsp; {{ ucfirst($fixedReservation->frecuencia) }}
                     </span>
                 </div>
 
@@ -845,69 +845,6 @@ function togglePatientMenu() {
                     @include('dashboard.partials.appointments_table')
                 </div>
 
-                <script>
-                    document.addEventListener('DOMContentLoaded', function() {
-                        const filterForm = document.getElementById('appointments-filter-form');
-                        const tableContainer = document.getElementById('appointments-table-container');
-                        const loadingIndicator = document.getElementById('appointments-loading');
-                        const clearBtn = document.getElementById('clear-filters');
-
-                        function updateTable(url) {
-                            loadingIndicator.style.display = 'block';
-                            tableContainer.style.opacity = '0.5';
-                            
-                            fetch(url, {
-                                headers: {
-                                    'X-Requested-With': 'XMLHttpRequest'
-                                }
-                            })
-                            .then(response => response.text())
-                            .then(html => {
-                                tableContainer.innerHTML = html;
-                                loadingIndicator.style.display = 'none';
-                                tableContainer.style.opacity = '1';
-                                
-                                // Re-bind pagination links
-                                bindPagination();
-                            })
-                            .catch(error => {
-                                console.error('Error:', error);
-                                loadingIndicator.style.display = 'none';
-                                tableContainer.style.opacity = '1';
-                            });
-                        }
-
-                        function bindPagination() {
-                            document.querySelectorAll('#appointments-table-container .pagination-container a').forEach(link => {
-                                link.addEventListener('click', function(e) {
-                                    e.preventDefault();
-                                    updateTable(this.href);
-                                    // Scroll slightly to table top
-                                    document.getElementById('mis-turnos').scrollIntoView({ behavior: 'smooth' });
-                                });
-                            });
-                        }
-
-                        filterForm.addEventListener('submit', function(e) {
-                            e.preventDefault();
-                            const formData = new FormData(this);
-                            const params = new URLSearchParams(formData).toString();
-                            const url = this.getAttribute('action') + '?' + params;
-                            updateTable(url);
-                        });
-
-                        clearBtn.addEventListener('click', function(e) {
-                            e.preventDefault();
-                            filterForm.reset();
-                            // Also clear select values explicitly if reset() doesn't hit all cases
-                            filterForm.querySelectorAll('select').forEach(s => s.selectedIndex = 0);
-                            updateTable(this.href || filterForm.getAttribute('action'));
-                        });
-
-                        // Initial bind
-                        bindPagination();
-                    });
-                </script>
             </div>
         </div> <!-- End right-column -->
 
@@ -2011,32 +1948,70 @@ $blockedDays = $blockedDays ?? [];
             btn.innerText = 'SOLICITAR';
         }
     }
-    async function applyFilters() {
+    function applyFilters(e) {
+        if (e) e.preventDefault();
+        
         const form = document.getElementById('appointments-filter-form');
         const container = document.getElementById('appointments-table-container');
+        const loading = document.getElementById('appointments-loading');
+        
         if (!form || !container) return;
 
         const formData = new FormData(form);
         const params = new URLSearchParams(formData);
+        const url = `{{ route('patient.dashboard') }}?${params.toString()}`;
         
+        if (loading) loading.style.display = 'block';
         container.style.opacity = '0.5';
         container.style.pointerEvents = 'none';
 
-        try {
-            const url = `{{ route('patient.dashboard') }}?${params.toString()}`;
-            const response = await fetch(url, {
-                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(response => response.text())
+            .then(html => {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                const newContent = doc.getElementById('appointments-table-container');
+                
+                if (newContent) {
+                    container.innerHTML = newContent.innerHTML;
+                    window.history.pushState({}, '', url);
+                } else {
+                    window.location.href = url;
+                }
+            })
+            .catch(error => {
+                console.error('Filter error:', error);
+                window.location.href = url;
+            })
+            .finally(() => {
+                if (loading) loading.style.display = 'none';
+                container.style.opacity = '1';
+                container.style.pointerEvents = 'auto';
             });
-            const html = await response.text();
-            container.innerHTML = html;
-            window.history.pushState({}, '', url);
-        } catch (error) {
-            console.error('Filter error:', error);
-        } finally {
-            container.style.opacity = '1';
-            container.style.pointerEvents = 'auto';
-        }
     }
+
+    // Bind form submit and clear filters to applyFilters instead of full reload
+    document.addEventListener('DOMContentLoaded', () => {
+        const filterForm = document.getElementById('appointments-filter-form');
+        const clearBtn = document.getElementById('clear-filters');
+        
+        if (filterForm) {
+            filterForm.addEventListener('submit', applyFilters);
+        }
+        
+        if (clearBtn) {
+            clearBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                if (filterForm) {
+                    filterForm.reset();
+                    filterForm.querySelectorAll('select').forEach(s => s.selectedIndex = 0);
+                    applyFilters();
+                } else {
+                    window.location.href = clearBtn.href;
+                }
+            });
+        }
+    });
 
     // Time validation for recovery modal
     const recFrom = document.getElementById('recovery-time-from');
@@ -2055,29 +2030,23 @@ $blockedDays = $blockedDays ?? [];
         }
     }
 
-    // Global AJAX Pagination for Mis Turnos
+    // Global AJAX for Pagination and Toggle View (Ver Todos/Menos)
     document.addEventListener('click', function(e) {
-        // Broadened selector to catch all pagination links including mobile ones
-        const link = e.target.closest('#appointments-table-container a.pagination-mobile-btn, #appointments-table-container .pagination li a, #appointments-table-container a[href*="page="]');
+        const link = e.target.closest('#appointments-table-container a.pagination-mobile-btn, #appointments-table-container .pagination li a, #appointments-table-container a[href*="page="], #appointments-table-container .toggle-view-btn');
         if (link) {
             const url = link.href;
-            if (!url || (url.includes('#') && !url.includes('page='))) return;
+            if (!url || (url.includes('#') && !url.includes('page=') && !e.target.closest('.toggle-view-btn'))) return;
 
             e.preventDefault();
             e.stopPropagation();
 
             const container = document.getElementById('appointments-table-container');
+            const loading = document.getElementById('appointments-loading');
+            
             if (container) {
+                if (loading) loading.style.display = 'block';
                 container.style.opacity = '0.5';
                 container.style.position = 'relative';
-                
-                let loader = document.getElementById('pagination-loader');
-                if (!loader) {
-                    loader = document.createElement('div');
-                    loader.id = 'pagination-loader';
-                    loader.innerHTML = '<div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 1rem; border: 3px solid #000; box-shadow: 4px 4px 0px #000; font-weight: 800; z-index: 1000; font-size: 0.8rem; white-space: nowrap; max-width: 90vw; text-align: center;"><i class="fa-solid fa-spinner fa-spin"></i> CARGANDO...</div>';
-                    container.appendChild(loader);
-                }
                 
                 fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
                 .then(response => response.text())
@@ -2085,18 +2054,27 @@ $blockedDays = $blockedDays ?? [];
                     const parser = new DOMParser();
                     const doc = parser.parseFromString(html, 'text/html');
                     const newContent = doc.getElementById('appointments-table-container');
+                    
                     if (newContent) {
                         container.innerHTML = newContent.innerHTML;
                         window.history.pushState({}, '', url);
-                        // Static update: Removed scrollIntoView to prevent page jump
+                        
+                        // Scroll to top of table section if it's pagination
+                        if (!e.target.closest('.toggle-view-btn')) {
+                            document.getElementById('mis-turnos')?.scrollIntoView({ behavior: 'smooth' });
+                        }
                     } else {
+                        // If parsing fails or container unfound, full reload
                         window.location.href = url;
                     }
                 })
-                .catch(() => { window.location.href = url; })
+                .catch(err => {
+                    console.error('AJAX Load Error:', err);
+                    window.location.href = url;
+                })
                 .finally(() => {
+                    if (loading) loading.style.display = 'none';
                     container.style.opacity = '1';
-                    if (loader) loader.remove();
                 });
             }
         }
@@ -2191,10 +2169,10 @@ $blockedDays = $blockedDays ?? [];
 
             <div style="background: #fafafa; border: 2px solid #000; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; box-shadow: 3px 3px 0px #000;">
                 <p style="margin: 0 0 0.5rem 0; font-weight: 900; font-size: 0.8rem; text-transform: uppercase;">Alias:</p>
-                <div style="background: #fff; padding: 8px; border: 1px solid #000; border-radius: 4px; display: flex; justify-content: space-between; align-items: center;">
-                    <code style="font-size: 1rem; font-weight: 900;">nazarena.deluca</code>
-                    <button type="button" onclick="navigator.clipboard.writeText('nazarena.deluca'); window.showAlert('Alias copiado!')" style="background: #fff; border: 1px solid #000; border-radius: 4px; padding: 2px 8px; font-size: 0.7rem; font-weight: 800; cursor: pointer; color: #000;">Copiar</button>
-                </div>
+                <p style="margin: 0; font-family: 'Inter', sans-serif; font-weight: 500; font-size: 0.95rem; color: #444; display: flex; align-items: center; justify-content: space-between;">
+                    <span style="font-weight: 800; font-family: 'Syne', sans-serif; color: #000;">nazarena.deluca</span> 
+                    <button type="button" onclick="const btn = this; navigator.clipboard.writeText('nazarena.deluca').then(() => { const original = btn.innerText; btn.innerText = '¡Copiado!'; btn.style.background = '#dcfce7'; setTimeout(() => { btn.innerText = original; btn.style.background = '#fff'; }, 7000); })" style="background: #fff; border: 1px solid #000; border-radius: 4px; padding: 2px 8px; font-size: 0.7rem; font-weight: 800; cursor: pointer; color: #000; transition: background 0.3s;">Copiar</button>
+                </p>
             </div>
 
             <div style="margin-bottom: 1.5rem;">
