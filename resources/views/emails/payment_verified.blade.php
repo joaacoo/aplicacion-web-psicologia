@@ -21,5 +21,5 @@
 
     <a href="{{ url('/') }}" class="btn" style="background: #BAE6FD;">Ir a mi Portal</a>
 
-    <p>Saludos,<br><strong>Lic. Nazarena De Luca</strong></p>
+    <p><strong>Lic. Nazarena De Luca</strong></p>
 @endsection

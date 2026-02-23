@@ -201,7 +201,7 @@ class DashboardController extends Controller
                 $virtual->id = null; // Virtual
                 $virtual->usuario_id = Auth::id();
                 $virtual->fecha_hora = $nextDate->copy();
-                $virtual->estado = 'confirmado'; // Assumed
+                $virtual->estado = 'pendiente'; // Proyectado, aún no confirmado
                 $virtual->es_recurrente = true;
                 $virtual->frecuencia = $frecuencia;
                 $virtual->modalidad = $fixedReservation->modalidad;
