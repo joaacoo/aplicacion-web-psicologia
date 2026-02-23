@@ -350,10 +350,13 @@
         document.getElementById('details-title').innerText = dateDisplay;
         
         // Filter appointments: must match date AND NOT be cancelled
+        // Include both regular appointments AND projected fixed appointments (is_projected)
         const dayAppsRaw = appointments.filter(app => {
-            return app.fecha_hora.startsWith(dateStr) && 
-                   app.estado !== 'cancelado' && 
-                   app.estado !== 'cancelled';
+            const matchesDate = app.fecha_hora.startsWith(dateStr);
+            const isNotCancelled = app.estado !== 'cancelado' && app.estado !== 'cancelled';
+            const isProjected = app.is_projected === true || app.is_projected === 'true';
+            // Show if: matches date, not cancelled, AND (not projected OR is projected and confirmed)
+            return matchesDate && isNotCancelled && (app.estado === 'confirmado' || isProjected);
         });
         
         // Use a Set to track seen appointments to avoid duplicates

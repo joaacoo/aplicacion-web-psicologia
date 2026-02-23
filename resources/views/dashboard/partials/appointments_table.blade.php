@@ -110,7 +110,7 @@
                                     <span style="font-weight: 900; color: {{ $statusColor }}; background: {{ $statusBg }}; border: 1px solid {{ $statusColor }}; padding: 2px 8px; border-radius: 6px; font-size: 0.7rem; display: inline-block; text-transform: uppercase; white-space: nowrap;">
                                         {{ $statusName }}
                                     </span>
-                                    @if($appt->es_recurrente)
+                                    @if($appt->es_recurrente && !($appt->recuperada ?? false))
                                         <div style="font-size: 0.75rem; color: #000; font-weight: 900; text-transform: uppercase; display: flex; align-items: center; gap: 3px; white-space: nowrap;">
                                             <i class="fa-solid fa-repeat" style="color: #6366f1;"></i> Fijo
                                         </div>
@@ -152,12 +152,13 @@
                                                     <i class="fa-solid fa-dollar-sign"></i> Pagar
                                                 </button>
                                             @else
-                                                <button class="neobrutalist-btn disabled-btn" style="flex: 1 1 0%; padding: 0.3rem 0.6rem; font-size: 0.75rem; min-width: 90px; height: 32px; filter: grayscale(1); opacity: 0.5;" title="Debes pagar la sesión anterior primero">
+                                                <button class="neobrutalist-btn disabled-btn" style="flex: 1 1 0%; padding: 0.3rem 0.6rem; font-size: 0.75rem; min-width: 90px; height: 32px; filter: grayscale(1); opacity: 0.5;" title="Tenés que esperar a que finalice la sesión de esta semana para poder pagar la próxima">
                                                     Pendiente
                                                 </button>
                                             @endif
                                         @endif
 
+                                         @if($appt->id)
                                         <form action="{{ route('appointments.cancel', $appt->id) }}" method="POST" style="display:inline; flex: 1 1 0%; min-width: 90px;">
                                             @csrf
                                             @php
@@ -174,12 +175,12 @@
                                                 Cancelar
                                             </button>
                                         </form>
+                                        @endif
                                     </div>
                                 @else
-                                    <div class="actions-wrapper" style="display: flex; justify-content: center;">
-                                        <button onclick="openRecoveryModal({{ $appt->id }})" class="neobrutalist-btn bg-amarillo" style="padding: 0.3rem 0.6rem; font-size: 0.75rem; width: 100%; height: 32px; display: inline-flex; align-items: center; justify-content: center;">
-                                            <i class="fa-solid fa-redo"></i> Recuperar
-                                        </button>
+                                    {{-- Turno virtual (proyectado, sin ID) --}}
+                                    <div style="text-align: center;">
+                                        <span class="neobrutalist-btn disabled-btn" style="font-size: 0.7rem; padding: 0.3rem 0.8rem; opacity: 0.6; cursor: default;"><i class="fa-solid fa-clock"></i> Programada</span>
                                     </div>
                                 @endif
                             </td>
@@ -240,7 +241,7 @@
                             <span style="font-weight: 900; color: {{ $statusColor }}; background: {{ $statusBg }}; border: 1px solid {{ $statusColor }}; padding: 2px 8px; border-radius: 6px; font-size: 0.7rem; display: inline-block; text-transform: uppercase; white-space: nowrap;">
                                 {{ $statusName }}
                             </span>
-                            @if($appt->es_recurrente)
+                            @if($appt->es_recurrente && !($appt->recuperada ?? false))
                                 <div style="font-size: 0.55rem; color: #000; font-weight: 900; text-transform: uppercase; display: flex; align-items: center; gap: 3px; white-space: nowrap; margin-top: 4px;">
                                     <i class="fa-solid fa-repeat" style="color: #6366f1;"></i> Fijo
                                 </div>
@@ -284,12 +285,13 @@
                                         <i class="fa-solid fa-dollar-sign"></i> Pagar
                                     </button>
                                 @else
-                                    <button class="neobrutalist-btn disabled-btn" style="flex: 1; padding: 0.3rem 0.6rem; font-size: 0.75rem; width: 100%; height: 32px; filter: grayscale(1); opacity: 0.5;">
+                                    <button class="neobrutalist-btn disabled-btn" style="flex: 1; padding: 0.3rem 0.6rem; font-size: 0.75rem; width: 100%; height: 32px; filter: grayscale(1); opacity: 0.5;" title="Tenés que esperar a que finalice la sesión de esta semana para poder pagar la próxima">
                                         Pendiente
                                     </button>
                                 @endif
                             @endif
 
+                            @if($appt->id)
                             <form action="{{ route('appointments.cancel', $appt->id) }}" method="POST" style="display:inline; flex: 1;">
                                 @csrf
                                 @php
@@ -306,10 +308,15 @@
                                     Cancelar
                                 </button>
                             </form>
+                            @else
+                            <div style="text-align: center; padding: 0.3rem;">
+                                <span class="neobrutalist-btn disabled-btn" style="font-size: 0.7rem; padding: 0.3rem 0.8rem; opacity: 0.6; cursor: default;"><i class="fa-solid fa-clock"></i> Programada</span>
+                            </div>
+                            @endif
                         @else
-                            <button onclick="openRecoveryModal({{ $appt->id }})" class="neobrutalist-btn bg-amarillo" style="padding: 0.3rem 0.6rem; font-size: 0.75rem; width: 100%; height: 32px; display: inline-flex; align-items: center; justify-content: center;">
-                                <i class="fa-solid fa-redo"></i> Recuperar
-                            </button>
+                            <div style="text-align: center; padding: 0.3rem;">
+                                <span class="neobrutalist-btn disabled-btn" style="font-size: 0.7rem; padding: 0.3rem 0.8rem; opacity: 0.6; cursor: default;"><i class="fa-solid fa-clock"></i> Programada</span>
+                            </div>
                         @endif
                     </div>
                 </div>
@@ -346,17 +353,17 @@
         @if(!method_exists($appointments, 'onFirstPage'))
             @if(!request()->ver_todo)
             <div style="text-align: center; margin-top: 1rem;">
-                <a href="{{ route('patient.dashboard', ['ver_todo' => 1]) }}"
-                   class="neobrutalist-btn bg-white"
-                   style="font-size: 0.75rem; padding: 0.5rem 1rem; text-decoration: none; color: #000; font-weight: 800; border: 2px solid #000;">
+                <a href="{{ route('patient.dashboard', ['ver_todo' => 1]) }}" 
+                   class="neobrutalist-btn bg-white toggle-view-btn"
+                   style="font-size: 0.75rem; padding: 0.5rem 1rem; text-decoration: none; color: #000; font-weight: 800; border: 2px solid #000; cursor: pointer;">
                     <i class="fa-solid fa-eye"></i> VER TODOS LOS TURNOS DEL AÑO
                 </a>
             </div>
             @else
             <div style="text-align: center; margin-top: 1rem;">
-                <a href="{{ route('patient.dashboard') }}"
-                   class="neobrutalist-btn bg-white"
-                   style="font-size: 0.75rem; padding: 0.5rem 1rem; text-decoration: none; color: #000; font-weight: 800; border: 2px solid #000;">
+                <a href="{{ route('patient.dashboard') }}" 
+                   class="neobrutalist-btn bg-white toggle-view-btn"
+                   style="font-size: 0.75rem; padding: 0.5rem 1rem; text-decoration: none; color: #000; font-weight: 800; border: 2px solid #000; cursor: pointer;">
                     <i class="fa-solid fa-eye-slash"></i> VER MENOS TURNOS
                 </a>
             </div>
@@ -382,6 +389,44 @@
                 }
             });
         }, 60000); // Cada 1 minuto
+
+        // Toggle Ver todos / Ver menos con AJAX
+        document.querySelectorAll('.toggle-view-btn').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                const url = this.getAttribute('href');
+                // Buscar el container y actualizarlo
+                const container = document.getElementById('appointments-table-container');
+                if (container) {
+                    const loading = document.getElementById('appointments-loading');
+                    if (loading) loading.style.display = 'block';
+                    container.style.opacity = '0.5';
+                    
+                    fetch(url, {
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                    .then(response => response.text())
+                    .then(html => {
+                        container.innerHTML = html;
+                        if (loading) loading.style.display = 'none';
+                        container.style.opacity = '1';
+                        // Scroll to table
+                        document.getElementById('mis-turnos')?.scrollIntoView({ behavior: 'smooth' });
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        if (loading) loading.style.display = 'none';
+                        container.style.opacity = '1';
+                        // Fallback: reload page
+                        window.location.href = url;
+                    });
+                } else {
+                    window.location.href = url;
+                }
+            });
+        });
     </script>
 
 @else

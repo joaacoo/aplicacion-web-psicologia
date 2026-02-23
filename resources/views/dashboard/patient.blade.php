@@ -789,6 +789,7 @@ function togglePatientMenu() {
                                     <option value="cancelado" {{ request('status') == 'cancelado' ? 'selected' : '' }}>Cancelado</option>
                                     <option value="finalizado" {{ request('status') == 'finalizado' ? 'selected' : '' }}>Finalizado</option>
                                     <option value="sesion_perdida" {{ request('status') == 'sesion_perdida' ? 'selected' : '' }}>Sesión Perdida</option>
+                                    <option value="recuperada" {{ request('status') == 'recuperada' ? 'selected' : '' }}>Recuperada</option>
                                 </select>
                             </div>
 
