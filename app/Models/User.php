@@ -114,4 +114,9 @@ class User extends Authenticatable
     {
          return $this->paciente->telefono ?? $value; // Fallback to local if migration in progress
     }
+
+    public function getMeetLinkAttribute()
+    {
+        return $this->paciente->meet_link ?? null;
+    }
 }

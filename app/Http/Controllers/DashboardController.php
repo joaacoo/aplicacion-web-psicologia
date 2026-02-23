@@ -28,12 +28,11 @@ class DashboardController extends Controller
             $isMobile = true;
         }
 
-        $perPage = $isMobile ? 3 : 5;
+        $perPage = 4; // Updated as requested
 
         $query = Appointment::where('usuario_id', Auth::id())
             ->with(['payment'])
-            ->orderBy('fecha_hora', 'desc')
-            ->orderBy('id', 'desc');
+            ->orderByRaw('fecha_hora >= NOW() DESC, fecha_hora ASC');
 
         // Apply Month Filter
         if (request('month')) {
@@ -152,8 +151,6 @@ class DashboardController extends Controller
 
         $occupiedExternal = $busyExternal->map(fn($e) => $e->start_time->format('Y-m-d H:i:s'))->toArray();
         
-        $occupiedExternal = $busyExternal->map(fn($e) => $e->start_time->format('Y-m-d H:i:s'))->toArray();
-        
         // Blocked Days from Admin
         $blockedDays = \App\Models\BlockedDay::where('date', '>=', now()->toDateString())
             ->pluck('date')
@@ -165,58 +162,184 @@ class DashboardController extends Controller
 
         $occupiedSlots = array_values(array_unique(array_merge($occupiedAppts, $occupiedExternal)));
 
-        // Las "availabilities" de la base de datos se pasan como fallback o se ignoran si hay de Google
-        // Para este nuevo modo, las pasamos pero el JS priorizará las de Google si existen.
+        // Patient specific data for the view
+        $resources = \App\Models\Resource::where('paciente_id', Auth::id())->latest()->get();
+        $documents = \App\Models\Document::where('user_id', Auth::id())->latest()->get();
+        $blockWeekends = $adminUser->block_weekends ?? false;
 
-        $nextAppointment = Appointment::where('usuario_id', Auth::id())
-            ->where('estado', 'confirmado')
-            ->where('fecha_hora', '>=', now())
+        // For Sequential Payment logic, we need ALL appointments to find the "next" one
+        $allAppointments = Appointment::where('usuario_id', Auth::id())
+            ->where('estado', '!=', 'cancelado')
             ->orderBy('fecha_hora', 'asc')
+            ->get()
+            ->map(function ($turno) {
+                // Marcar como realizado si pasó la hora
+                if ($turno->isPastSessionTime() && !$turno->isRealizado()) {
+                    $turno->markAsRealizado();
+                }
+                
+                // Agregar atributos para la vista
+                $turno->is_payable = $turno->isPayable();
+                $turno->payment_block_reason = $turno->getPaymentBlockReason();
+                $turno->hours_until_deadline = $turno->getHoursUntilPaymentDeadline();
+                $turno->payment_deadline = $turno->getPaymentDeadline();
+                $turno->is_realizado = $turno->isRealizado();
+
+                return $turno;
+            });
+
+        // Next confirmed appointment for the banner
+        $nextAppointment = $allAppointments->where('fecha_hora', '>=', now())
+            ->where('estado', 'confirmado')
             ->first();
 
-        // Materiales para el paciente o globales
-        $resources = \App\Models\Resource::where(function($q) {
-            $q->where('paciente_id', Auth::id())
-              ->orWhereNull('paciente_id');
-        })->latest()->get();
+        // Used by calendar and stepper
+        $patientAppointmentsDates = $allAppointments->pluck('fecha_hora')->map(fn($d) => $d->format('Y-m-d'))->toArray();
+        $fixedReservation = $allAppointments->firstWhere('es_recurrente', true);
 
-        // Documentos ("No clínicos", recibos, etc)
-        $documents = \App\Models\Document::where('user_id', Auth::id())->latest()->get();
+        // Separar para mejor UX
+        // ---------------------------------------------------------
+        // LOGICA DE PAGO SECUENCIAL Y VISIBILIDAD (4 SESIONES)
+        // ---------------------------------------------------------
+        
+        // 1. Obtener todas las sesiones futuras (ordenadas por fecha)
+        $allFuture = $allAppointments->filter(function($a) {
+            return $a->fecha_hora->isFuture();
+        });
 
-        // Obtener configuración del Admin (Asumimos que hay un solo admin o usamos el primero)
-        $adminUser = \App\Models\User::where('rol', 'admin')->first();
-        $blockWeekends = $adminUser ? $adminUser->block_weekends : false;
+        // 2. Tomar las próximas 4 para mostrar (aprox 1 mes)
+        //    (Incluso si solo hay 1, tomamos esa. Si hay 0, collection vacía)
+        //    Si es reserva fija, aseguramos mostrar las próximas instancias aunque no estén creadas
+        
+        $projectedAppointments = collect();
+        $realFutureCount = $allFuture->count();
+        $targetFutureCount = 4;
+        
+        if ($realFutureCount < $targetFutureCount && $fixedReservation) {
+            // Need to project
+            // Start from the LATEST future appointment's date, OR now if none
+            $lastDate = $allFuture->count() > 0 ? $allFuture->last()->fecha_hora : now();
+            
+            // Fixed details
+            $fixedDay = $fixedReservation->fecha_hora->dayOfWeek; // 0=Sun, 1=Mon...
+            $fixedTime = $fixedReservation->fecha_hora->format('H:i:s');
+            
+            // Generate up to 4 total future sessions (Real + Projected)
+            $needed = $targetFutureCount - $realFutureCount;
+            $currentDate = $lastDate->copy();
+            
+            for ($i = 0; $i < $needed; $i++) {
+                // Find next occurrence of fixed day
+                // If currentDate is already past the time on the same day?
+                // Just keep adding days until dayOfWeek matches
+                
+                $nextDate = $currentDate->copy();
+                do {
+                    $nextDate->addDay();
+                } while ($nextDate->dayOfWeek !== $fixedDay);
+                
+                // Set Time
+                $parts = explode(':', $fixedTime);
+                $nextDate->setTime($parts[0], $parts[1], 0);
+                
+                // Create Virtual Appointment
+                $virtual = new Appointment();
+                $virtual->id = null; // Virtual
+                $virtual->usuario_id = Auth::id();
+                $virtual->fecha_hora = $nextDate;
+                $virtual->estado = 'confirmado'; // Assumed
+                $virtual->es_recurrente = true;
+                $virtual->modalidad = $fixedReservation->modalidad;
+                $virtual->monto_final = $fixedReservation->monto_final;
+                $virtual->is_virtual = true; // Flag for View
+                $virtual->payment_block_reason = 'Se habilitará próximamente.';
+                $virtual->ui_status = 'locked_sequential'; // Default locked
+                
+                $projectedAppointments->push($virtual);
+                $currentDate = $nextDate;
+            }
+        }
 
-        // Fechas donde el paciente ya tiene turno (para bloquear en calendario)
-        $patientAppointmentsDates = Appointment::where('usuario_id', Auth::id())
-            ->where('estado', '!=', 'cancelado')
-            ->where('fecha_hora', '>=', now())
-            ->get()
-            ->map(fn($a) => $a->fecha_hora->format('Y-m-d'))
-            ->unique()
-            ->values()
+        // Merge real and projected for the "Next X" logic
+        $visibleFutureSessions = $allFuture->take($targetFutureCount)->concat($projectedAppointments);
+        
+        // Re-apply Sequential Logic on the combined list
+        $payableAppointment = null;
+        $visibleFutureSessions->transform(function($appt, $key) use (&$payableAppointment, $visibleFutureSessions) {
+            // Is it the FIRST in this visible list?
+            $isFirst = ($key === 0); 
+            
+            if ($isFirst && !$appt->is_virtual) {
+                if ($appt->isPayable()) {
+                    $appt->ui_status = 'payable';
+                    $payableAppointment = $appt;
+                } else {
+                    $appt->ui_status = 'locked';
+                }
+            } else {
+                $appt->ui_status = 'locked_sequential';
+                $appt->payment_block_reason = 'Se habilitará al finalizar la sesión anterior.';
+            }
+            return $appt;
+        });
+
+        // 3. Sesiones COMPLETADAS (Historial)
+        $completedAppointments = $allAppointments->where('estado_realizado', 'realizado');
+
+        // Get pending recovery requests keyed by appointment ID
+        $pendingRecoveryIds = \App\Models\Waitlist::where('usuario_id', Auth::id())
+            ->whereNotNull('original_appointment_id')
+            ->pluck('original_appointment_id')
             ->toArray();
 
-        // Check for Fixed Reservation (Recurring)
-        $fixedReservation = Appointment::where('usuario_id', Auth::id())
-            ->where('es_recurrente', true)
-            ->where('estado', '!=', 'cancelado')
-            ->where('fecha_hora', '>=', now()->startOfDay())
-            ->orderBy('fecha_hora', 'asc')
-            ->first();
+        // Extraer datos de UI para la tabla principal (paginada) --> We don't really use this map anymore in view, we use objects directly
+        $appointmentUiData = [];
+        // ...
+        
+        if (request()->ajax()) {
+            return view('dashboard.patient', [
+                'appointments' => $appointments,
+                'projectedAppointments' => $projectedAppointments,
+                'visibleFutureSessions' => $visibleFutureSessions,
+                'isMobile' => $isMobile,
+                'isAjax' => true,
+                'pendingRecoveryIds' => $pendingRecoveryIds,
+            ])->render();
+        }
+        foreach($visibleFutureSessions as $appt) {
+             $appointmentUiData[$appt->id] = [
+                 'ui_status' => $appt->ui_status ?? null,
+                 'payment_block_reason' => $appt->payment_block_reason ?? null
+             ];
+        }
+
+        // Notifications
+        $notifications = Auth::user()->unreadNotifications;
+
+        // Credits
+        $totalCredits = Auth::user()->paciente ? Auth::user()->paciente->credits()->where('status', 'active')->sum('amount') : 0;
 
         return view('dashboard.patient', compact(
             'appointments', 
-            'availabilities', 
-            'occupiedSlots', 
-            'nextAppointment', 
-            'resources', 
-            'documents', 
-            'googleAvailableSlots', 
-            'blockedDays', 
-            'blockWeekends', 
+            'allAppointments', 
+            'payableAppointment', 
+            'visibleFutureSessions', 
+            'completedAppointments',
+            'appointmentUiData', 
+            'resources',
+            'documents',
+            'nextAppointment',
+            'pendingRecoveryIds',
             'patientAppointmentsDates',
-            'fixedReservation'
+            'fixedReservation',
+            'blockedDays',
+            'blockWeekends',
+            'occupiedSlots', 
+            'adminUser',
+            'availabilities',
+            'googleAvailableSlots',
+            'notifications',
+            'totalCredits'
         ));
     }
 
@@ -238,7 +361,7 @@ class DashboardController extends Controller
             ->get();
 
         // Count pending appointments (esperando_pago)
-        $pendingAppointments = Appointment::where('estado', 'esperando_pago')->count();
+        $pendingAppointments = Appointment::where('estado', 'pendiente')->count();
         $confirmedAppointments = Appointment::where('estado', 'confirmado')->count();
 
         // Calculate Monthly Income (Real Income)
@@ -421,7 +544,8 @@ class DashboardController extends Controller
                 ->sum('monto_final');
 
             // 2. Por Cobrar (En realidad: DINERO EN REVISIÓN / Comprobantes Pendientes)
-            $pendingIncome = Appointment::whereHas('payment', function($q) {
+            $pendingIncome = Appointment::where('estado', '!=', 'cancelado')
+                ->whereHas('payment', function($q) {
                     $q->where('estado', 'pendiente');
                 })
                 ->count();
@@ -462,14 +586,26 @@ class DashboardController extends Controller
     {
         // Sincronización automática de Google Calendar removida por rendimiento
         
-        // Definir mes y año (Default: Hoy, pero clamped a Enero 2026 como mínimo si se pide histórico)
-  // La solicitud del usuario dice "apartir de enero de 2026 para aca adelante", implicando que ese es el inicio.
-        $now = now();
-        $month = $request->input('month', $now->month);
-        $year = $request->input('year', $now->year);
+        // Default: Start from January 2026 (the minimum allowed)
+        $minAllowed = \Carbon\Carbon::create(2026, 1, 1)->startOfDay();
+        
+        // If month/year provided in request, use them; otherwise default to January 2026
+        $month = $request->input('month');
+        $year = $request->input('year');
+        
+        if (!$month || !$year) {
+            // Default to current month/year
+            $month = now()->month;
+            $year = now()->year;
+        }
 
-        // Validar fecha mínima (Enero 2026) ?? No estrictamente necesario bloquearlo, pero el UI lo guiará.
+        // Validate: Don't allow going before January 2026
         $currentDate = \Carbon\Carbon::createFromDate($year, $month, 1);
+        if ($currentDate->lt($minAllowed)) {
+            $currentDate = $minAllowed->copy();
+            $month = 1;
+            $year = 2026;
+        }
         
         // Appointments del mes seleccionado
         $appointments = Appointment::with(['user', 'payment'])
@@ -478,10 +614,90 @@ class DashboardController extends Controller
             ->orderBy('fecha_hora', 'asc')
             ->get();
 
-        // Eventos de Google del mes seleccionado
-        // Filtramos en memoria o DB. Como ExternalEvent tiene start_time, usamos DB.
+        // Proyectar citas futuras para reservas fijas para el MES SELECCIONADO
+        $projectedAppointments = collect();
+        $fixedReservations = Appointment::where('es_recurrente', true)
+            ->where('estado', 'confirmado')
+            ->whereNotNull('fecha_hora')
+            ->get()
+            ->groupBy('usuario_id')
+            ->map(function($group) {
+                return $group->sortBy('fecha_hora')->first();
+            });
+
+        $now = now();
         $startOfMonth = $currentDate->copy()->startOfMonth();
         $endOfMonth = $currentDate->copy()->endOfMonth();
+        
+        foreach($fixedReservations as $fixedReservation) {
+            $userId = $fixedReservation->usuario_id;
+            $fixedDay = $fixedReservation->fecha_hora->dayOfWeek;
+            $fixedTime = $fixedReservation->fecha_hora->format('H:i:s');
+            
+            // Get existing future appointments for this user
+            $userFutureAppointments = Appointment::where('usuario_id', $userId)
+                ->where('fecha_hora', '>=', $now)
+                ->orderBy('fecha_hora', 'asc')
+                ->get();
+            
+            // Start from now or from last appointment
+            $lastDate = $userFutureAppointments->count() > 0 
+                ? $userFutureAppointments->last()->fecha_hora 
+                : $now->copy();
+            
+            // Optimización: solo proyectar desde el mes seleccionado actual o la última fecha (lo que sea mayor)
+            $iterDate = $startOfMonth->copy()->startOfDay();
+            if ($iterDate->lt($lastDate)) {
+                $iterDate = $lastDate->copy()->startOfDay();
+            }
+            $iterDate->subDay();
+            
+            // Project all remaining sessions for the viewed month
+            while($iterDate->lt($endOfMonth)) {
+                // Find next occurrence of fixed day
+                do {
+                    $iterDate->addDay();
+                } while($iterDate->dayOfWeek !== $fixedDay);
+                
+                $parts = explode(':', $fixedTime);
+                $iterDate->setTime($parts[0], $parts[1], 0);
+                
+                // Only project if after now and within the viewed month
+                if($iterDate->gte($now) && $iterDate->lte($endOfMonth)) {
+                    // Check if this date already exists in real appointments
+                    $exists = $appointments->contains(function($appt) use ($iterDate, $userId) {
+                        return $appt->usuario_id == $userId 
+                            && $appt->fecha_hora->format('Y-m-d') == $iterDate->format('Y-m-d');
+                    });
+                    
+                    if(!$exists) {
+                        $virtual = new Appointment();
+                        // Asignar un ID entero negativo para evitar conflictos y que JS no lo convierta a 0
+                        $virtual->id = - abs(crc32('proj_' . $userId . '_' . $iterDate->timestamp));
+                        $virtual->usuario_id = $userId;
+                        $virtual->fecha_hora = $iterDate->copy();
+                        $virtual->estado = 'confirmado';
+                        $virtual->es_recurrente = true;
+                        $virtual->modalidad = $fixedReservation->modalidad;
+                        $virtual->monto_final = $fixedReservation->monto_final;
+                        $virtual->is_projected = true;
+                        $virtual->user = $fixedReservation->user;
+                        $projectedAppointments->push($virtual);
+                    }
+                }
+                
+                // Stop if we've projected enough
+                if($iterDate->gte($endOfMonth)) break;
+            }
+        }
+
+        // Merge projected appointments into the main appointments collection
+        if($projectedAppointments->count() > 0) {
+            $appointments = $appointments->concat($projectedAppointments)->sortBy('fecha_hora');
+        }
+
+        // Eventos de Google del mes seleccionado
+        // Filtramos en memoria o DB. Como ExternalEvent tiene start_time, usamos DB.
 
         $externalEvents = ExternalEvent::where(function($q) use ($startOfMonth, $endOfMonth) {
             $q->whereBetween('start_time', [$startOfMonth, $endOfMonth])
@@ -511,7 +727,6 @@ class DashboardController extends Controller
             ->get();
 
         $prev = $currentDate->copy()->subMonth();
-        $minAllowed = \Carbon\Carbon::create(2026, 1, 1)->startOfDay();
 
         return view('dashboard.admin.agenda', compact(
             'todayAppointments', 

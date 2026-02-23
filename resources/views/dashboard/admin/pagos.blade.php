@@ -48,7 +48,7 @@
                                 <form id="reject-payment-{{ $appt->payment->id }}" action="{{ route('admin.payments.reject', $appt->payment->id) }}" method="POST" style="flex:1;">
                                     @csrf
                                     <button type="button" class="neobrutalist-btn bg-lila w-full no-select" style="padding: 8px; font-size: 0.75rem;" 
-                                            onclick="confirmAction('reject-payment-{{ $appt->payment->id }}', '¿Rechazar este comprobante?')">
+                                            onclick="confirmAction('reject-payment-{{ $appt->payment->id }}', '¿Estás seguro/a que querés rechazar este comprobante?')">
                                         <i class="fa-solid fa-times"></i> Rechazar
                                     </button>
                                 </form>

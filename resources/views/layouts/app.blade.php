@@ -78,6 +78,8 @@
             }
             .app-main-wrapper {
                 padding-top: 70px !important;
+                margin-left: 0 !important;
+                width: 100% !important;
             }
         }
 
@@ -292,11 +294,12 @@
         z-index: 1000;
         max-height: 80vh;
         overflow-y: hidden; /* Header fixed, items scroll */
+        overflow-x: hidden !important;
         border-radius: 0 !important;
     }
     
-    /* Remove any hover effect that changes shadow */
-    .notification-dropdown:hover {
+    /* Remove any hover effect that changes shadow or scale */
+    .notification-dropdown:hover, .notification-item:hover {
         box-shadow: 6px 6px 0px #000 !important;
         transform: none !important;
     }
@@ -304,6 +307,7 @@
     .notification-items-container {
         max-height: 400px;
         overflow-y: auto !important;
+        overflow-x: hidden !important;
         /* Custom Scrollbar */
         scrollbar-width: thin;
         scrollbar-color: #000 #f1f1f1;
@@ -356,6 +360,7 @@
         /* Notification Items Cursor Fix */
         .notification-item {
             cursor: pointer !important;
+            overflow-x: hidden !important;
         }
         
         .notification-dropdown {
@@ -569,7 +574,7 @@
                     </div>
                 </nav>
 
-                <main class="app-main-wrapper" style="margin-left: 0; padding-top: 70px !important; width: 100%; flex: 1; background-color: var(--color-celeste); display: flex; flex-direction: column; align-items: center;">
+                <main class="app-main-wrapper" style="margin-left: 280px; padding-top: 100px !important; width: calc(100% - 280px); min-height: 100vh; background-color: var(--color-celeste);">
  
                     <!-- Universal Header (Restored) -->
                     <header class="universal-header" style="background: white; border-bottom: var(--border-thick); position: fixed; top: 0; left: 0; right: 0; z-index: 7000; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
@@ -597,7 +602,7 @@
                                     }
                                 </style>
                                 <a href="{{ route('admin.home') }}" class="logo-text logo-shift" style="text-decoration: none; display: flex; align-items: center; gap: 0.8rem;">
-                                    <span class="brand-title logo no-select">Lic. <span class="hide-on-mobile">Nazarena</span> De Luca</span>
+                                    <span class="brand-title logo no-select" style="font-size: 1.4rem;">Lic. <span class="hide-on-mobile">Nazarena</span> De Luca</span>
                                 </a>
                             </div>
 
@@ -723,12 +728,28 @@
             <!-- Patient Header -->
             @auth
                 <header class="universal-header" style="background: white; border-bottom: var(--border-thick); position: fixed; top: 0; left: 0; right: 0; z-index: 7000; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
-                    <div class="header-content" style="padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; width: 100%; box-sizing: border-box; max-width: 100vw;">
+                    <div class="header-content" style="padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; width: 100%; box-sizing: border-box; max-width: 1400px; margin: 0 auto;">
                         <!-- LEFT SIDE: Brand -->
-                        <div class="header-left" style="display: flex; align-items: center; gap: 1rem;">
-                                <div class="logo-text" style="margin-left: 0; cursor: default;">
+                        <div class="header-left" style="display: flex; flex: 1; align-items: center; gap: 1rem;">
+                            <a href="{{ route('patient.dashboard') }}" style="text-decoration: none;">
+                                <div class="logo-text" style="margin-left: 0; cursor: pointer;">
                                     <span class="brand-title logo no-select" style="font-size: 1.4rem;">Lic. <span class="hide-on-mobile">Nazarena</span> De Luca</span>
                                 </div>
+                            </a>
+                        </div>
+
+                        <!-- CENTER: PC Toolbar -->
+                        <nav class="header-toolbar hide-on-mobile" style="display: flex; align-items: center; gap: 1.5rem; background: #f8f9fa; border: 3px solid #000; border-radius: 50px; padding: 0.4rem 1.5rem; box-shadow: 4px 4px 0px #000;">
+                            <a href="#reservar" onclick="event.preventDefault(); document.querySelector('{{ $fixedReservation ? '#fixed-reservation-status' : '.booking-column' }}')?.scrollIntoView({behavior:'smooth'})" style="text-decoration: none; color: #000; font-weight: 800; font-size: 0.9rem; text-transform: uppercase; transition: all 0.2s;" class="toolbar-link">{{ $fixedReservation ? 'Mi Reserva' : 'Reservar' }}</a>
+                            <a href="#mis-turnos" onclick="event.preventDefault(); document.getElementById('mis-turnos-section')?.scrollIntoView({behavior:'smooth'})" style="text-decoration: none; color: #000; font-weight: 800; font-size: 0.9rem; text-transform: uppercase; transition: all 0.2s;" class="toolbar-link">Mis Turnos</a>
+                            <a href="#documentos" onclick="event.preventDefault(); document.getElementById('documentos')?.scrollIntoView({behavior:'smooth'})" style="text-decoration: none; color: #000; font-weight: 800; font-size: 0.9rem; text-transform: uppercase; transition: all 0.2s;" class="toolbar-link">Documentos</a>
+                        </nav>
+                        <style>
+                            .toolbar-link:hover { color: var(--color-rojo); transform: translateY(-1px); }
+                            @media (max-width: 1024px) {
+                                .header-toolbar { display: none !important; }
+                            }
+                        </style>
                             <style>
                                 @media (max-width: 768px) {
                                     .header-left .logo-text {
@@ -752,15 +773,10 @@
                                     body { padding-bottom: 0 !important; }
                                     #whatsapp-widget-container { bottom: 20px !important; }
                                     
-                                    .header-right {
-                                        gap: 0.5rem !important;
-                                    }
-                                }
                             </style>
-                        </div>
-
-                        <!-- RIGHT SIDE: Notifications, Logout -->
-                        <div class="header-right" style="display: flex; align-items: center; gap: 1.5rem;">
+                        
+                            <!-- RIGHT SIDE: Notifications, Logout -->
+                            <div class="header-right" style="display: flex; flex: 1; align-items: center; gap: 1.5rem; justify-content: flex-end;">
                                <div class="header-navbar" style="display: flex; align-items: center; gap: 1.2rem;">
                                 <!-- Mobile Sidebar Trigger (Top-Down Menu) -->
                                 <button onclick="togglePatientMenu()" class="sidebar-trigger-btn" style="background: var(--color-amarillo); border: 3px solid #000; padding: 0.5rem; border-radius: 10px; cursor: pointer; box-shadow: 3px 3px 0px #000; display: none;">
@@ -769,7 +785,7 @@
                                 <!-- Notifications Bell -->
                                 <div id="patient-notif-bell" class="notification-bell-container" onclick="toggleNotifications(event, 'patient-notif-dropdown')" style="cursor: pointer; position: relative; font-size: 1.8rem; display: flex; align-items: center; z-index: 10001;">
                                         <i class="fa-solid fa-bell" style="color: #000;"></i>
-                                    <span class="notification-badge" id="patient-notif-count" style="position: absolute; top: 2px; right: 2px; background: #ff4d4d; color: white; border-radius: 50%; min-width: 17px; height: 17px; font-size: 0.6rem; display: none; align-items: center; justify-content: center; border: 1.5px solid #fff; font-weight: 800; padding: 0 4px;">0</span>
+                                    <span class="notification-badge" id="patient-notif-count" style="position: absolute; top: 2px; right: 2px; background: #ff4d4d; color: white; border-radius: 50%; min-width: 17px; height: 17px; font-size: 0.6rem; display: {{ (isset($notifications) && $notifications->count() > 0) ? 'flex' : 'none' }}; align-items: center; justify-content: center; border: 1.5px solid #fff; font-weight: 800; padding: 0 4px;">{{ isset($notifications) ? $notifications->count() : 0 }}</span>
                                         
                                     <!-- Dropdown -->
                                     <div id="patient-notif-dropdown" class="notification-dropdown" onclick="event.stopPropagation()" style="display: none; position: absolute; top: calc(100% + 15px); right: -10px; width: 360px; max-width: 95vw; background: white; border-radius: 16px; box-shadow: 0 16px 40px rgba(0,0,0,0.18), 0 4px 12px rgba(0,0,0,0.08); overflow: hidden; z-index: 10005; border: 3px solid #000;">
@@ -780,12 +796,34 @@
                                                 </button>
                                             </div>
                                         <div id="patient-notif-items" class="notification-items-container" style="max-height: 420px; overflow-y: auto;">
+                                            @if(isset($notifications) && $notifications->count() > 0)
+                                                @foreach($notifications as $notification)
+                                                    <div class="notification-item" style="padding: 1rem 1.2rem; border-bottom: 1px solid #eee; display: flex; gap: 1rem; align-items: flex-start; transition: background 0.2s; cursor: pointer;" onclick="window.location.href='{{ $notification->data['link'] ?? '#' }}'">
+                                                        <div class="notif-icon" style="background: {{ $notification->data['type'] == 'success' ? '#dcfce7' : '#f3f4f6' }}; color: {{ $notification->data['type'] == 'success' ? '#166534' : '#374151' }}; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; border: 2px solid #000; flex-shrink: 0;">
+                                                            @if(($notification->data['type'] ?? '') == 'success')
+                                                                <i class="fa-solid fa-check"></i>
+                                                            @elseif(($notification->data['type'] ?? '') == 'pago')
+                                                                <i class="fa-solid fa-wallet"></i>
+                                                            @else
+                                                                <i class="fa-solid fa-bell"></i>
+                                                            @endif
+                                                        </div>
+                                                        <div class="notif-content" style="flex: 1;">
+                                                            <div style="font-weight: 800; color: #111; font-size: 0.95rem; margin-bottom: 0.2rem; font-family: 'Manrope', sans-serif;">{{ $notification->data['title'] ?? 'Nueva Notificación' }}</div>
+                                                            <div style="font-size: 0.85rem; color: #555; line-height: 1.4;">{{ $notification->data['mensaje'] ?? '' }}</div>
+                                                            <div style="font-size: 0.75rem; color: #999; margin-top: 0.4rem; font-weight: 600;">{{ $notification->created_at->diffForHumans() }}</div>
+                                                        </div>
+                                                        <div class="notif-indicator" style="width: 8px; height: 8px; background: var(--color-rojo); border-radius: 50%;"></div>
+                                                    </div>
+                                                @endforeach
+                                            @else
                                                 <div class="notification-empty" style="padding: 3rem 1.5rem; text-align: center; color: #888;">
-                                                    <div class="icon-placeholder" style="color: #bbb;"><i class="fa-solid fa-bell"></i></div>
+                                                    <div class="icon-placeholder" style="color: #bbb; font-size: 2rem; margin-bottom: 1rem;"><i class="fa-solid fa-bell-slash"></i></div>
                                                     <div style="font-weight: 600; color: #333; margin-bottom: 0.5rem; font-size: 1.1rem;">Todo al día</div>
                                                     <div style="font-size: 0.9rem; line-height: 1.4; color: #666;">No tenés notificaciones nuevas por ahora.</div>
                                                 </div>
-                                            </div>
+                                            @endif
+                                        </div>
                                         </div>
                                     </div>
 
@@ -877,9 +915,27 @@
                     <style>
                         /* Subtle Bell Interaction */
         .notification-bell-container {
-            /* Sin animaciones por pedido del usuario */
+            position: relative;
+            cursor: pointer;
         }
-                        
+        
+        /* NUCLEAR OPTION: Kill all hover transforms on notification items */
+        .notification-item, 
+        .notification-item:hover,
+        .notification-bell-container:hover i,
+        .notification-bell-container i:hover {
+            transform: none !important;
+            transition: none !important;
+            animation: none !important;
+            box-shadow: none !important;
+            filter: none !important;
+        }
+
+        /* Prevent bell icon scale */
+        .fa-bell {
+            transition: none !important;
+        }
+        
                         @keyframes slideInRight {
                             from {
                                 transform: translateX(400px);
@@ -1038,6 +1094,32 @@
             }
             // Fallback native
             if(confirm(message) && callback) callback();
+        };
+
+        // Función para verificar cancelación - siempre permite cancelar, pero avisa si ya pagó
+        window.checkCancelAppointment = function(appointmentId, fechaHora, isProjected = false) {
+            if (isProjected) {
+                // Para sesiones proyectadas, no hay formulario real, solo alerta
+                window.showAlert('Esta sesión aún no está confirmada. El turno se confirmará al pagar.');
+                return;
+            }
+            
+            // Si es una sesión real, siempre permitir cancelar
+            // Si ya pagó, mostrar mensaje de crédito
+            const form = document.querySelector('form[action*="/appointments/" + appointmentId + "/cancel"]');
+            if (form) {
+                const pagoVerificado = form.dataset.pagoVerificado === 'true';
+                
+                if (pagoVerificado) {
+                    window.showConfirm('El pago se guardará como crédito para tu próxima sesión. ¿Continuar?', () => {
+                        form.submit();
+                    });
+                } else {
+                    window.showConfirm('¿Seguro querés cancelar este turno?', () => {
+                        form.submit();
+                    });
+                }
+            }
         };
     </script>
 
@@ -1400,7 +1482,7 @@
                 
                 if (items && notifications.length > 0) {
                     items.innerHTML = notifications.map(n => `
-                        <div class="notification-item" data-id="${n.id}" style="border-bottom: 1px solid #f0f0f0; padding: 16px 24px; display: block; text-decoration: none; cursor: pointer; background: ${n.leido ? 'white' : '#f9fafb'};" onclick="markAsRead('${n.id}')">
+                        <div class="notification-item" data-id="${n.id}" style="border-bottom: 1px solid #f0f0f0; padding: 16px 24px; display: block; text-decoration: none; cursor: pointer; background: ${n.leido ? 'white' : '#f9fafb'};" onclick="markAsRead('${n.id}', '${n.link}')">
                             <div style="display: flex; justify-content: space-between; align-items: start; gap: 12px;">
                                 <div style="flex: 1;">
                                     <p style="margin:0; font-size: 0.9rem; font-weight: ${n.leido ? '400' : '600'}; font-family: 'Inter', sans-serif; color: #1f2937; line-height: 1.5;">${n.mensaje}</p>
@@ -1420,13 +1502,23 @@
             }
         }
 
-        async function markAsRead(id) {
+        async function markAsRead(id, link = null) {
             // Sin animaciones ni demoras, acción instantánea y estática
-            await fetch(`/notifications/${id}/read`, {
-                method: 'POST',
-                headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' }
-            });
-            fetchNotifications();
+            try {
+                await fetch(`/notifications/${id}/read`, {
+                    method: 'POST',
+                    headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' }
+                });
+                
+                if (link && link !== '#') {
+                    window.location.href = link;
+                } else {
+                    fetchNotifications();
+                }
+            } catch (error) {
+                console.error("Error marking as read", error);
+                if (link && link !== '#') window.location.href = link;
+            }
         }
 
         async function markAllRead() {
@@ -1890,6 +1982,38 @@
                 // Toggle target
                 dropdown.style.display = isVisible ? 'none' : 'block';
             }
+        };
+
+        // Mark All Notifications as Read
+        window.markAllRead = function() {
+            fetch('{{ route('notifications.read-all') }}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Hide badge
+                    const badge = document.getElementById('patient-notif-count');
+                    if(badge) badge.style.display = 'none';
+                    
+                    // Replace list with empty state
+                    const container = document.getElementById('patient-notif-items');
+                    if(container) {
+                        container.innerHTML = `
+                            <div class="notification-empty" style="padding: 3rem 1.5rem; text-align: center; color: #888;">
+                                <div class="icon-placeholder" style="color: #bbb; font-size: 2rem; margin-bottom: 1rem;"><i class="fa-solid fa-bell-slash"></i></div>
+                                <div style="font-weight: 600; color: #333; margin-bottom: 0.5rem; font-size: 1.1rem;">Todo al día</div>
+                                <div style="font-size: 0.9rem; line-height: 1.4; color: #666;">No tenés notificaciones nuevas por ahora.</div>
+                            </div>
+                        `;
+                    }
+                }
+            })
+            .catch(error => console.error('Error marking notifications as read:', error));
         };
     </script>
 

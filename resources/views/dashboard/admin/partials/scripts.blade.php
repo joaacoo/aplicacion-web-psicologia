@@ -116,8 +116,15 @@
 
         const waBtn = document.getElementById('manageWhatsAppBtn');
         if(waBtn) {
-            let cleanPhone = phone.replace(/[^0-9]/g, '');
-            waBtn.href = 'https://wa.me/' + cleanPhone;
+            if (phone && phone.trim() !== '' && phone !== 'No registrado') {
+                let cleanPhone = phone.replace(/[^0-9]/g, '');
+                // Ensure it has country code if missing (optional, but good practice for wa.me)
+                if (cleanPhone.length === 10) cleanPhone = '549' + cleanPhone; 
+                waBtn.href = 'https://wa.me/' + cleanPhone;
+                waBtn.style.display = 'block';
+            } else {
+                waBtn.style.display = 'none';
+            }
         }
 
         // Honorarios / Custom Price
@@ -226,4 +233,50 @@
             document.body.style.overflow = '';
         }
     };
+    // AJAX save for Meet Link 
+    document.addEventListener('DOMContentLoaded', () => {
+        const linkForm = document.getElementById('manage-link-form');
+        if (linkForm) {
+            linkForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const formData = new FormData(this);
+                const action = this.action;
+                const submitBtn = this.querySelector('button[type="submit"]');
+                const originalContent = submitBtn.innerHTML;
+
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+
+                fetch(action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    submitBtn.innerHTML = '<i class="fa-solid fa-check"></i>';
+                    submitBtn.style.background = '#86efac';
+                    
+                    // Update the local appointments data to reflect the change if the user re-opens
+                    // This is complex as appointments is a global const, but for the current session:
+                    const meetInput = document.getElementById('manageMeetLink');
+                    if(meetInput) meetInput.value = formData.get('meet_link');
+                    
+                    setTimeout(() => {
+                        submitBtn.innerHTML = originalContent;
+                        submitBtn.style.background = '#bae6fd';
+                        submitBtn.disabled = false;
+                    }, 2000);
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    // Fallback to normal submit if AJAX fails
+                    this.submit();
+                });
+            });
+        }
+    });
 </script>

@@ -43,18 +43,11 @@
             gap: 0.5rem;
             flex-wrap: wrap;
         }
-    </style>
-    <style>
-      @media (max-width: 768px) {
-        .appt-mobile-btn { display: inline-flex; justify-content: center; align-items: center; width: 100%; }
-        .center-on-mobile { display: flex; justify-content: center; align-items: center; text-align: center; }
-      }
-    </style>
-    <style>
-      @media (max-width: 768px) {
-        .center-on-mobile { display:flex; justify-content:center; align-items:center; text-align:center; }
-        .appt-mobile-btn { display:inline-flex; justify-content:center; align-items:center; width:100%; height:32px; padding:0.25rem 0.5rem; font-size:0.75rem; background:#f5f5f5; border:2px solid #ddd; color:#aaa; border-radius:4px; }
-      }
+        .disabled-btn {
+            opacity: 0.5;
+            pointer-events: none;
+            filter: grayscale(1);
+        }
     </style>
     <div style="width: 100%; flex-grow: 1;">
         <!-- Desktop Table -->
@@ -72,6 +65,13 @@
                 </thead>
                 <tbody>
                     @foreach($appointments as $appt)
+                        @php
+                            $isVirtual = ($appt->modalidad ?? 'virtual') == 'virtual';
+                            $canJoin = $appt->canJoinMeet();
+                            $isFinished = $appt->estado === \App\Models\Appointment::ESTADO_FINALIZADO || ($appt->fecha_hora->copy()->addMinutes(45)->isPast());
+                            $isCriticalZone = $appt->isInCriticalZone();
+                            $paymentStatus = $appt->payment->estado ?? 'pendiente_pago';
+                        @endphp
                         <tr style="border-bottom: 1px solid #2D2D2D;">
                             <td style="padding: 0.5rem; white-space: nowrap; text-align: center;">{{ $appt->fecha_hora->format('d/m') }}</td>
                             <td style="padding: 0.5rem; white-space: nowrap; text-align: center;">{{ $appt->fecha_hora->format('H:i') }}</td>
@@ -80,23 +80,31 @@
                             </td>
                             <td style="padding: 0.5rem; white-space: nowrap;">
                                 @php
+                                    $statusName = match($appt->estado) {
+                                        'confirmado' => 'Confirmado',
+                                        'cancelado' => 'Cancelado',
+                                        \App\Models\Appointment::ESTADO_SESION_PERDIDA => 'Sesión Perdida',
+                                        \App\Models\Appointment::ESTADO_FINALIZADO => 'Finalizado',
+                                        default => ucfirst($appt->estado)
+                                    };
                                     $statusBg = match($appt->estado) {
                                         'confirmado' => '#f0fdf4',
                                         'cancelado' => '#fef2f2',
-                                        'realizado' => '#eff6ff',
+                                        \App\Models\Appointment::ESTADO_SESION_PERDIDA => '#fff1f2',
+                                        \App\Models\Appointment::ESTADO_FINALIZADO => '#f1f5f9',
                                         default => '#fffbeb'
                                     };
                                     $statusColor = match($appt->estado) {
                                         'confirmado' => '#166534',
                                         'cancelado' => '#991b1b',
-                                        'realizado' => '#1e40af',
+                                        \App\Models\Appointment::ESTADO_SESION_PERDIDA => '#e11d48',
+                                        \App\Models\Appointment::ESTADO_FINALIZADO => '#475569',
                                         default => '#92400e'
                                     };
-                                    $statusBorder = $statusColor;
                                 @endphp
                                 <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
-                                    <span style="font-weight: 900; color: {{ $statusColor }}; background: {{ $statusBg }}; border: 1px solid {{ $statusBorder }}; padding: 2px 8px; border-radius: 6px; font-size: 0.7rem; display: inline-block; text-transform: uppercase; white-space: nowrap;">
-                                        {{ $appt->estado == 'esperando_pago' ? 'Pendiente' : ucfirst($appt->estado) }}
+                                    <span style="font-weight: 900; color: {{ $statusColor }}; background: {{ $statusBg }}; border: 1px solid {{ $statusColor }}; padding: 2px 8px; border-radius: 6px; font-size: 0.7rem; display: inline-block; text-transform: uppercase; white-space: nowrap;">
+                                        {{ $statusName }}
                                     </span>
                                     @if($appt->es_recurrente)
                                         <div style="font-size: 0.75rem; color: #000; font-weight: 900; text-transform: uppercase; display: flex; align-items: center; gap: 3px; white-space: nowrap;">
@@ -113,26 +121,41 @@
                                 @elseif($appt->payment && $appt->payment->estado == 'rechazado')
                                     <span style="color: #e11d48; font-weight: bold;">Rechazado</span>
                                 @else
-                                    <span style="color: #666;">-</span>
+                                    <span style="color: #666; font-weight: bold;">Pendiente</span>
                                 @endif
                             </td>
                             <td style="padding: 0.5rem;">
-                                @if($appt->estado != 'cancelado')
+                                @if($isFinished)
+                                    <div style="text-align: center; color: #666; font-weight: 900;">—</div>
+                                @elseif($appt->estado != 'cancelado' && $appt->estado != \App\Models\Appointment::ESTADO_SESION_PERDIDA)
                                     <div class="actions-wrapper" style="display: flex; gap: 5px; flex-wrap: wrap; justify-content: center;">
-                                        @if(($appt->modalidad ?? 'virtual') == 'virtual' && $appt->estado == 'confirmado')
-                                            <a href="{{ $appt->meet_link ?: ($patient->meet_link ?: '#') }}" target="_blank" class="neobrutalist-btn" style="flex: 1 1 0%; padding: 0.3rem 0.6rem; font-size: 0.75rem; background: #fff; border: 2px solid #000; text-decoration: none; color: #000; display: inline-flex; align-items: center; gap: 4px; justify-content: center; min-width: 90px; height: 32px; white-space: nowrap;">
+                                        @if($isVirtual)
+                                            <a href="{{ $appt->meet_link ?: '#' }}" 
+                                               target="_blank" 
+                                               class="neobrutalist-btn join-btn {{ $canJoin ? 'bg-celeste' : 'disabled-btn' }}" 
+                                               style="flex: 1 1 0%; padding: 0.3rem 0.6rem; font-size: 0.75rem; border: 2px solid #000; text-decoration: none; color: #000; display: inline-flex; align-items: center; gap: 4px; justify-content: center; min-width: 90px; height: 32px; white-space: nowrap;"
+                                               data-start="{{ $appt->fecha_hora->toISOString() }}">
                                                 <i class="fa-solid fa-video"></i> Unirse
                                             </a>
                                         @endif
                                         
-                                        @if($appt->estado != 'realizado' && $appt->fecha_hora->isFuture())
-                                            <form action="{{ route('appointments.cancel', $appt->id) }}" method="POST" style="display:inline; flex: 1 1 0%; min-width: 90px;">
-                                                @csrf
-                                                <button type="button" class="neobrutalist-btn bg-lila" style="padding: 0.3rem 0.6rem; font-size: 0.75rem; width: 100%; height: 32px; display: inline-flex; align-items: center; justify-content: center; white-space: nowrap;" onclick="window.showConfirm('¿Seguro querés cancelar este turno?', () => this.closest('form').submit())">
-                                                    Cancelar
-                                                </button>
-                                            </form>
+                                        @if(!($appt->payment && $appt->payment->estado == 'verificado'))
+                                            <button onclick="openPaymentModal({{ $appt->id }}, {{ $appt->monto_final }})" class="neobrutalist-btn bg-verde" style="flex: 1 1 0%; padding: 0.3rem 0.6rem; font-size: 0.75rem; min-width: 90px; height: 32px; display: inline-flex; align-items: center; justify-content: center; white-space: nowrap;">
+                                                <i class="fa-solid fa-dollar-sign"></i> Pagar
+                                            </button>
                                         @endif
+
+                                        <form action="{{ route('appointments.cancel', $appt->id) }}" method="POST" style="display:inline; flex: 1 1 0%; min-width: 90px;">
+                                            @csrf
+                                            @php
+                                                $cancelMsg = $isCriticalZone 
+                                                    ? '¡ATENCIÓN! Faltan menos de 24hs. No se reintegra el valor por política de la clínica. ¿Seguro querés cancelar?' 
+                                                    : '¿Seguro querés cancelar este turno? Se generará crédito a tu favor si ya pagaste.';
+                                            @endphp
+                                            <button type="button" class="neobrutalist-btn bg-lila" style="padding: 0.3rem 0.6rem; font-size: 0.75rem; width: 100%; height: 32px; display: inline-flex; align-items: center; justify-content: center; white-space: nowrap;" onclick="window.showConfirm('{{ $cancelMsg }}', () => this.closest('form').submit())">
+                                                Cancelar
+                                            </button>
+                                        </form>
                                     </div>
                                 @else
                                     <div class="actions-wrapper" style="display: flex; justify-content: center;">
@@ -151,6 +174,12 @@
         <!-- Mobile Cards -->
         <div class="appointments-cards">
             @foreach($appointments as $appt)
+                @php
+                    $isVirtual = ($appt->modalidad ?? 'virtual') == 'virtual';
+                    $canJoin = $appt->canJoinMeet();
+                    $isFinished = $appt->estado === \App\Models\Appointment::ESTADO_FINALIZADO || ($appt->fecha_hora->copy()->addMinutes(45)->isPast());
+                    $isCriticalZone = $appt->isInCriticalZone();
+                @endphp
                 <div class="appointment-card">
                     <div class="card-row">
                         <span class="card-label">Fecha:</span>
@@ -168,22 +197,30 @@
                         <span class="card-label">Estado:</span>
                         <span class="card-value">
                             @php
+                                $statusName = match($appt->estado) {
+                                    'confirmado' => 'Confirmado',
+                                    'cancelado' => 'Cancelado',
+                                    \App\Models\Appointment::ESTADO_SESION_PERDIDA => 'Sesión Perdida',
+                                    \App\Models\Appointment::ESTADO_FINALIZADO => 'Finalizado',
+                                    default => ucfirst($appt->estado)
+                                };
                                 $statusBg = match($appt->estado) {
                                     'confirmado' => '#f0fdf4',
                                     'cancelado' => '#fef2f2',
-                                    'realizado' => '#eff6ff',
+                                    \App\Models\Appointment::ESTADO_SESION_PERDIDA => '#fff1f2',
+                                    \App\Models\Appointment::ESTADO_FINALIZADO => '#f1f5f9',
                                     default => '#fffbeb'
                                 };
                                 $statusColor = match($appt->estado) {
                                     'confirmado' => '#166534',
                                     'cancelado' => '#991b1b',
-                                    'realizado' => '#1e40af',
+                                    \App\Models\Appointment::ESTADO_SESION_PERDIDA => '#e11d48',
+                                    \App\Models\Appointment::ESTADO_FINALIZADO => '#475569',
                                     default => '#92400e'
                                 };
-                                $statusBorder = $statusColor;
                             @endphp
-                            <span style="font-weight: 900; color: {{ $statusColor }}; background: {{ $statusBg }}; border: 1px solid {{ $statusBorder }}; padding: 2px 8px; border-radius: 6px; font-size: 0.7rem; display: inline-block; text-transform: uppercase; white-space: nowrap;">
-                                {{ $appt->estado == 'esperando_pago' ? 'Pendiente' : ucfirst($appt->estado) }}
+                            <span style="font-weight: 900; color: {{ $statusColor }}; background: {{ $statusBg }}; border: 1px solid {{ $statusColor }}; padding: 2px 8px; border-radius: 6px; font-size: 0.7rem; display: inline-block; text-transform: uppercase; white-space: nowrap;">
+                                {{ $statusName }}
                             </span>
                             @if($appt->es_recurrente)
                                 <div style="font-size: 0.55rem; color: #000; font-weight: 900; text-transform: uppercase; display: flex; align-items: center; gap: 3px; white-space: nowrap; margin-top: 4px;">
@@ -202,26 +239,41 @@
                             @elseif($appt->payment && $appt->payment->estado == 'rechazado')
                                 <span style="color: #e11d48; font-weight: bold;">Rechazado</span>
                             @else
-                                <span style="color: #666;">-</span>
+                                <span style="color: #666; font-weight: bold;">Pendiente</span>
                             @endif
                         </span>
                     </div>
                     <div class="actions-wrapper">
-                        @if($appt->estado != 'cancelado')
-                                @if(($appt->modalidad ?? 'virtual') == 'virtual' && $appt->estado == 'confirmado')
-                                    <a href="{{ $appt->meet_link ?: ($patient->meet_link ?: '#') }}" target="_blank" class="neobrutalist-btn appt-mobile-btn" style="flex: 1; max-width: 100%; min-width: 90px; height: 32px; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; color: #000;">
-                                        <i class="fa-solid fa-video"></i> Unirse
-                                    </a>
+                        @if($isFinished)
+                            <div style="width: 100%; text-align: center; color: #666; font-weight: 900; padding: 0.5rem;">—</div>
+                        @elseif($appt->estado != 'cancelado' && $appt->estado != \App\Models\Appointment::ESTADO_SESION_PERDIDA)
+                            @if($isVirtual)
+                                <a href="{{ $appt->meet_link ?: '#' }}" 
+                                   target="_blank" 
+                                   class="neobrutalist-btn join-btn {{ $canJoin ? 'bg-celeste' : 'disabled-btn' }}" 
+                                   style="flex: 1; padding: 0.3rem 0.6rem; font-size: 0.75rem; border: 2px solid #000; text-decoration: none; color: #000; display: inline-flex; align-items: center; gap: 4px; justify-content: center; min-width: 90px; height: 32px; white-space: nowrap;"
+                                   data-start="{{ $appt->fecha_hora->toISOString() }}">
+                                    <i class="fa-solid fa-video"></i> Unirse
+                                </a>
                             @endif
                             
-                            @if($appt->estado != 'realizado' && $appt->fecha_hora->isFuture())
-                                <form action="{{ route('appointments.cancel', $appt->id) }}" method="POST" style="display:inline; flex: 1;">
-                                    @csrf
-                                    <button type="button" class="neobrutalist-btn bg-lila" style="padding: 0.3rem 0.6rem; font-size: 0.75rem; width: 100%; height: 32px; display: inline-flex; align-items: center; justify-content: center; white-space: nowrap;" onclick="window.showConfirm('¿Seguro querés cancelar este turno?', () => this.closest('form').submit())">
-                                        Cancelar
-                                    </button>
-                                </form>
+                            @if(!($appt->payment && $appt->payment->estado == 'verificado'))
+                                <button onclick="openPaymentModal({{ $appt->id }}, {{ $appt->monto_final }})" class="neobrutalist-btn bg-verde" style="flex: 1; padding: 0.3rem 0.6rem; font-size: 0.75rem; display: inline-flex; align-items: center; justify-content: center; height: 32px;">
+                                    <i class="fa-solid fa-dollar-sign"></i> Pagar
+                                </button>
                             @endif
+
+                            <form action="{{ route('appointments.cancel', $appt->id) }}" method="POST" style="display:inline; flex: 1;">
+                                @csrf
+                                @php
+                                    $cancelMsg = $isCriticalZone 
+                                        ? '¡ATENCIÓN! Faltan menos de 24hs. No se reintegra el valor por política de la clínica. ¿Seguro querés cancelar?' 
+                                        : '¿Seguro querés cancelar este turno? Se generará crédito a tu favor si ya pagaste.';
+                                @endphp
+                                <button type="button" class="neobrutalist-btn bg-lila" style="padding: 0.3rem 0.6rem; font-size: 0.75rem; width: 100%; height: 32px; display: inline-flex; align-items: center; justify-content: center; white-space: nowrap;" onclick="window.showConfirm('{{ $cancelMsg }}', () => this.closest('form').submit())">
+                                    Cancelar
+                                </button>
+                            </form>
                         @else
                             <button onclick="openRecoveryModal({{ $appt->id }})" class="neobrutalist-btn bg-amarillo" style="padding: 0.3rem 0.6rem; font-size: 0.75rem; width: 100%; height: 32px; display: inline-flex; align-items: center; justify-content: center;">
                                 <i class="fa-solid fa-redo"></i> Recuperar
@@ -231,12 +283,55 @@
                 </div>
             @endforeach
         </div>
+
+        <!-- Pagination -->
+        <div style="margin-top: 1.5rem; display: flex; justify-content: center; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+            @if($appointments->onFirstPage())
+                <span class="neobrutalist-btn disabled-btn" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;"><i class="fa-solid fa-arrow-left"></i> Anterior</span>
+            @else
+                <a href="{{ $appointments->previousPageUrl() }}" class="neobrutalist-btn bg-amarillo" style="padding: 0.4rem 0.8rem; font-size: 0.8rem; text-decoration: none; color: #000;">
+                    <i class="fa-solid fa-arrow-left"></i> Anterior {{ $appointments->currentPage() - 1 }}
+                </a>
+            @endif
+
+            <span style="font-weight: 900; background: transparent; color: #000; padding: 0.4rem 0.8rem; border-radius: 4px; border: 2px solid #000; font-size: 0.8rem;">
+                 {{ $appointments->currentPage() }}
+            </span>
+
+            @if($appointments->hasMorePages())
+                <a href="{{ $appointments->nextPageUrl() }}" class="neobrutalist-btn bg-celeste" style="padding: 0.4rem 0.8rem; font-size: 0.8rem; text-decoration: none; color: #000;">
+                    Siguiente {{ $appointments->currentPage() + 1 }} <i class="fa-solid fa-arrow-right"></i>
+                </a>
+            @else
+                <span class="neobrutalist-btn disabled-btn" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;">Siguiente <i class="fa-solid fa-arrow-right"></i></span>
+            @endif
+        </div>
     </div>
 
+    <script>
+        // Lógica de "Botón Inteligente" local
+        setInterval(() => {
+            const now = new Date();
+            document.querySelectorAll('.join-btn').forEach(btn => {
+                const startTime = new Date(btn.dataset.start);
+                const diffMs = startTime - now;
+                const diffMin = diffMs / 1000 / 60;
+                
+                // Si faltan 10 min o menos, y no pasaron 45 min de la hora de inicio
+                if (diffMin <= 10 && diffMin > -45) {
+                    btn.classList.remove('disabled-btn');
+                    btn.classList.add('bg-celeste');
+                } else {
+                    btn.classList.add('disabled-btn');
+                    btn.classList.remove('bg-celeste');
+                }
+            });
+        }, 60000); // Cada 1 minuto
+    </script>
 
 @else
     <div style="flex-grow: 1; display: flex; align-items: center; justify-content: center; flex-direction: column; padding: 2rem; border: 2px dashed #ccc; border-radius: 8px;">
         <i class="fa-solid fa-calendar-xmark" style="font-size: 3rem; color: #ccc; margin-bottom: 1rem;"></i>
-        <p style="font-weight: 800; color: #666; text-align: center;">No se encontraron turnos en esta fecha.</p>
+        <p style="font-weight: 800; color: #666; text-align: center;">No se encontraron turnos próximos.</p>
     </div>
 @endif

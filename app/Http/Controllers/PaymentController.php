@@ -52,9 +52,9 @@ class PaymentController extends Controller
             $admin = \App\Models\User::where('rol', 'admin')->first();
             if ($admin) {
                 $admin->notify(new \App\Notifications\AdminNotification([
-                    'title' => 'Nuevo Comprobante',
-                    'mensaje' => 'Nuevo comprobante subido por ' . auth()->user()->nombre . ' para el ' . $appointment->fecha_hora->format('d/m H:i'),
-                    'link' => route('admin.dashboard'),
+                    'title' => '🔥 Nuevo Comprobante Recibido',
+                    'mensaje' => 'El paciente ' . auth()->user()->nombre . ' subió un comprobante de pago para la sesión del ' . $appointment->fecha_hora->format('d/m H:i') . '. Por favor, verificalo en la sección de Honorarios.',
+                    'link' => route('admin.finanzas') . '#honorarios',
                     'type' => 'pago'
                 ]));
             }
@@ -92,8 +92,18 @@ class PaymentController extends Controller
         $payment = Payment::findOrFail($id);
         $payment->update(['estado' => 'verificado', 'verificado_en' => now()]);
         
-        $payment->appointment->update(['estado' => 'confirmado']); // Note: In a real scenario, we should also update monto_final here
+        $payment->appointment->update(['estado' => 'confirmado']); 
         
+        // Notify Patient
+        if($payment->appointment->usuario) {
+            $payment->appointment->usuario->notify(new \App\Notifications\PatientNotification([
+                'title' => 'Pago Aprobado',
+                'mensaje' => 'El pago de tu sesión del ' . $payment->appointment->fecha_hora->format('d/m H:i') . ' fue verificado.',
+                'link' => route('patient.dashboard'),
+                'type' => 'success'
+            ]));
+        }
+
         // [FINANCE] Lock price
         $honorario = 0;
         if ($payment->appointment->user && $payment->appointment->user->paciente) {
@@ -158,6 +168,9 @@ class PaymentController extends Controller
             'paciente' => $payment->appointment->user->nombre
         ]);
 
+        if (str_contains(url()->previous(), 'finanzas')) {
+            return redirect()->route('admin.finanzas')->withFragment('honorarios')->with('success', 'Pago verificado y turno confirmado.');
+        }
         return back()->with('success', 'Pago verificado y turno confirmado.');
     }
 
@@ -184,6 +197,9 @@ class PaymentController extends Controller
             ]));
         }
 
+        if (str_contains(url()->previous(), 'finanzas')) {
+            return redirect()->route('admin.finanzas')->withFragment('honorarios')->with('success', 'Pago rechazado.');
+        }
         return back()->with('success', 'Pago rechazado.');
     }
 }

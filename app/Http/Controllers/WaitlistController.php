@@ -25,6 +25,7 @@ class WaitlistController extends Controller
 
         $waitlist = Waitlist::create([
             'usuario_id' => $user ? $user->id : null,
+            'original_appointment_id' => $request->appointment_id,
             'name' => $request->name ?? ($user ? $user->nombre . ' ' . $user->apellido : 'Guest'),
             'phone' => $request->phone ?? ($user && $user->telefono ? $user->telefono : 'N/A'),
             'availability' => $request->availability ?? 'Horario Específico',
@@ -40,7 +41,7 @@ class WaitlistController extends Controller
             $isRecovery = $request->boolean('is_recovery');
             $title = $isRecovery ? 'Solicitud de RECUPERACIÓN' : 'Nueva Lista de Espera';
             $mensaje = $isRecovery 
-                ? "{$waitlist->name} solicita RECUPERAR una sesión para el " . \Carbon\Carbon::parse($waitlist->fecha_especifica)->format('d/m') . " a las {$waitlist->hora_inicio}."
+                ? "{$waitlist->name} solicita RECUPERAR su sesión."
                 : "{$waitlist->name} se unió a la lista de espera.";
 
             $admin->notify(new \App\Notifications\AdminNotification([

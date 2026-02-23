@@ -77,7 +77,7 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/payments', [PaymentController::class, 'store'])->name('payments.store');
         Route::delete('/account', [AuthController::class, 'destroyAccount'])->name('patient.account.destroy');
         Route::post('/appointments/{id}/cancel', [AppointmentController::class, 'cancel'])->name('appointments.cancel');
-        Route::post('/appointments/upload-proof', [AppointmentController::class, 'uploadProof'])->name('appointments.upload-proof');
+        Route::post('/appointments/upload-proof', [AppointmentController::class, 'uploadProof'])->name('appointments.uploadProof');
         Route::get('/documents', [DashboardController::class, 'patientDocuments'])->name('patient.documents');
     });
 

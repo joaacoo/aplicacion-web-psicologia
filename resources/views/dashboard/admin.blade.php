@@ -621,7 +621,8 @@
             'paciente' => $appt->user->nombre,
             'estado' => $appt->estado,
             'modalidad' => $appt->modalidad,
-            'telefono' => $appt->user->telefono ?? null
+            'telefono' => $appt->user->telefono ?? null,
+            'is_projected' => $appt->is_projected ?? false
         ];
     });
     
@@ -810,14 +811,22 @@
                     dayAppointments.forEach(appt => {
                         const dot = document.createElement('div');
                         dot.className = 'calendar-dot';
-                        dot.style.backgroundColor = (appt.estado === 'confirmado' ? 'var(--color-verde)' : 'var(--color-amarillo)');
+                        if (appt.is_projected) {
+                            dot.style.cssText = 'width: 6px; height: 6px; border-radius: 50%; background-color: transparent; border: 1px dashed var(--color-verde); display: inline-block; margin: 0 1px;';
+                        } else {
+                            dot.style.backgroundColor = (appt.estado === 'confirmado' ? 'var(--color-verde)' : 'var(--color-amarillo)');
+                        }
                         dotsContainer.appendChild(dot);
                     });
                 } else {
                     // Text list on desktop
                     dayAppointments.slice(0, 3).forEach(appt => {
                         const indicator = document.createElement('div');
-                        indicator.style.cssText = 'font-size: 0.65rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: #eee; padding: 2px; border-radius: 3px; border: 1px solid #000;';
+                        if (appt.is_projected) {
+                            indicator.style.cssText = 'font-size: 0.65rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: transparent; padding: 1px; border-radius: 3px; border: 1px dashed #000; color: #555; margin-bottom: 2px;';
+                        } else {
+                            indicator.style.cssText = 'font-size: 0.65rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: #eee; padding: 2px; border-radius: 3px; border: 1px solid #000; margin-bottom: 2px;';
+                        }
                         indicator.textContent = appt.paciente.split(' ')[0];
                         dotsContainer.appendChild(indicator);
                     });
@@ -913,21 +922,48 @@
                     padding: 1.5rem 0;
                     border-bottom: 2px dashed #ddd;
                     align-items: center;
+                    ${appt.is_projected ? 'opacity: 0.75;' : ''}
                 `;
                 
+                let actionsHtml = '';
+                if (!appt.is_projected) {
+                    actionsHtml = `
+                        <div style="display: flex; gap: 0.5rem; flex-direction: column;">
+                            ${appt.estado == 'pendiente' ? `
+                                <form id="confirm-cal-${appt.id}" action="/admin/appointments/${appt.id}/confirm" method="POST" style="margin:0;">
+                                    @csrf
+                                    <button type="button" class="neobrutalist-btn bg-verde" style="width:100%; padding: 5px 10px; font-size: 0.75rem;" onclick="confirmAction('confirm-cal-${appt.id}', '¿Aceptar este turno?')">Aceptar</button>
+                                </form>
+                                <form id="reject-cal-${appt.id}" action="/admin/appointments/${appt.id}/cancel" method="POST" style="margin:0;">
+                                    @csrf
+                                    <button type="button" class="neobrutalist-btn bg-lila" style="width:100%; padding: 5px 10px; font-size: 0.75rem;" onclick="confirmAction('reject-cal-${appt.id}', '¿Rechazar/Cancelar este turno?')">Rechazar</button>
+                                </form>
+                            ` : ''}
+                            ${appt.estado == 'confirmado' ? `
+                                <form id="cancel-cal-${appt.id}" action="/admin/appointments/${appt.id}/cancel" method="POST" style="margin:0;">
+                                    @csrf
+                                    <button type="button" class="neobrutalist-btn bg-lila" style="width:100%; padding: 5px 10px; font-size: 0.75rem;" onclick="confirmAction('cancel-cal-${appt.id}', '¿Cancelar este turno?')">Cancelar</button>
+                                </form>
+                            ` : ''}
+                        </div>
+                    `;
+                } else {
+                    actionsHtml = `<div style="text-align: right;"><span style="font-size: 0.8rem; font-weight: bold; color: #888; border: 1px dashed #888; padding: 4px 8px; border-radius: 4px; display: inline-block;">PROYECTADO</span></div>`;
+                }
+
                 apptDiv.innerHTML = `
                     <div style="text-align: center;">
-                        <div style="background: var(--color-amarillo); border: 3px solid #000; box-shadow: 4px 4px 0px #000; padding: 0.8rem; border-radius: 10px;">
-                            <div style="font-size: 1.8rem; font-weight: 900; line-height: 1;">${hours}:${minutes}</div>
-                            <div style="font-size: 0.7rem; font-weight: 700; text-transform: uppercase; margin-top: 0.3rem;">hs</div>
+                        <div style="${appt.is_projected ? 'background: #f5f5f5; border: 3px dashed #000; box-shadow: none;' : 'background: var(--color-amarillo); border: 3px solid #000; box-shadow: 4px 4px 0px #000;'} padding: 0.8rem; border-radius: 10px;">
+                            <div style="font-size: 1.8rem; font-weight: 900; line-height: 1; ${appt.is_projected ? 'color: #555;' : ''}">${hours}:${minutes}</div>
+                            <div style="font-size: 0.7rem; font-weight: 700; text-transform: uppercase; margin-top: 0.3rem; ${appt.is_projected ? 'color: #555;' : ''}">hs</div>
                         </div>
                     </div>
                     
                     <div>
-                        <h4 style="margin: 0 0 0.5rem 0; font-size: 1.3rem; font-weight: 900; font-family: 'Courier New', monospace; text-transform: uppercase; letter-spacing: -0.5px;">${appt.paciente}</h4>
+                        <h4 style="margin: 0 0 0.5rem 0; font-size: 1.3rem; font-weight: 900; font-family: 'Courier New', monospace; text-transform: uppercase; letter-spacing: -0.5px; ${appt.is_projected ? 'color: #555;' : ''}">${appt.paciente}</h4>
                         <div style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;">
-                            <span class="status-badge" style="background: ${appt.estado == 'confirmado' ? 'var(--color-verde)' : (appt.estado == 'pendiente' ? 'var(--color-amarillo)' : '#ff85b6')}; padding: 0.3rem 0.6rem; border-radius: 5px; font-size: 0.85rem; font-weight: bold; border: 2px solid #000;">
-                                ${appt.estado.charAt(0).toUpperCase() + appt.estado.slice(1)}
+                            <span class="status-badge" style="background: ${appt.is_projected ? '#f5f5f5' : (appt.estado == 'confirmado' ? 'var(--color-verde)' : (appt.estado == 'pendiente' ? 'var(--color-amarillo)' : '#ff85b6'))}; padding: 0.3rem 0.6rem; border-radius: 5px; font-size: 0.85rem; font-weight: bold; border: ${appt.is_projected ? '2px dashed #888' : '2px solid #000'}; ${appt.is_projected ? 'color: #555;' : ''}">
+                                ${appt.is_projected ? 'Reserva Fija' : appt.estado.charAt(0).toUpperCase() + appt.estado.slice(1)}
                             </span>
                             <span style="font-size: 0.9rem; color: #666;">
                                 <i class="fa-solid fa-${appt.modalidad == 'virtual' ? 'video' : 'user'}"></i> ${appt.modalidad.charAt(0).toUpperCase() + appt.modalidad.slice(1)}
@@ -935,24 +971,7 @@
                         </div>
                     </div>
                     
-                    <div style="display: flex; gap: 0.5rem; flex-direction: column;">
-                        ${appt.estado == 'pendiente' ? `
-                            <form id="confirm-cal-${appt.id}" action="/admin/appointments/${appt.id}/confirm" method="POST" style="margin:0;">
-                                @csrf
-                                <button type="button" class="neobrutalist-btn bg-verde" style="width:100%; padding: 5px 10px; font-size: 0.75rem;" onclick="confirmAction('confirm-cal-${appt.id}', '¿Aceptar este turno?')">Aceptar</button>
-                            </form>
-                            <form id="reject-cal-${appt.id}" action="/admin/appointments/${appt.id}/cancel" method="POST" style="margin:0;">
-                                @csrf
-                                <button type="button" class="neobrutalist-btn bg-lila" style="width:100%; padding: 5px 10px; font-size: 0.75rem;" onclick="confirmAction('reject-cal-${appt.id}', '¿Rechazar/Cancelar este turno?')">Rechazar</button>
-                            </form>
-                        ` : ''}
-                        ${appt.estado == 'confirmado' ? `
-                            <form id="cancel-cal-${appt.id}" action="/admin/appointments/${appt.id}/cancel" method="POST" style="margin:0;">
-                                @csrf
-                                <button type="button" class="neobrutalist-btn bg-lila" style="width:100%; padding: 5px 10px; font-size: 0.75rem;" onclick="confirmAction('cancel-cal-${appt.id}', '¿Cancelar turno?')">Cancelar</button>
-                            </form>
-                        ` : ''}
-                    </div>
+                    ${actionsHtml}
                 `;
                 
                 content.appendChild(apptDiv);
@@ -1272,7 +1291,39 @@
     <div id="pacientes" class="neobrutalist-card" style="background: white; margin-bottom: 4rem;">
         <h3><i class="fa-solid fa-users"></i> Listado de Pacientes Registrados</h3>
         <div style="overflow-x: auto;">
-            <table style="width: 100%; border-collapse: collapse; margin-top: 1rem; background: white; border: 3px solid #000; box-shadow: 6px 6px 0px #000;">
+            <style>
+                @media (max-width: 768px) {
+                    .patients-table {
+                        border: none !important;
+                        box-shadow: none !important;
+                    }
+                    .patients-table thead { display: none; }
+                    .patients-table tr {
+                        display: block;
+                        border: 3px solid #000 !important;
+                        margin-bottom: 1rem;
+                        border-radius: 12px;
+                        padding: 1rem;
+                    }
+                    .patients-table td {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        padding: 0.5rem 0 !important;
+                        border: none !important;
+                        border-bottom: 1px solid #eee !important;
+                    }
+                    .patients-table td:last-child { border-bottom: none !important; }
+                    .patients-table td:before {
+                        content: attr(data-label);
+                        font-weight: 800;
+                        color: #666;
+                        text-transform: uppercase;
+                        font-size: 0.75rem;
+                    }
+                }
+            </style>
+            <table class="patients-table" style="width: 100%; border-collapse: collapse; margin-top: 1rem; background: white; border: 3px solid #000; box-shadow: 6px 6px 0px #000;">
                 <thead>
                     <tr style="background: #000; color: #fff; border-bottom: 3px solid #fff;">
                         <th style="padding: 0.8rem; text-align: left;">Nombre</th>
@@ -1296,7 +1347,7 @@
                                 </span>
                             </td>
                             <td data-label="Turnos" style="padding: 0.8rem; text-align: center;">{{ $patient->turnos_count ?? $patient->turnos()->count() }}</td>
-                            <td style="padding: 0.8rem; text-align: right;">
+                            <td data-label="Acciones" style="padding: 0.8rem; text-align: right;">
                                 <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
                                     <button class="neobrutalist-btn no-select bg-amarillo" style="padding: 0.2rem 0.6rem; font-size: 0.7rem;" 
                                             onclick="openManageModal('{{ $patient->id }}', '{{ $patient->nombre }}', '{{ $patient->email }}', '{{ $patient->telefono ?? 'No registrado' }}', '{{ $patient->tipo_paciente }}')">
@@ -1318,20 +1369,53 @@
         </div>
         
         <div style="overflow-x: auto;">
-            <table style="width: 100%; border-collapse: collapse; background: white; border: 3px solid #000; box-shadow: 6px 6px 0px #000;">
+            <style>
+                @media (max-width: 768px) {
+                    .waitlist-table {
+                        border: none !important;
+                        box-shadow: none !important;
+                    }
+                    .waitlist-table thead { display: none; }
+                    .waitlist-table tr {
+                        display: block;
+                        border: 3px solid #000 !important;
+                        margin-bottom: 1rem;
+                        border-radius: 12px;
+                        padding: 1rem;
+                    }
+                    .waitlist-table td {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        padding: 0.5rem 0 !important;
+                        border: none !important;
+                        border-bottom: 1px solid #eee !important;
+                    }
+                    .waitlist-table td:last-child { border-bottom: none !important; }
+                    .waitlist-table td:before {
+                        content: attr(data-label);
+                        font-weight: 800;
+                        color: #666;
+                        text-transform: uppercase;
+                        font-size: 0.75rem;
+                    }
+                }
+            </style>
+            <table class="waitlist-table" style="width: 100%; border-collapse: collapse; background: white; border: 3px solid #000; box-shadow: 6px 6px 0px #000;">
                 <thead>
                     <tr style="background: #000; color: #fff;">
                         <th style="padding: 0.8rem; text-align: left;">Fecha/Hora</th>
                         <th style="padding: 0.8rem; text-align: left;">Paciente</th>
                         <th style="padding: 0.8rem; text-align: left;">Teléfono</th>
+                        <th style="padding: 0.8rem; text-align: left;">Email</th>
                         <th style="padding: 0.8rem; text-align: left;">Preferencia</th>
-                        <th style="padding: 0.8rem; text-align: right;">Acciones</th>
+                        <th style="padding: 0.8rem; text-align: center; width: 150px;">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse($waitlist ?? [] as $entry)
                         <tr style="border-bottom: 2px solid #000;">
-                            <td style="padding: 0.8rem; font-weight: 700;">
+                            <td data-label="Fecha/Hora" style="padding: 0.8rem; font-weight: 700;">
                                 @if($entry->fecha_especifica)
                                     {{ \Carbon\Carbon::parse($entry->fecha_especifica)->format('d/m') }}
                                 @else
@@ -1341,23 +1425,38 @@
                                     - {{ \Carbon\Carbon::parse($entry->hora_inicio)->format('H:i') }} hs
                                 @endif
                             </td>
-                            <td style="padding: 0.8rem; font-weight: 900;">{{ $entry->name }}</td>
-                            <td style="padding: 0.8rem;">
-                                <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $entry->phone) }}" target="_blank" style="color: #25D366; font-weight: 800; text-decoration: none;">
-                                    <i class="fa-brands fa-whatsapp"></i> {{ $entry->phone }}
-                                </a>
+                            <td data-label="Paciente" style="padding: 0.8rem; font-weight: 900;">{{ $entry->name }}</td>
+                            <td data-label="Teléfono" style="padding: 0.8rem; font-family: 'Inter', sans-serif;">
+                                @if($entry->phone)
+                                    <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $entry->phone) }}?text=Hola+{{ urlencode($entry->name) }}%2C+se+liber%C3%B3+un+lugar+para+el+{{ urlencode($entry->fecha_especifica ? \Carbon\Carbon::parse($entry->fecha_especifica)->format('d/m') : 'próxima fecha') }}.+%C2%BFTe+gustar%C3%ADa+tomar+el+turno%3F+Saludos%2C+Lic.+Nazarena+De+Luca." target="_blank" style="color: #25D366; font-weight: 800; text-decoration: none; display: flex; align-items: center; gap: 5px; font-size: 0.85rem;">
+                                        <i class="fa-brands fa-whatsapp"></i> {{ $entry->phone }}
+                                    </a>
+                                @else
+                                    N/A
+                                @endif
                             </td>
-                            <td style="padding: 0.8rem;">
-                                <div style="display: flex; flex-direction: column; gap: 0.3rem;">
-                                    <span style="background: var(--color-celeste); padding: 2px 8px; border: 2px solid #000; border-radius: 6px; font-size: 0.75rem; font-weight: 800; width: fit-content; text-transform: uppercase;">
-                                        {{ $entry->modality }}
-                                    </span>
-                                    <div style="font-size: 0.9rem; font-weight: 700; color: #000; background: #fffadc; padding: 0.5rem; border: 1px dashed #000; border-radius: 5px;">
+                            <td data-label="Email" style="padding: 0.8rem; font-family: 'Inter', sans-serif;">
+                                @if($entry->email)
+                                    <a href="mailto:{{ $entry->email }}?subject=Turno disponible - Lic. Nazarena De Luca&amp;body=Hola+{{ urlencode($entry->name) }}%2C+se+liber%C3%B3+un+lugar+para+el+{{ urlencode($entry->fecha_especifica ? \Carbon\Carbon::parse($entry->fecha_especifica)->format('d/m') : 'próxima fecha') }}.+%C2%BFTe+gustar%C3%ADa+tomar+el+turno%3F+Saludos%2C+Lic.+Nazarena+De+Luca." target="_blank" style="color: #ff4d4d; font-weight: 800; text-decoration: none; display: flex; align-items: center; gap: 5px; font-size: 0.85rem;">
+                                        <i class="fa-solid fa-envelope"></i> {{ $entry->email }}
+                                    </a>
+                                @else
+                                    No registrado
+                                @endif
+                            </td>
+                            <td data-label="Preferencia" style="padding: 0.8rem;">
+                                <div style="display: flex; flex-direction: column; gap: 0.4rem;">
+                                    <div style="display: flex; gap: 5px; flex-wrap: wrap;">
+                                        <span style="background: var(--color-celeste); padding: 2px 8px; border: 2px solid #000; border-radius: 6px; font-size: 0.7rem; font-weight: 800; text-transform: uppercase;">
+                                            <i class="fa-solid fa-house-user"></i> {{ $entry->modality }}
+                                        </span>
+                                    </div>
+                                    <div style="font-size: 0.85rem; font-weight: 700; color: #000; background: #fffadc; padding: 0.5rem; border: 1px dashed #000; border-radius: 5px;">
                                         <i class="fa-solid fa-clock"></i> {{ $entry->availability ?? 'No especificó disponibilidad general' }}
                                     </div>
                                 </div>
                             </td>
-                            <td style="padding: 0.8rem; text-align: right;">
+                            <td data-label="Acciones" style="padding: 0.8rem; text-align: center; width: 150px;">
                                 <form id="delete-waitlist-{{ $entry->id }}" action="{{ route('admin.waitlist.destroy', $entry->id) }}" method="POST" style="margin:0;">
                                     @csrf
                                     @method('DELETE')
@@ -1369,7 +1468,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5" style="padding: 2rem; text-align: center; color: #666;">No hay nadie en la lista de espera.</td>
+                            <td colspan="6" style="padding: 2rem; text-align: center; color: #666;">No hay nadie en la lista de espera.</td>
                         </tr>
                     @endforelse
                 </tbody>

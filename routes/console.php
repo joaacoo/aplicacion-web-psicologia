@@ -10,5 +10,7 @@ Artisan::command('inspire', function () {
 use Illuminate\Support\Facades\Schedule;
 Schedule::command('app:process-appointments')->everyMinute();
 Schedule::command('app:cleanup-old-proofs')->daily();
+Schedule::command('appointments:mark-completed')->everyThirtyMinutes();
+Schedule::command('appointments:cancel-unpaid')->everyFifteenMinutes();
 
 

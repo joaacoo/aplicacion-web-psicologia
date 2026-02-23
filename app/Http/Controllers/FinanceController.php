@@ -61,9 +61,10 @@ class FinanceController extends Controller
         //    Let's stick to User's request: "base a los copobrantes que tengo que no epte ni rechaze"
         
         // Items with Pending Proofs (regardless of date, usually recent)
-        $pendingProofs = Appointment::whereHas('payment', function($q) {
-            $q->where('estado', 'pendiente');
-        })->get();
+        $pendingProofs = Appointment::where('estado', '!=', 'cancelado')
+            ->whereHas('payment', function($q) {
+                $q->where('estado', 'pendiente');
+            })->get();
 
         $pendingIncome = 0;
         foreach ($pendingProofs as $appt) {
@@ -209,7 +210,8 @@ class FinanceController extends Controller
         // 8. Comprobantes Pendientes de Aprobación
         // [FIX] Don't filter by appointment status 'pendiente' strictly, as it might be 'reservado' or 'confirmado' awaiting verification
         // Also ensure pricing is dynamic if needed
-        $pendingReceipts = Appointment::whereHas('payment', function($q) {
+        $pendingReceipts = Appointment::where('estado', '!=', 'cancelado')
+            ->whereHas('payment', function($q) {
                 $q->where('estado', 'pendiente');
             })
             ->with(['user.paciente', 'payment'])

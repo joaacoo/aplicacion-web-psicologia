@@ -650,9 +650,10 @@
                                         <i class="fa-solid fa-check"></i>
                                     </button>
                                 </form>
-                                <form action="{{ route('admin.appointments.cancel', $receipt['turno']->id) }}" method="POST" style="flex: 1;" onsubmit="return confirm('¿Rechazar este turno?')">
+                                <form id="reject-form-{{ $receipt['turno']->id }}" action="{{ route('admin.appointments.cancel', $receipt['turno']->id) }}" method="POST" style="flex: 1;">
                                     @csrf
-                                    <button type="submit" class="neobrutalist-btn" 
+                                    <button type="button" class="neobrutalist-btn" 
+                                            onclick="showConfirm('¿Rechazar turno y comprobante?', function() { document.getElementById('reject-form-{{ $receipt['turno']->id }}').submit(); })"
                                             style="width: 100%; background: #ef4444; color: white; padding: 0.6rem; font-size: 0.85rem; border: 2px solid #000; box-shadow: 2px 2px 0px #000; display: flex; justify-content: center; align-items: center;">
                                         <i class="fa-solid fa-times"></i>
                                     </button>
@@ -1041,7 +1042,7 @@
     }
     
     function rejectFromModal() {
-        if (confirm('¿Rechazar este turno?')) {
+        if (confirm('¿Rechazar turno y comprobante?')) {
             const action = document.getElementById('proofModalReject').getAttribute('data-reject-action');
             if (action) {
                 const form = document.createElement('form');

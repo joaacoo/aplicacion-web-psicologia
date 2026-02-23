@@ -1,5 +1,25 @@
 @if(isset($isAjax) && $isAjax)
-    @include('dashboard.partials.appointments_table')
+    <div id="appointments-table-container" style="width: 100%; flex-grow: 1;">
+        @include('dashboard.partials.appointments_table')
+        
+        @if ($appointments->hasPages())
+            <div class="pagination-container" style="display: flex; justify-content: center; gap: 0.8rem; margin-top: auto; padding-top: 1.5rem; align-items: center; flex-wrap: nowrap; overflow-x: auto; padding-bottom: 0.5rem; width: 100%;">
+                @if ($appointments->onFirstPage())
+                    <span class="neobrutalist-btn pagination-mobile-btn" style="background: #eee; cursor: not-allowed; opacity: 0.6; box-shadow: none;">Anterior</span>
+                @else
+                    <a href="{{ $appointments->previousPageUrl() }}#mis-turnos" class="neobrutalist-btn bg-amarillo pagination-mobile-btn">Anterior</a>
+                @endif
+                
+                <span class="pagination-mobile-indicator" style="font-weight: 800; font-family: 'Inter', sans-serif; font-size: 0.9rem; color: #000; padding: 0.4rem 0.2rem; white-space: nowrap;">{{ $appointments->currentPage() }} / {{ $appointments->lastPage() }}</span>
+
+                @if ($appointments->hasMorePages())
+                    <a href="{{ $appointments->nextPageUrl() }}#mis-turnos" class="neobrutalist-btn bg-amarillo pagination-mobile-btn">Siguiente</a>
+                @else
+                    <span class="neobrutalist-btn pagination-mobile-btn" style="background: #eee; cursor: not-allowed; opacity: 0.6; box-shadow: none;">Siguiente</span>
+                @endif
+            </div>
+        @endif
+    </div>
     @php return; @endphp
 @endif
 
@@ -23,6 +43,14 @@
         border: 3px solid #000 !important;
         box-shadow: 3px 3px 0px #000 !important;
     }
+    .disabled-btn {
+        opacity: 0.6 !important;
+        cursor: not-allowed !important;
+        pointer-events: none !important;
+        filter: grayscale(0.5);
+        box-shadow: none !important;
+        transform: none !important;
+    }
     .day-btn:not(.disabled) {
         border: 3px solid #000 !important;
         box-shadow: 3px 3px 0px #000 !important;
@@ -42,12 +70,47 @@
         border: 3px solid #000 !important;
         box-shadow: 2px 2px 0px #000 !important;
         width: 100% !important;
-        min-width: 140px !important;
+        min-width: 120px !important;
         white-space: nowrap !important;
         text-align: center !important;
         display: flex !important;
         justify-content: center !important;
         align-items: center !important;
+    }
+    
+    /* Days Grid and Buttons */
+    .days-grid {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 12px;
+        width: 100%;
+        margin-bottom: 2rem;
+    }
+    .day-btn {
+        transition: all 0.2s;
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: white;
+        border-radius: 12px !important;
+    }
+    .day-btn.selected {
+        background: var(--color-verde) !important;
+        transform: translate(2px, 2px);
+        box-shadow: 1px 1px 0px #000 !important;
+    }
+    .day-btn:hover:not(.disabled) {
+        transform: translate(-2px, -2px);
+        box-shadow: 5px 5px 0px #000 !important;
+    }
+    
+    @media (max-width: 600px) {
+        .days-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
     }
     .time-pill.disabled {
         width: 100% !important;
@@ -279,21 +342,28 @@ function togglePatientMenu() {
     </style>
         
     <link rel="stylesheet" href="{{ asset('css/whatsapp_widget.css') }}">
+    
     <style>
         .dashboard-flex-container {
             display: flex;
-            gap: 3rem;
-            flex-wrap: wrap;
-            align-items: stretch;
-            margin-top: 30px;
+            flex-direction: row;
+            gap: 2rem;
+            align-items: flex-start;
+            margin-top: 0; /* Reduced from 10px to move content higher */
             width: 100%;
         }
         .booking-column {
-            flex: 0 0 350px;
-            width: 350px;
-            min-width: 0; /* Critical for flex items to not overflow */
+            flex: 1;
+            min-width: 0;
             display: flex;
             flex-direction: column;
+        }
+        #right-column {
+            flex: 2;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+            min-width: 0;
         }
         @media (max-width: 1024px) {
             .dashboard-flex-container {
@@ -301,74 +371,29 @@ function togglePatientMenu() {
                 gap: 2rem !important;
                 margin-top: 10px !important;
             }
-            .booking-column {
-                flex: 1;
+            .booking-column, #right-column {
                 width: 100% !important;
-                min-width: 100% !important;
             }
-            #booking, #mis-turnos-section {
-                width: 100% !important;
-                min-width: 0 !important;
+            /* Header collision fixes */
+            .booking-section, #fixed-reservation-status { 
+                margin-top: 55px !important; /* Reduced from 70px to move content even higher */
             }
         }
+        
+        /* Better PC Layout fixes */
+        body { background-color: var(--color-celeste) !important; }
+        .container.mt-16 {
+            max-width: 1400px !important;
+            margin: 0 auto !important;
+            padding-top: 60px !important; /* Reduced from 70px to move content higher */
+        }
     </style>
+    
+    <div class="dashboard-flex-container">
+        <div class="booking-column" style="display: flex; justify-content: center; width: 100%;">
 
-@section('content')
-    <!-- Top Banner: Next Session -->
-    @if(isset($nextAppointment))
-        @php
-            $isToday = $nextAppointment->fecha_hora->isToday();
-            $isTomorrow = $nextAppointment->fecha_hora->isTomorrow();
-        @endphp
-        @if(($isToday || $isTomorrow) && $nextAppointment->estado == 'confirmado')
-            <div class="neobrutalist-card next-session-banner" style="margin-bottom: 2rem; margin-top: 1.5rem; background: white; border: 3px solid #000; box-shadow: 6px 6px 0px #000; padding: 1.5rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; width: 100%; box-sizing: border-box;">
-                <div style="display: flex; align-items: center; gap: 1rem;">
-                    <div style="font-size: 1.8rem;">
-                        ⏰
-                    </div>
-                    <div>
-                        <h4 style="margin: 0; font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.1rem; text-transform: uppercase;">
-                            @if($isToday) Hoy tenés sesión @else Mañana tenés sesión @endif
-                        </h4>
-                        <p style="margin: 5px 0 0; font-weight: 600; font-size: 0.9rem; color: #444;">
-                            {{ $nextAppointment->fecha_hora->format('H:i') }} hs - Modalidad: {{ ucfirst($nextAppointment->modalidad ?? 'Virtual') }}
-                        </p>
-                    </div>
-                </div>
-                
-                @if(($nextAppointment->modalidad ?? 'virtual') == 'virtual')
-                    <a href="{{ $nextAppointment->meet_link ?? '#' }}" target="_blank" class="neobrutalist-btn" style="background: white; color: #000; border: 2px solid #000; padding: 0.5rem 1rem; text-decoration: none; font-weight: 800; font-size: 0.9rem; display: flex; align-items: center; gap: 8px; box-shadow: 3px 3px 0px #000;">
-                        <img src="https://www.gstatic.com/meet/icons/logo_meet_2020q4_48dp_c6394966c6f534de2833.png" alt="Meet" style="width: 24px; height: 24px;">
-                        Unirse al Meet
-                    </a>
-                @elseif(($nextAppointment->modalidad ?? 'presencial') == 'presencial')
-                    <a href="https://www.google.com/maps/search/?api=1&query=626+Somellera,+Adrogue" target="_blank" class="neobrutalist-btn location-btn-mobile" style="background: white; color: #000; border: 2px solid #000; padding: 0.5rem 1rem; text-decoration: none; font-weight: 800; font-size: 0.9rem; display: flex; align-items: center; gap: 8px; box-shadow: 3px 3px 0px #000;">
-                        <i class="fa-solid fa-map-location-dot" style="font-size: 1.2rem; color: #e11d48;"></i>
-                        Ver Ubicación
-                    </a>
-                @endif
-            </div>
-        @endif
-        <style>
-        @media (max-width: 768px) {
-            .next-session-banner { margin-top: 100px !important; }
-            .booking-section, #fixed-reservation-status { 
-                margin-top: 100px !important; 
-                padding-top: 2rem !important; 
-            }
-            .location-btn-mobile {
-                    padding: 0.4rem 0.8rem !important;
-                    font-size: 0.8rem !important;
-                    gap: 5px !important;
-                }
-                .location-btn-mobile i {
-                    font-size: 1rem !important;
-                }
-            }
-        </style>
-    @endif
 
-<div class="dashboard-flex-container flex">
+<div class="dashboard-grid-container">
     
     <!-- Left Column: New Appointment Stepper OR Fixed Reservation Status -->
     <div class="booking-column">
@@ -392,37 +417,27 @@ function togglePatientMenu() {
                     </span>
                 </div>
 
-                <div style="display: flex; flex-direction: column; gap: 12px;">
-                    @if($fixedReservation->modalidad == 'virtual')
-                        <a href="{{ $fixedReservation->meet_link ?? ($user->paciente->meet_link ?? '#') }}" target="_blank" class="neobrutalist-btn bg-verde" style="text-decoration: none; justify-content: center; display: flex; align-items: center; gap: 10px; padding: 0.8rem; font-weight: 800;">
-                            <i class="fa-solid fa-video"></i> UNIRSE A LA SESIÓN
-                        </a>
-                    @else
-                        <a href="https://www.google.com/maps/search/?api=1&query=626+Somellera,+Adrogue" target="_blank" class="neobrutalist-btn bg-celeste" style="text-decoration: none; justify-content: center; display: flex; align-items: center; gap: 10px; padding: 0.8rem; font-weight: 800;">
-                            <i class="fa-solid fa-map-location-dot"></i> VER UBICACIÓN
+                    @if(isset($nextAppointment) && $nextAppointment->es_recurrente && $nextAppointment->estado == 'confirmado' && ($nextAppointment->modalidad ?? 'virtual') == 'virtual')
+                        <a href="{{ $nextAppointment->meet_link ?: ($patient->meet_link ?: '#') }}" target="_blank" class="neobrutalist-btn" style="width: 100%; margin-top: 1.5rem; background: white; color: #000; border: 2px solid #000; padding: 0.8rem 1rem; text-decoration: none; font-weight: 800; font-size: 1rem; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 4px 4px 0px #000;">
+                            <i class="fa-solid fa-video"></i> Unirse a la sesión
                         </a>
                     @endif
-
-                    <button type="button" onclick="openRecoveryModal({{ $fixedReservation->id }})" class="neobrutalist-btn bg-lila" style="padding: 1rem; font-weight: 800; font-size: 0.95rem; box-shadow: 4px 4px 0px #000;">
-                        <i class="fa-solid fa-calendar-xmark"></i> NO PUEDO ASISTIR ESTA SEMANA
-                    </button>
                 </div>
 
-                <p style="margin-top: 1.5rem; font-size: 0.75rem; color: #666; font-weight: 600; text-align: center; line-height: 1.4;">
+                <p style="margin-top: 0; font-size: 0.75rem; color: #666; font-weight: 600; text-align: center; line-height: 1.4;">
                     <i class="fa-solid fa-circle-info"></i> Recordá que las cancelaciones deben ser con 24hs de antelación.
                 </p>
             </div>
         @else
-            <div id="booking" class="neobrutalist-card booking-section" style="margin-bottom: 4rem; padding-bottom: 3rem;">
-                <!-- ... stepper code ... -->
-            <style>
-                @media (max-width: 768px) {
-                    .booking-section {
-                        /* Margin handled by generic mobile class above */
-                        padding-top: 1.5rem !important;
+            <div id="booking" class="neobrutalist-card booking-section" style="margin-bottom: 4rem; padding-bottom: 3rem; margin-left: auto; margin-right: auto; width: 100%; max-width: 920px;">
+                <style>
+                    @media (max-width: 768px) {
+                        .booking-section {
+                            /* Margin handled by generic mobile class above */
+                            padding-top: 1.5rem !important;
+                        }
                     }
-                }
-            </style>
+                </style>
             <!-- Feedback de Errores -->
             @if ($errors->any())
                 <div class="alert alert-error mb-4">
@@ -547,10 +562,23 @@ function togglePatientMenu() {
                                 </p>
                             </div>
 
-                            <div class="flex justify-between mt-12" style="gap: 1rem;">
-                                <button type="button" class="neobrutalist-btn bg-lila" onclick="prevStep(3)">Atrás</button>
-                                <button type="button" class="neobrutalist-btn bg-verde" onclick="confirmReserve()">Confirmar Turno</button>
+                            <div class="flex justify-center mt-12 booking-footer-btns" style="gap: 1.5rem; display: flex; justify-content: center;">
+                                <button type="button" class="neobrutalist-btn bg-lila" style="min-width: 140px;" onclick="prevStep(3)">Atrás</button>
+                                <button type="button" class="neobrutalist-btn bg-verde" style="min-width: 140px;" onclick="confirmReserve()">Confirmar Turno</button>
                             </div>
+                            <style>
+                                @media (max-width: 768px) {
+                                    .booking-footer-btns {
+                                        gap: 0.8rem !important;
+                                    }
+                                    .booking-footer-btns .neobrutalist-btn {
+                                        min-width: 110px !important;
+                                        padding: 0.5rem 0.6rem !important;
+                                        font-size: 0.75rem !important;
+                                        margin: 0 !important;
+                                    }
+                                }
+                            </style>
                         </div>
 <!-- Live Summary (Dynamic height) -->
                         <div id="booking-summary-container" style="min-height: 0; transition: all 0.3s ease-in-out; opacity: 0; max-height: 0; overflow: hidden;">
@@ -568,7 +596,7 @@ function togglePatientMenu() {
         
 
         <!-- Right Column: My Appointments -->
-    <div id="mis-turnos-section" style="flex: 2.5; min-width: 300px;">
+    <div id="mis-turnos-section">
 
         <style>
             /* Hide mobile labels on desktop */
@@ -580,10 +608,6 @@ function togglePatientMenu() {
                 #mis-turnos { padding: 1.5rem !important; }
                 #mis-turnos h3 { font-size: 1.1rem; margin-bottom: 0.5rem !important; } /* Reduced margin */
                 
-                /* Header collision fixes */
-                .booking-section, #fixed-reservation-status { 
-                    margin-top: 100px !important; 
-                }
                 
                 /* Shrink Recovery Modal Buttons for Mobile */
                 #recovery-modal-overlay .neobrutalist-btn {
@@ -724,155 +748,39 @@ function togglePatientMenu() {
                 }
             }
         </style>
-            <!-- Fixed Height Container for 3 Items Pagination -->
-            <div id="mis-turnos" class="neobrutalist-card" style="width: 100% !important; max-width: 100% !important; padding: 2.5rem 1.5rem !important; background: white; border: 3px solid #000; box-shadow: 8px 8px 0px #000; min-height: 500px; display: flex; flex-direction: column;">
+        </div> <!-- End booking-column -->
+
+        <div id="right-column">
             
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
-                <h3 class="no-select" style="background: var(--color-lila); display: inline-block; padding: 0.5rem 1rem; border: 3px solid #000; font-size: 1.4rem; margin: 0; box-shadow: 4px 4px 0px #000; font-family: 'Syne', sans-serif; font-weight: 700; white-space: nowrap;">Mis Turnos y Pagos</h3>
+            <!-- Mis Turnos y Pagos -->
+            <div id="mis-turnos" class="neobrutalist-card" style="margin-bottom: 2rem; padding: 2.5rem !important; border: 3px solid #000; box-shadow: 8px 8px 0px #000; background: white;">
+                <h3 style="margin-bottom: 1.5rem; border-bottom: 4px solid #000; padding-bottom: 0.8rem; font-size: 1.4rem; font-family: 'Syne', sans-serif; font-weight: 700; display: flex; align-items: center; gap: 10px;">
+                    <i class="fa-solid fa-clock-rotate-left"></i> Mis Turnos y Pagos
+                    @if(isset($totalCredits) && $totalCredits > 0)
+                        <span style="margin-left: auto; background: #e0f2fe; color: #0369a1; border: 2px solid #0369a1; padding: 2px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: 800; display: inline-flex; align-items: center; gap: 5px; box-shadow: 2px 2px 0px #0369a1;">
+                            <i class="fa-solid fa-coins"></i> Crédito: ${{ number_format($totalCredits, 0, ',', '.') }}
+                        </span>
+                    @endif
+                </h3>
                 
-                <!-- Filters Bar -->
-                <form id="appointments-filter-form" action="{{ route('patient.dashboard') }}#mis-turnos" method="GET" style="display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end;">
-                    <div style="display: flex; flex-direction: column;">
-                        <label style="font-size: 0.7rem; font-weight: 800; margin-bottom: 2px;">MES:</label>
-                        <select name="month" onchange="applyFilters()" class="neobrutalist-input" style="padding: 0.3rem 0.6rem; font-size: 0.8rem; margin: 0; min-width: 120px;">
-                            <option value="">Todos</option>
-                            @php
-                                $currentYear = now()->year;
-                                $months = [];
-                                for ($m = 1; $m <= 12; $m++) {
-                                    $date = \Carbon\Carbon::create($currentYear, $m, 1);
-                                    $months[$date->format('Y-m')] = ucfirst($date->locale('es')->isoFormat('MMMM'));
-                                }
-                            @endphp
-                            @foreach($months as $val => $label)
-                                <option value="{{ $val }}" {{ request('month') == $val ? 'selected' : '' }}>{{ $label }}</option>
-                            @endforeach
-                        </select>
+                @if(isset($appointments) && $appointments->isEmpty())
+                    <div style="text-align: center; padding: 2rem; background: #f9f9f9; border: 2px dashed #ccc; border-radius: 10px;">
+                        <i class="fa-solid fa-calendar-xmark" style="font-size: 2rem; color: #ccc; margin-bottom: 1rem;"></i>
+                        <p style="color: #666; font-weight: 700; margin: 0;">No tenés turnos registrados todavía.</p>
                     </div>
-                    <div style="display: flex; flex-direction: column;">
-                        <label style="font-size: 0.7rem; font-weight: 800; margin-bottom: 2px;">ESTADO:</label>
-                        <select name="status" onchange="applyFilters()" class="neobrutalist-input" style="padding: 0.3rem 0.6rem; font-size: 0.8rem; margin: 0; min-width: 120px;">
-                            <option value="">Todos</option>
-                            <option value="proximo" {{ request('status') == 'proximo' ? 'selected' : '' }}>Próximos</option>
-                            <option value="realizado" {{ request('status') == 'realizado' ? 'selected' : '' }}>Realizados</option>
-                            <option value="cancelado" {{ request('status') == 'cancelado' ? 'selected' : '' }}>Cancelados</option>
-                            <option value="eventual" {{ request('status') == 'eventual' ? 'selected' : '' }}>Eventual</option>
-                        </select>
-                    </div>
-                </form>
-            </div>
-            
-            <div id="appointments-table-container" style="width: 100%; flex-grow: 1;">
-                @include('dashboard.partials.appointments_table')
-            </div>
+                @else
 
-                @if ($appointments->hasPages())
-                    <style>
-                        @media (max-width: 600px) {
-                            .pagination-mobile-btn {
-                                padding: 0.5rem 1rem !important;
-                                font-size: 0.8rem !important;
-                                min-width: 0; 
-                                width: auto !important; /* Auto width */
-                                text-align: center;
-                                transition: none !important; 
-                                transform: none !important; 
-                                display: inline-flex !important;
-                                justify-content: center;
-                                align-items: center;
-                            }
-                            .pagination-mobile-btn:active, .pagination-mobile-btn:hover {
-                                transform: none !important;
-                                box-shadow: 3px 3px 0px #000 !important; 
-                            }
-                            .pagination-mobile-indicator {
-                                font-size: 0.8rem !important;
-                            }
-                        }
-                    </style>
-                    <div style="display: flex; justify-content: center; gap: 0.8rem; margin-top: auto; padding-top: 1.5rem; align-items: center; flex-wrap: nowrap; overflow-x: auto; padding-bottom: 0.5rem; width: 100%;">
-                        @if ($appointments->onFirstPage())
-                            <span class="neobrutalist-btn pagination-mobile-btn" style="background: #eee; cursor: not-allowed; padding: 0.5rem 1rem; font-size: 0.8rem; opacity: 0.6; border: 2px solid #000; box-shadow: none; white-space: nowrap;">Anterior</span>
-                        @else
-                            <a href="{{ $appointments->previousPageUrl() }}#mis-turnos" class="neobrutalist-btn bg-amarillo pagination-mobile-btn" style="padding: 0.5rem 1rem; font-size: 0.8rem; text-decoration: none; color: black; border: 2px solid #000; font-weight: 800; display: inline-block; white-space: nowrap;">Anterior</a>
-                        @endif
 
-                        <span class="pagination-mobile-indicator" style="font-weight: 800; font-family: 'Inter', sans-serif; font-size: 0.9rem; color: #000; padding: 0.4rem 0.2rem; white-space: nowrap;">{{ $appointments->currentPage() }} / {{ $appointments->lastPage() }}</span>
+                    <div id="appointments-table-container">
+                        @include('dashboard.partials.appointments_table')
+                        
 
-                        @if ($appointments->hasMorePages())
-                            <a href="{{ $appointments->nextPageUrl() }}#mis-turnos" class="neobrutalist-btn bg-amarillo pagination-mobile-btn" style="padding: 0.5rem 1rem; font-size: 0.8rem; text-decoration: none; color: black; border: 2px solid #000; font-weight: 800; display: inline-block; white-space: nowrap;">Siguiente</a>
-                        @else
-                            <span class="neobrutalist-btn pagination-mobile-btn" style="background: #eee; cursor: not-allowed; padding: 0.5rem 1rem; font-size: 0.8rem; opacity: 0.6; border: 2px solid #000; box-shadow: none; white-space: nowrap;">Siguiente</span>
-                        @endif
                     </div>
                 @endif
-            </div>
-
-            <script>
-                // Use capture phase to ensure we intercept the event first
-                document.addEventListener('click', function(e) {
-                    // Check if the clicked element or its parent is a pagination link inside #mis-turnos
-                    const link = e.target.closest('#mis-turnos a.pagination-mobile-btn, #mis-turnos .pagination li a');
-                    
-                    if (link) {
-                        e.preventDefault(); // Stop default navigation
-                        e.stopPropagation(); // Stop bubbling
-                        e.stopImmediatePropagation(); // Stop other listeners on the same element
-
-                        const url = link.href;
-                        const container = document.getElementById('mis-turnos');
-                        
-                        if (container && url && url !== '#') {
-                            // Add heavy opacity to indicate loading is happening
-                            container.style.opacity = '0.5';
-                            container.style.pointerEvents = 'none';
-                            
-                            fetch(url, {
-                                headers: {
-                                    'X-Requested-With': 'XMLHttpRequest'
-                                }
-                            })
-                            .then(response => {
-                                if (!response.ok) throw new Error('Network response was not ok');
-                                return response.text();
-                            })
-                            .then(html => {
-                                const parser = new DOMParser();
-                                const doc = parser.parseFromString(html, 'text/html');
-                                const newContent = doc.getElementById('mis-turnos');
-                                
-                                if(newContent) {
-                                    // Replace content
-                                    container.innerHTML = newContent.innerHTML;
-                                    
-                                    // Scroll into view gently as requested for mobile ("centrado en la seccion")
-                                    // Using scrollIntoView with block: 'center' to keep it in focus
-                                    if (window.innerWidth <= 768) {
-                                        container.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                    }
-                                } else {
-                                    console.error('Could not find #mis-turnos in response');
-                                    // Fallback only if we really failed to find content
-                                    window.location.href = url;
-                                }
-                            })
-                            .catch(err => {
-                                console.error('Error fetching pagination:', err);
-                                window.location.href = url;
-                            })
-                            .finally(() => {
-                                container.style.opacity = '1';
-                                container.style.pointerEvents = 'auto';
-                            });
-                        }
-                    }
-                }, true); // Use capture: true
-            </script>
-
-            <!-- Biblioteca de Materiales (NEW) -->
+            </div>            <!-- Biblioteca de Materiales (NEW) -->
         <!-- Mis Documentos (Inline) -->
         <!-- Mis Documentos (Inline) -->
-        <div id="documentos" class="neobrutalist-card" style="margin-top: 2rem; padding: 2.5rem !important; border: 3px solid #000; box-shadow: 8px 8px 0px #000; background: white;">
+        <div id="documentos" class="neobrutalist-card" style="padding: 2.5rem !important; border: 3px solid #000; box-shadow: 8px 8px 0px #000; background: white;">
             <h3 style="margin-bottom: 1.5rem; border-bottom: 4px solid #000; padding-bottom: 0.8rem; font-size: 1.4rem; font-family: 'Syne', sans-serif; font-weight: 700;">
                 <i class="fa-solid fa-file-contract"></i> Mis Documentos
             </h3>
@@ -1041,7 +949,7 @@ $blockedDays = $blockedDays ?? [];
             }
 
             dayBtn.innerHTML = `
-                <div style="font-size: 0.8rem; font-weight: 800; padding: 1rem 0;">${day.name.toUpperCase()}</div>
+                <div style="font-size: 0.75rem; font-weight: 800; padding: 1rem 2px; letter-spacing: -0.5px; width: 100%; text-align: center;">${day.name.toUpperCase()}</div>
             `;
             
             if (isBaseAvailable) {
@@ -1740,31 +1648,9 @@ $blockedDays = $blockedDays ?? [];
         document.getElementById('doc-preview-content').innerHTML = '';
     }
 </script>
-<!-- Upload Proof Modal -->
-<div id="upload-proof-overlay" style="display: none; position: fixed; inset: 0; background-color: rgba(0,0,0,0.6); backdrop-filter: blur(5px); align-items: center; justify-content: center; z-index: 100000; padding: 1rem;">
-    <div class="neobrutalist-card" style="max-width: 450px; width: 100%; background: white; padding: 2rem; border: 5px solid #000; box-shadow: 10px 10px 0px #000;">
-        <h3 style="font-family: 'Syne', sans-serif; font-weight: 800; margin-bottom: 1.5rem; border-bottom: 3px solid #000; padding-bottom: 0.5rem;">SUBIR COMPROBANTE</h3>
-        
-        <form id="upload-proof-form" action="{{ route('appointments.upload-proof') }}" method="POST" enctype="multipart/form-data">
-            @csrf
-            <input type="hidden" name="appointment_id" id="upload_appt_id">
-            
-            <div id="upload-payment-instructions" style="background: #f0f0f0; padding: 1rem; border: 2px solid #000; margin-bottom: 1.5rem; border-radius: 8px;">
-                <p style="margin:0; font-family: monospace; font-weight: 900; text-align: center;">Alias: nazarena.deluca</p>
-            </div>
-
-            <div style="margin-bottom: 1.5rem;">
-                <label class="block font-bold mb-2">Seleccioná el archivo:</label>
-                <input type="file" name="proof" class="neobrutalist-input w-full" style="padding: 10px; background: white;" required accept="image/*,application/pdf">
-            </div>
-
-            <div style="display: flex; gap: 10px;">
-                <button type="button" onclick="closeUploadModal()" class="neobrutalist-btn bg-lila" style="flex: 1;">CANCELAR</button>
-                <button type="submit" class="neobrutalist-btn bg-verde" style="flex: 1;">SUBIR</button>
-            </div>
-        </form>
-    </div>
-</div>
+@if(false)
+<!-- Redundant Modal Removed -->
+@endif
 
 <!-- Recovery Session Modal (Calendar for single session) -->
 <div id="recovery-overlay" style="display: none; position: fixed; inset: 0; background-color: rgba(0,0,0,0.6); backdrop-filter: blur(5px); align-items: center; justify-content: center; z-index: 100000; padding: 1rem;">
@@ -1781,7 +1667,7 @@ $blockedDays = $blockedDays ?? [];
             </div>
         </div>
 
-        <div style="margin-bottom: 1.5rem; display: block;" id="recovery-time-section">
+        <div style="margin-bottom: 1.5rem; display: none;" id="recovery-time-section">
             <label class="block font-bold mb-2">2. Rango horario preferido:</label>
             <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
                 <div style="flex: 1;">
@@ -1793,6 +1679,18 @@ $blockedDays = $blockedDays ?? [];
                     <input type="time" id="recovery-time-to" class="neobrutalist-input w-full" style="padding: 0.5rem; border-radius: 8px; font-weight: 700;" onclick="this.showPicker ? this.showPicker() : this.click();">
                 </div>
             </div>
+
+            <label class="block font-bold mb-2">3. ¿Qué modalidad preferís?</label>
+            <div class="modality-selector" style="display: flex; gap: 10px; margin-bottom: 1rem;">
+                <div class="modality-btn recovery-mod-btn" onclick="selectRecoveryModality('presencial')" id="rec-mod-presencial" style="flex: 1; padding: 10px; border: 2px solid #000; border-radius: 10px; text-align: center; cursor: pointer; font-weight: 800; transition: all 0.2s;">
+                    <i class="fa-solid fa-house-user"></i><br>Presencial
+                </div>
+                <div class="modality-btn recovery-mod-btn" onclick="selectRecoveryModality('virtual')" id="rec-mod-virtual" style="flex: 1; padding: 10px; border: 2px solid #000; border-radius: 10px; text-align: center; cursor: pointer; font-weight: 800; transition: all 0.2s;">
+                    <i class="fa-solid fa-video"></i><br>Virtual
+                </div>
+            </div>
+            <input type="hidden" id="selected_recovery_modality">
+
             <p style="font-size: 0.8rem; color: #666; margin-top: 10px; font-weight: 600;">
                 <i class="fa-solid fa-paper-plane"></i> Nazarena recibirá tu solicitud para ver su disponibilidad en la agenda y te enviará un mensaje de confirmación por WhatsApp.
             </p>
@@ -1818,50 +1716,77 @@ $blockedDays = $blockedDays ?? [];
     let recoverySelectedDay = null;
     let recoverySelectedTime = null;
 
-    function openRecoveryModal(apptId) {
+    function openRecoveryModal(apptId, originalDate) {
         document.getElementById('recovery-overlay').style.display = 'flex';
         // Store apptId for the request and button fade
         window.currentRecoveryApptId = apptId;
-        generateRecoveryDays();
+        window.currentRecoveryOriginalDate = originalDate;
+        generateRecoveryDays(originalDate);
     }
 
     function closeRecoveryModal() {
         document.getElementById('recovery-overlay').style.display = 'none';
         recoverySelectedDay = null;
         recoverySelectedTime = null;
+        document.getElementById('selected_recovery_modality').value = '';
+        document.querySelectorAll('.recovery-mod-btn').forEach(b => {
+             b.style.background = 'white';
+             b.style.boxShadow = 'none';
+             b.style.transform = 'none';
+        });
         document.getElementById('recovery-time-section').style.display = 'none';
         document.getElementById('recovery-confirm-btn').classList.add('disabled-btn');
     }
 
-    function generateRecoveryDays() {
+    window.selectRecoveryModality = function(mod) {
+        document.getElementById('selected_recovery_modality').value = mod;
+        document.querySelectorAll('.recovery-mod-btn').forEach(b => {
+             b.style.background = 'white';
+             b.style.boxShadow = 'none';
+             b.style.transform = 'none';
+        });
+        const active = document.getElementById('rec-mod-' + mod);
+        if (active) {
+            active.style.background = 'var(--color-amarillo)';
+            active.style.boxShadow = '4px 4px 0px #000';
+            active.style.transform = 'translate(-2px, -2px)';
+        }
+        checkRecoveryStepReady();
+    }
+
+    function checkRecoveryStepReady() {
+        const from = document.getElementById('recovery-time-from').value;
+        const to = document.getElementById('recovery-time-to').value;
+        const mod = document.getElementById('selected_recovery_modality').value;
+        const btn = document.getElementById('recovery-confirm-btn');
+        
+        if (recoverySelectedDay && from && to && mod) {
+            btn.classList.remove('disabled-btn');
+        } else {
+            btn.classList.add('disabled-btn');
+        }
+    }
+
+    function generateRecoveryDays(originalDate) {
         const grid = document.getElementById('recovery-days-grid');
         grid.innerHTML = '';
         
         const today = new Date();
-        const currentDay = today.getDay(); // 0 (Sun) to 6 (Sat)
+        const tomorrow = new Date();
+        tomorrow.setDate(today.getDate() + 1); 
+
+        // Start from tomorrow or originalDate + 7, whichever is later?
+        // Actually, user said "desde 7 dia en adelante".
+        // Let's assume they want the range to BE 7 days.
         
-        // Calculate days remaining in the current week (until Friday)
-        // If today is Sat (6) or Sun (0), we show next week? 
-        // User said "dentro de esa misma semana", so if it's Friday, they can only recover today?
-        // Let's assume Mon-Fri.
-        
-        for (let i = 0; i < 7; i++) {
-            const date = new Date();
+        for (let i = 7; i < 14; i++) {
+            const date = new Date(today);
             date.setDate(today.getDate() + i);
             const dayOfWeek = date.getDay();
             
             // Skip weekends
             if (dayOfWeek === 0 || dayOfWeek === 6) continue;
             
-            // Limit to current week (until coming Sunday)
-            // If i=0 is today, and it's Wednesday, we show Wed, Thu, Fri.
-            // A simple way is to check if the date belongs to the same week or just limit to the next few days.
-            // User said "dentro de esa misma semana".
-            const diffToToday = date.getDate() - today.getDate();
-            const daysUntilSunday = (7 - currentDay) % 7;
-            
-            if (i > daysUntilSunday && currentDay !== 0) break; 
-
             const y = date.getFullYear();
             const m = String(date.getMonth() + 1).padStart(2, '0');
             const dStr = String(date.getDate()).padStart(2, '0');
@@ -1880,7 +1805,7 @@ $blockedDays = $blockedDays ?? [];
                 recoverySelectedDay = dateStr;
                 // Show range input section instead of times grid
                 document.getElementById('recovery-time-section').style.display = 'block';
-                document.getElementById('recovery-confirm-btn').classList.remove('disabled-btn');
+                checkRecoveryStepReady();
             };
             grid.appendChild(dayBtn);
         }
@@ -1893,12 +1818,26 @@ $blockedDays = $blockedDays ?? [];
         
         const from = document.getElementById('recovery-time-from').value;
         const to = document.getElementById('recovery-time-to').value;
+        const mod = document.getElementById('selected_recovery_modality').value;
+
+        // Final validation
+        if (!from || !to) {
+            return;
+        }
+        if (from >= to) {
+            return;
+        }
+        if (!mod) {
+            window.showAlert('Por favor seleccioná la modalidad.');
+            return;
+        }
+
         const btn = document.getElementById('recovery-confirm-btn');
         btn.disabled = true;
         btn.innerText = 'ENVIANDO...';
 
         try {
-            const rangeStr = from && to ? `de ${from} a ${to}` : (from || to || 'Sin preferencia específica');
+            const rangeStr = `de ${from} a ${to}`;
             const response = await fetch('{{ route("waitlist.store") }}', {
                 method: 'POST',
                 headers: {
@@ -1908,8 +1847,8 @@ $blockedDays = $blockedDays ?? [];
                 },
                 body: JSON.stringify({ 
                     fecha_especifica: recoverySelectedDay, 
-                    availability: 'SOLICITUD RECUPERACIÓN (' + recoverySelectedDay + ') - Preferencia: ' + rangeStr,
-                    modality: 'Cualquiera',
+                    availability: `SOLICITUD RECUPERACIÓN (${recoverySelectedDay}) - Preferencia: ${rangeStr} (${mod.toUpperCase()})`,
+                    modality: mod.charAt(0).toUpperCase() + mod.slice(1),
                     is_recovery: true
                 })
             });
@@ -1967,18 +1906,176 @@ $blockedDays = $blockedDays ?? [];
     }
 
     // Time validation for recovery modal
-    document.getElementById('recovery-time-pref-from').addEventListener('change', validateRecoveryTimes);
-    document.getElementById('recovery-time-pref-to').addEventListener('change', validateRecoveryTimes);
+    const recFrom = document.getElementById('recovery-time-from');
+    const recTo = document.getElementById('recovery-time-to');
+    if (recFrom) recFrom.addEventListener('change', () => { validateRecoveryTimes(); checkRecoveryStepReady(); });
+    if (recTo) recTo.addEventListener('change', () => { validateRecoveryTimes(); checkRecoveryStepReady(); });
 
     function validateRecoveryTimes() {
-        const from = document.getElementById('recovery-time-pref-from');
-        const to = document.getElementById('recovery-time-pref-to');
+        const from = document.getElementById('recovery-time-from');
+        const to = document.getElementById('recovery-time-to');
         if (from.value && to.value) {
-            if (from.value > to.value) {
-                window.showAlert('La hora "Desde" no puede ser mayor a la hora "Hasta".');
+            if (from.value >= to.value) {
                 to.value = '';
+                checkRecoveryStepReady();
+            }
+        }
+    }
+
+    // Global AJAX Pagination for Mis Turnos
+    document.addEventListener('click', function(e) {
+        // Broadened selector to catch all pagination links including mobile ones
+        const link = e.target.closest('#appointments-table-container a.pagination-mobile-btn, #appointments-table-container .pagination li a, #appointments-table-container a[href*="page="]');
+        if (link) {
+            const url = link.href;
+            if (!url || (url.includes('#') && !url.includes('page='))) return;
+
+            e.preventDefault();
+            e.stopPropagation();
+
+            const container = document.getElementById('appointments-table-container');
+            if (container) {
+                container.style.opacity = '0.5';
+                container.style.position = 'relative';
+                
+                let loader = document.getElementById('pagination-loader');
+                if (!loader) {
+                    loader = document.createElement('div');
+                    loader.id = 'pagination-loader';
+                    loader.innerHTML = '<div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 1rem; border: 3px solid #000; box-shadow: 4px 4px 0px #000; font-weight: 800; z-index: 1000; font-size: 0.8rem; white-space: nowrap; max-width: 90vw; text-align: center;"><i class="fa-solid fa-spinner fa-spin"></i> CARGANDO...</div>';
+                    container.appendChild(loader);
+                }
+                
+                fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(response => response.text())
+                .then(html => {
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    const newContent = doc.getElementById('appointments-table-container');
+                    if (newContent) {
+                        container.innerHTML = newContent.innerHTML;
+                        window.history.pushState({}, '', url);
+                        // Static update: Removed scrollIntoView to prevent page jump
+                    } else {
+                        window.location.href = url;
+                    }
+                })
+                .catch(() => { window.location.href = url; })
+                .finally(() => {
+                    container.style.opacity = '1';
+                    if (loader) loader.remove();
+                });
+            }
+        }
+    });
+
+    // Handle Recovery logic locally for instant feedback
+    const originalSendRecoveryRequest = window.sendRecoveryRequest;
+    window.sendRecoveryRequest = async function() {
+        const response = await fetch('{{ route("waitlist.store") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify({ 
+                fecha_especifica: recoverySelectedDay, 
+                availability: `SOLICITUD RECUPERACIÓN (${recoverySelectedDay}) - Preferencia: de ${document.getElementById('recovery-time-from').value} a ${document.getElementById('recovery-time-to').value} (${document.getElementById('selected_recovery_modality').value.toUpperCase()})`,
+                modality: document.getElementById('selected_recovery_modality').value.charAt(0).toUpperCase() + document.getElementById('selected_recovery_modality').value.slice(1),
+                is_recovery: true
+            })
+        });
+
+        if (response.ok) {
+            document.querySelectorAll('button[onclick^="openRecoveryModal"]').forEach(btn => {
+                btn.classList.add('disabled-btn');
+                btn.disabled = true;
+                if (btn.innerText.includes('RECUPERAR') || btn.innerText.includes('Recuperar')) {
+                    btn.innerHTML = '<i class="fa-solid fa-redo"></i> Solicitado';
+                } else {
+                    btn.innerHTML = '<i class="fa-solid fa-calendar-xmark"></i> RECUPERACIÓN SOLICITADA';
+                }
+            });
+            window.showAlert('Solicitud de recuperación enviada. Nazarena te avisará por WhatsApp.');
+            closeRecoveryModal();
+        } else {
+            alert('Error al enviar la solicitud.');
+        }
+    };
+    // Handle Payment Modal logic
+    let currentPaymentAppointmentId = null;
+
+    function openPaymentModal(appointmentId, amount) {
+        currentPaymentAppointmentId = appointmentId;
+        document.getElementById('payment-appt-id').value = appointmentId;
+        document.getElementById('payment-modal-amount').innerText = amount;
+        document.getElementById('payment-modal-overlay').style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closePaymentModal() {
+        document.getElementById('payment-modal-overlay').style.display = 'none';
+        document.body.style.overflow = '';
+    }
+
+    function previewPaymentFile() {
+        const input = document.getElementById('payment_proof_input');
+        const preview = document.getElementById('payment-file-preview');
+        if (input.files && input.files[0]) {
+            const file = input.files[0];
+            preview.style.display = 'block';
+            if (file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = e => {
+                    preview.innerHTML = `<img src="${e.target.result}" style="max-width: 100%; border-radius: 4px;">`;
+                };
+                reader.readAsDataURL(file);
+            } else {
+                preview.innerHTML = `<p style="font-size: 0.8rem; font-weight: 800;"><i class="fa-solid fa-file-pdf"></i> Archivo seleccionado: ${file.name}</p>`;
             }
         }
     }
 </script>
+
+<!-- Payment Modal Overlay -->
+<div id="payment-modal-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); z-index: 10001; align-items: center; justify-content: center; padding: 1rem;">
+    <div class="neobrutalist-card" style="background: white; width: 100%; max-width: 450px; padding: 2rem; border-radius: 12px; position: relative;">
+        <button onclick="closePaymentModal()" style="position: absolute; top: 1rem; right: 1rem; background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #000; z-index: 10;">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+        
+        <h3 style="font-family: 'Syne', sans-serif; font-weight: 800; margin-bottom: 1.5rem; border-bottom: 3px solid #000; padding-bottom: 0.5rem; text-align: center;">INFORMAR PAGO</h3>
+        
+        <form action="{{ route('appointments.uploadProof') }}" method="POST" enctype="multipart/form-data">
+            @csrf
+            <input type="hidden" name="appointment_id" id="payment-appt-id">
+            
+            <div style="background: #f0fdf4; border: 2px solid #166534; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; text-align: center;">
+                <p style="margin: 0; font-weight: 800; color: #166534; font-size: 0.9rem;">Monto a abonar:</p>
+                <p style="margin: 5px 0 0 0; font-size: 1.5rem; font-weight: 900; color: #000;">$<span id="payment-modal-amount">0</span></p>
+            </div>
+
+            <div style="background: #fafafa; border: 2px solid #000; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; box-shadow: 3px 3px 0px #000;">
+                <p style="margin: 0 0 0.5rem 0; font-weight: 900; font-size: 0.8rem; text-transform: uppercase;">Alias:</p>
+                <div style="background: #fff; padding: 8px; border: 1px solid #000; border-radius: 4px; display: flex; justify-content: space-between; align-items: center;">
+                    <code style="font-size: 1rem; font-weight: 900;">nazarena.deluca</code>
+                    <button type="button" onclick="navigator.clipboard.writeText('nazarena.deluca'); window.showAlert('Alias copiado!')" style="background: #fff; border: 1px solid #000; border-radius: 4px; padding: 2px 8px; font-size: 0.7rem; font-weight: 800; cursor: pointer; color: #000;">Copiar</button>
+                </div>
+            </div>
+
+            <div style="margin-bottom: 1.5rem;">
+                <label style="display: block; font-weight: 800; margin-bottom: 0.5rem; font-size: 0.85rem;">Subir Comprobante (Máx 10Mb):</label>
+                <div class="neobrutalist-input" style="padding: 10px; background: white; text-align: center;">
+                    <input type="file" name="proof" id="payment_proof_input" style="font-size: 0.85rem; width: 100%; cursor: pointer;" accept="image/*,application/pdf" onchange="previewPaymentFile()" required>
+                </div>
+                <div id="payment-file-preview" style="display: none; margin-top: 1rem; border: 2px solid #000; padding: 5px; background: #eee; border-radius: 4px; text-align: center;"></div>
+            </div>
+
+            <button type="submit" class="neobrutalist-btn bg-verde" style="width: 100%; padding: 0.8rem; font-size: 1rem; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                <i class="fa-solid fa-paper-plane"></i> Enviar Comprobante
+            </button>
+        </form>
+    </div>
+</div>
 @endsection

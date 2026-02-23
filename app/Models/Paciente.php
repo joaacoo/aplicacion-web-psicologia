@@ -50,6 +50,11 @@ class Paciente extends Model
         return \App\Models\Setting::get('precio_base_sesion', 25000);
     }
 
+    public function credits()
+    {
+        return $this->hasMany(PatientCredit::class, 'paciente_id');
+    }
+
     public function user()
     {
         return $this->belongsTo(User::class, 'user_id');

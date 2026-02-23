@@ -11,6 +11,9 @@ class Appointment extends Model
 {
     use HasFactory, SoftDeletes;
     
+    const ESTADO_FINALIZADO = 'finalizado';
+    const ESTADO_SESION_PERDIDA = 'sesion_perdida';
+    
     protected $table = 'turnos';
 
     protected $fillable = [
@@ -29,6 +32,10 @@ class Appointment extends Model
         'paciente_id',
         'monto_final',
         'frecuencia',
+        'estado_realizado',
+        'motivo_cancelacion',
+        'cancelado_por',
+        'estado_pago',
     ];
 
     /**
@@ -112,5 +119,101 @@ class Appointment extends Model
         }
 
         return $this->user->paciente->meet_link ?? '#';
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // LÓGICA: ¿ESTA SESIÓN ES PAGABLE AHORA?
+    // ═══════════════════════════════════════════════════════════
+
+    /**
+     * ¿Puede el paciente PAGAR esta sesión AHORA?
+     */
+    public function isPayable(): bool
+    {
+        if ($this->estado_pago === 'verificado') return false;
+        if ($this->estado === 'cancelado') return false;
+        if ($this->fecha_hora->isPast()) return false;
+
+        $horasHasta = $this->fecha_hora->diffInHours(now());
+        if ($horasHasta < 24) return false;
+
+        // Note: Sequential logic (only the next one) will be handled in the controller
+        return true;
+    }
+
+    /**
+     * Obtener razón por la que NO es pagable
+     */
+    public function getPaymentBlockReason(): ?string
+    {
+        if ($this->estado_pago === 'verificado') return 'Pagado ✅';
+        if ($this->estado === 'cancelado') return 'Cancelado';
+        if ($this->fecha_hora->isPast()) return 'Sesión pasada';
+
+        $horasHasta = $this->fecha_hora->diffInHours(now());
+        if ($horasHasta < 24) {
+            return '❌ Pasó el plazo de pago (24hs antes). Esta sesión se cancelará automáticamente.';
+        }
+
+        return null;
+    }
+
+    /**
+     * Horas restantes PARA PAGAR (hasta 24h antes)
+     */
+    public function getHoursUntilPaymentDeadline(): ?int
+    {
+        if ($this->fecha_hora->isPast()) return null;
+        $horasHasta = $this->fecha_hora->diffInHours(now());
+        return max(0, $horasHasta - 24);
+    }
+
+    /**
+     * Cuándo VENCE el plazo de pago (24h antes de sesión)
+     */
+    public function getPaymentDeadline()
+    {
+        return $this->fecha_hora->copy()->subHours(24);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // LÓGICA: ESTADO DE REALIZACIÓN
+    // ═══════════════════════════════════════════════════════════
+
+    public function isPastSessionTime(): bool
+    {
+        return $this->fecha_hora->isPast();
+    }
+
+    public function canJoinMeet()
+    {
+        $ahora = now();
+        $inicio = $this->fecha_hora->copy()->subMinutes(10);
+        $fin = $this->fecha_hora->copy()->addMinutes(45);
+
+        // Se habilita 10 minutos antes y desaparece al terminar la sesión
+        return $ahora->between($inicio, $fin);
+    }
+
+    public function isInCriticalZone()
+    {
+        // Retorna true si falta menos de 24hs para el turno
+        return now()->diffInHours($this->fecha_hora, false) < 24;
+    }
+
+    public function isRealizado(): bool
+    {
+        return $this->estado === 'completado' || 
+               $this->estado_realizado === 'realizado';
+    }
+
+    public function markAsRealizado(): void
+    {
+        if ($this->isPastSessionTime()) {
+            $this->update([
+                'estado' => 'completado',
+                'estado_realizado' => 'realizado',
+            ]);
+        }
     }
 }
