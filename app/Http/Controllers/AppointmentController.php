@@ -151,7 +151,7 @@ class AppointmentController extends Controller
         $admin = \App\Models\User::where('rol', 'admin')->first();
         if ($admin) {
             $admin->notify(new \App\Notifications\AdminNotification([
-                'title' => '🔥 Nuevo Comprobante Recibido',
+                'title' => 'Nuevo Comprobante Recibido',
                 'mensaje' => 'El paciente ' . Auth::user()->nombre . ' subió un comprobante de pago para la sesión del ' . $appt->fecha_hora->format('d/m H:i') . '. Por favor, verificalo en la sección de Honorarios.',
                 'link' => route('admin.finanzas') . '#honorarios',
                 'type' => 'pago'
@@ -220,15 +220,13 @@ class AppointmentController extends Controller
         $isCriticalZone = $appointment->isInCriticalZone();
         $isPaid = $appointment->payment && $appointment->payment->estado === 'verificado';
 
-        // Si es el paciente quien cancela en zona crítica y no pagó, no lo dejamos.
-        if (!$isAdmin && $isCriticalZone && !$isPaid) {
-            return back()->with('error', 'No puedes cancelar el turno con menos de 24 horas de anticipación sin antes haberlo abonado. Debes abonar la sesión.');
-        }
+        // El paciente SIEMPRE puede cancelar. Si es en zona crítica, pasa a Sesión Perdida.
+        // Si no pagó, debe pagarse = true. Si pagó, no se reintegra.
 
         if (!$isAdmin && $isCriticalZone) {
             // Lógica < 24hs (solo para paciente): Sesión Perdida, no se reintegra
             $appointment->update([
-                'estado' => Appointment::ESTADO_SESION_PERDIDA,
+                'estado' => 'cancelado',
                 'debe_pagarse' => true,
                 'motivo_cancelacion' => 'Cancelación en zona crítica (< 24hs).'
             ]);

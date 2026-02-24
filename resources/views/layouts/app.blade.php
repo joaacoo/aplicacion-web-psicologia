@@ -1063,10 +1063,8 @@
         // If he wants it fancy, he can provide a callback to the modal.
         // Fallback robusto:
         window.showConfirm = function(message, callback) {
-            // Check for overlay
             const overlay = document.getElementById('confirm-modal-overlay');
             if(overlay) {
-                // If the modal elements exist, use them.
                 const msgEl = document.getElementById('confirm-modal-message');
                 const okBtn = document.getElementById('confirm-ok');
                 const cancelBtn = document.getElementById('confirm-cancel');
@@ -1082,19 +1080,18 @@
                      okBtn.parentNode.replaceChild(newOk, okBtn);
                      cancelBtn.parentNode.replaceChild(newCancel, cancelBtn);
                      
-                     newOk.onclick = function() {
+                     newOk.addEventListener('click', function() {
                          overlay.style.display = 'none';
                          document.body.style.overflow = '';
                          if(callback) callback();
-                     };
-                     newCancel.onclick = function() {
+                     });
+                     newCancel.addEventListener('click', function() {
                          overlay.style.display = 'none';
                          document.body.style.overflow = '';
-                     };
+                     });
                      return;
                 }
             }
-            // Fallback native
             if(confirm(message) && callback) callback();
         };
 
@@ -1539,9 +1536,8 @@
                 method: 'POST',
                 headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' }
             });
-            
-            // Re-fetch strictly to keep state synced without hiding the dropdown
-            fetchNotifications(false);
+            // We do not re-fetch here because the optimistic UI update already made them look read,
+            // and re-fetching might cause the dropdown to re-render or blink.
         }
         
         // Mobile Menu Logic

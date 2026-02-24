@@ -92,7 +92,7 @@
                             // Mensaje de cancelación inteligente
                             if ($isPaid) {
                                 $cancelMsg = '¿Seguro querés cancelar este turno? El pago fue verificado, así que se generará un crédito a tu favor automáticamente.';
-                            } elseif ($alreadyHasPayment) {
+                            } elseif ($alreadyHasPayment && $appt->payment->estado !== 'rechazado') {
                                 $cancelMsg = '¿Seguro querés cancelar este turno? Tu comprobante aún está siendo verificado por la Lic. Si se aprueba, se generará el crédito. Si cancelás ahora, el análisis quedará pendiente de resolución.';
                             } else {
                                 $cancelMsg = '¿Seguro querés cancelar este turno?';
@@ -111,23 +111,20 @@
                                         'confirmado' => 'Confirmado',
                                         'cancelado' => 'Cancelado',
                                         'recuperada' => 'Recuperada',
-                                        \App\Models\Appointment::ESTADO_SESION_PERDIDA => 'Sesión Perdida',
                                         \App\Models\Appointment::ESTADO_FINALIZADO => 'Finalizado',
                                         default => ucfirst($appt->estado)
                                     };
                                     $statusBg = match(true) {
                                         $isRecuperada => '#e0e7ff',
                                         $appt->estado === 'confirmado' => '#f0fdf4',
-                                        $appt->estado === 'cancelado' => '#fef2f2',
-                                        $appt->estado === \App\Models\Appointment::ESTADO_SESION_PERDIDA => '#fff1f2',
+                                        $appt->estado === 'cancelado' => '#fff1f2',
                                         $appt->estado === \App\Models\Appointment::ESTADO_FINALIZADO => '#f1f5f9',
                                         default => '#fffbeb'
                                     };
                                     $statusColor = match(true) {
                                         $isRecuperada => '#4338ca',
                                         $appt->estado === 'confirmado' => '#166534',
-                                        $appt->estado === 'cancelado' => '#991b1b',
-                                        $appt->estado === \App\Models\Appointment::ESTADO_SESION_PERDIDA => '#e11d48',
+                                        $appt->estado === 'cancelado' => '#e11d48',
                                         $appt->estado === \App\Models\Appointment::ESTADO_FINALIZADO => '#475569',
                                         default => '#92400e'
                                     };
@@ -159,8 +156,8 @@
                                     <div style="text-align: center; color: #666; font-weight: 900;">—</div>
                                 @elseif($appt->estado != 'cancelado' && $appt->estado != \App\Models\Appointment::ESTADO_SESION_PERDIDA)
                                     <div class="actions-wrapper" style="display: flex; gap: 5px; flex-wrap: wrap; justify-content: center;">
-                                        {{-- If already has payment (verified OR en revision): just show join btn and cancel --}}
-                                        @if($alreadyHasPayment)
+                                        {{-- If already has valid payment (verified OR en revision): just show join btn and cancel --}}
+                                        @if($alreadyHasPayment && $appt->payment->estado != 'rechazado')
                                             @if($isVirtual && $appt->estado != 'pendiente' && $appt->estado != 'cancelado')
                                                 <a href="{{ $appt->meet_link ?: '#' }}" 
                                                    target="_blank" 
@@ -180,7 +177,7 @@
                                                 <i class="fa-solid fa-dollar-sign"></i> Pagar
                                             </button>
                                         @else
-                                            {{-- No payment yet: show Pay button with sequential logic --}}
+                                            {{-- No payment yet or REJECTED: show Pay button with sequential logic --}}
                                             @php
                                                 $montoAPagar = auth()->user()->paciente->precio_sesion ?? $appt->monto_final;
                                             @endphp
@@ -195,7 +192,7 @@
                                             @endif
                                         @endif
 
-                                         @if($isPaid || $alreadyHasPayment || !$isCriticalZone)
+                                         @if(!$isCriticalZone || $isPaid)
                                             @if($appt->id)
                                                 <form action="{{ route('appointments.cancel', $appt->id) }}" method="POST" style="display:inline; flex: 1 1 0%; min-width: 90px;">
                                                     @csrf
@@ -216,16 +213,27 @@
                                     </div>
                                 @else
                                     <div style="text-align: center;">
-                                        @if($appt->estado === \App\Models\Appointment::ESTADO_SESION_PERDIDA)
-                                            <span class="neobrutalist-btn disabled-btn" style="font-size: 0.7rem; padding: 0.3rem 0.8rem; opacity: 0.6; cursor: default; background: #ffe4e6; color: #e11d48;"><i class="fa-solid fa-xmark"></i> Perdida</span>
-                                        @elseif($appt->recuperada ?? false)
+                                        @if($appt->recuperada ?? false)
                                             <span class="neobrutalist-btn disabled-btn" style="font-size: 0.7rem; padding: 0.3rem 0.8rem; opacity: 0.6; cursor: default; background: #e0e7ff; color: #4338ca;"><i class="fa-solid fa-check-double"></i> Recuperada</span>
-                                        @elseif($appt->id)
+                                        @elseif($appt->id && !$appt->debe_pagarse)
                                             <button onclick="openRecoveryModal({{ $appt->id }}, '{{ $appt->fecha_hora->format('Y-m-d H:i') }}')" class="neobrutalist-btn" style="background: var(--color-amarillo); color: #000; font-size: 0.7rem; padding: 0.3rem 0.8rem; border: 2px solid #000; box-shadow: 2px 2px 0px #000;">
                                                 <i class="fa-solid fa-rotate-left"></i> Recuperar
                                             </button>
+                                        @elseif($appt->id && $appt->debe_pagarse && (!$alreadyHasPayment || ($appt->payment && $appt->payment->estado == 'rechazado')))
+                                            @php
+                                                $montoAPagar = auth()->user()->paciente->precio_sesion ?? $appt->monto_final;
+                                            @endphp
+                                            @if($canPayThisOne)
+                                                <button onclick="openPaymentModal({{ $appt->id ?? 0 }}, {{ $montoAPagar }})" class="neobrutalist-btn bg-verde" style="font-size: 0.7rem; padding: 0.3rem 0.8rem; border: 2px solid #000; box-shadow: 2px 2px 0px #000; display: inline-flex; align-items: center; justify-content: center;">
+                                                    <i class="fa-solid fa-dollar-sign"></i> Pagar
+                                                </button>
+                                            @else
+                                                <button class="neobrutalist-btn bg-verde disabled-btn" disabled style="font-size: 0.7rem; padding: 0.3rem 0.8rem; border: 2px solid #000; box-shadow: 2px 2px 0px #000; display: inline-flex; align-items: center; justify-content: center;" title="Pagá la sesión anterior primero">
+                                                    <i class="fa-solid fa-dollar-sign"></i> Pagar
+                                                </button>
+                                            @endif
                                         @else
-                                            <span class="neobrutalist-btn disabled-btn" style="font-size: 0.7rem; padding: 0.3rem 0.8rem; opacity: 0.6; cursor: default;"><i class="fa-solid fa-clock"></i> Programada</span>
+                                            <span style="color: grey; font-size: 0.8rem; font-weight: 700;">—</span>
                                         @endif
                                     </div>
                                 @endif
@@ -250,8 +258,8 @@
                     $canPayThisOne = in_array($appt->id ?? $appt->fecha_hora->timestamp, $payableApptIds);
                     if ($isPaid) {
                         $cancelMsg = '¿Seguro querés cancelar? El pago fue verificado, se generará un crédito a tu favor.';
-                    } elseif ($alreadyHasPayment) {
-                        $cancelMsg = '¿Seguro querés cancelar? Tu comprobante aún está siendo verificado. Si se aprueba, se generará el crédito. Al cancelar ahora, el análisis quedará pendiente.';
+                    } elseif ($alreadyHasPayment && $paymentStatus !== 'rechazado') {
+                        $cancelMsg = '¿Seguro querés cancelar este turno? Tu comprobante aún está siendo verificado por la Lic. Si se aprueba, se generará el crédito. Si cancelás ahora, el análisis quedará pendiente de resolución.';
                     } else {
                         $cancelMsg = '¿Seguro querés cancelar este turno?';
                     }
@@ -323,7 +331,7 @@
                         @if($isFinished)
                             <div style="width: 100%; text-align: center; color: #666; font-weight: 900; padding: 0.5rem;">—</div>
                         @elseif($appt->estado != 'cancelado' && $appt->estado != \App\Models\Appointment::ESTADO_SESION_PERDIDA)
-                                @if($alreadyHasPayment)
+                                @if($alreadyHasPayment && $appt->payment->estado != 'rechazado')
                                 {{-- Already submitted payment (verified or pending review) -> show join btn, no pay btn --}}
                                     @if($isVirtual && $appt->estado != 'pendiente' && $appt->estado != 'cancelado')
                                         <a href="{{ $appt->meet_link ?: '#' }}" 
@@ -358,7 +366,7 @@
                                     @endif
                                 @endif
 
-                                @if($isPaid || $alreadyHasPayment || !$isCriticalZone)
+                                @if(!$isCriticalZone || $isPaid)
                                     @if($appt->id)
                                         <form action="{{ route('appointments.cancel', abs($appt->id)) }}" method="POST" style="display:inline; flex: 1;">
                                             @csrf
@@ -378,16 +386,27 @@
                                 @endif
                         @else
                             <div style="text-align: center; padding: 0.3rem;">
-                                @if($appt->estado === \App\Models\Appointment::ESTADO_SESION_PERDIDA)
-                                    <span class="neobrutalist-btn disabled-btn" style="font-size: 0.7rem; padding: 0.3rem 0.8rem; opacity: 0.6; cursor: default; background: #ffe4e6; color: #e11d48;"><i class="fa-solid fa-xmark"></i> Perdida</span>
-                                @elseif($appt->recuperada ?? false)
+                                @if($appt->recuperada ?? false)
                                     <span class="neobrutalist-btn disabled-btn" style="font-size: 0.7rem; padding: 0.3rem 0.8rem; opacity: 0.6; cursor: default; background: #e0e7ff; color: #4338ca;"><i class="fa-solid fa-check-double"></i> Recuperada</span>
-                                @elseif($appt->id)
-                                    <button onclick="openRecoveryModal({{ $appt->id }}, '{{ $appt->fecha_hora->format('Y-m-d H:i') }}')" class="neobrutalist-btn" style="background: var(--color-amarillo); color: #000; font-size: 0.7rem; padding: 0.3rem 0.8rem; border: 2px solid #000; box-shadow: 2px 2px 0px #000;">
-                                        <i class="fa-solid fa-rotate-left"></i> Recuperar
+                                @elseif($appt->id && !$appt->debe_pagarse)
+                                    <button onclick="openRecoveryModal({{ $appt->id }}, '{{ $appt->fecha_hora->format('Y-m-d H:i') }}')" class="neobrutalist-btn" style="flex: 1; background: var(--color-amarillo); color: #000; font-size: 0.75rem; padding: 0.3rem 0.6rem; border: 2px solid #000; box-shadow: 2px 2px 0px #000; height: 32px; display: inline-flex; justify-content: center; align-items: center; width: 100%;">
+                                        <i class="fa-solid fa-rotate-left" style="margin-right: 4px;"></i> Recuperar
                                     </button>
+                                @elseif($appt->id && $appt->debe_pagarse && (!$alreadyHasPayment || ($appt->payment && $appt->payment->estado == 'rechazado')))
+                                    @php
+                                        $montoAPagar = auth()->user()->paciente->precio_sesion ?? $appt->monto_final;
+                                    @endphp
+                                    @if($canPayThisOne)
+                                        <button onclick="openPaymentModal({{ abs($appt->id ?? 0) }}, {{ $montoAPagar }})" class="neobrutalist-btn bg-verde" style="flex: 1; padding: 0.3rem 0.6rem; font-size: 0.75rem; display: inline-flex; align-items: center; justify-content: center; height: 32px; width: 100%;">
+                                            <i class="fa-solid fa-dollar-sign"></i> Pagar
+                                        </button>
+                                    @else
+                                        <button class="neobrutalist-btn bg-verde disabled-btn" disabled style="flex: 1; padding: 0.3rem 0.6rem; font-size: 0.75rem; display: inline-flex; align-items: center; justify-content: center; height: 32px; width: 100%;" title="Pagá la sesión anterior primero">
+                                            <i class="fa-solid fa-dollar-sign"></i> Pagar
+                                        </button>
+                                    @endif
                                 @else
-                                    <span class="neobrutalist-btn disabled-btn" style="font-size: 0.7rem; padding: 0.3rem 0.8rem; opacity: 0.6; cursor: default;"><i class="fa-solid fa-clock"></i> Programada</span>
+                                    <span style="color: grey; font-size: 0.8rem; font-weight: 700;">—</span>
                                 @endif
                             </div>
                         @endif
@@ -467,44 +486,79 @@
 
     <script>
         // Lógica de "Botón Inteligente" local
-        setInterval(() => {
-            const now = new Date();
-            document.querySelectorAll('.join-btn').forEach(btn => {
-                const startTime = new Date(btn.dataset.start);
-                const diffMs = startTime - now;
-                const diffMin = diffMs / 1000 / 60;
-                
-                // Read payment status and estado from data attribute
-                const isPaid = btn.getAttribute('data-paid') === 'true';
-                const estado = btn.getAttribute('data-estado') || 'confirmado';
+        if (!window.appointmentsInterval) {
+            window.appointmentsInterval = setInterval(() => {
+                const now = new Date();
+                document.querySelectorAll('.join-btn').forEach(btn => {
+                    const startTime = new Date(btn.dataset.start);
+                    const diffMs = startTime - now;
+                    const diffMin = diffMs / 1000 / 60;
+                    
+                    // Read payment status and estado from data attribute
+                    const isPaid = btn.getAttribute('data-paid') === 'true';
+                    const estado = btn.getAttribute('data-estado') || 'confirmado';
 
-                // Si faltan 10 min o menos, y no pasaron 45 min de la hora de inicio, el botón se habilita sin importar el pago ni el estado.
-                // Si faltan MÁS de 10 min, queda desactivado.
-                if (diffMin <= 10 && diffMin > -45) {
-                    btn.classList.remove('disabled-btn');
-                    btn.classList.add('bg-celeste');
-                } else {
-                    btn.classList.add('disabled-btn');
-                    btn.classList.remove('bg-celeste');
-                }
-            });
-        }, 60000); // Cada 1 minuto
+                    // Si faltan 10 min o menos, y no pasaron 45 min de la hora de inicio, el botón se habilita sin importar el pago ni el estado.
+                    // Si faltan MÁS de 10 min, queda desactivado.
+                    if (diffMin <= 10 && diffMin > -45) {
+                        btn.classList.remove('disabled-btn');
+                        btn.classList.add('bg-celeste');
+                    } else {
+                        btn.classList.add('disabled-btn');
+                        btn.classList.remove('bg-celeste');
+                    }
+                });
+            }, 60000); // Cada 1 minuto
+        }
 
         // Toggle Ver todos / Ver menos con AJAX (usando delegación de eventos)
-        document.addEventListener('click', function(e) {
-            const btn = e.target.closest('.toggle-view-btn');
-            if (btn) {
-                e.preventDefault();
-                const url = btn.getAttribute('href');
-                
-                // Buscar el container y actualizarlo
+        if (!window.appointmentsAjaxBound) {
+            window.appointmentsAjaxBound = true;
+            document.addEventListener('click', function(e) {
+                const btn = e.target.closest('.toggle-view-btn, .pagination-mobile-btn, .reset-filters-btn');
+                if (btn && btn.tagName === 'A' && btn.getAttribute('href')) {
+                    e.preventDefault();
+                    const url = btn.getAttribute('href');
+                    
+                    fetchAndRefreshTable(url);
+                    window.history.pushState({}, '', url);
+                }
+            });
+
+            // Filter form AJAX submission
+            document.addEventListener('submit', function(e) {
+                const form = e.target.closest('#appointments-filter-form');
+                if (form) {
+                    e.preventDefault();
+                    const formData = new FormData(form);
+                    const params = new URLSearchParams(formData);
+                    // Retain ver_todo if it exists in current URL
+                    const currentUrl = new URL(window.location.href);
+                    if (currentUrl.searchParams.has('ver_todo')) {
+                        params.append('ver_todo', currentUrl.searchParams.get('ver_todo'));
+                    }
+                    const url = form.action + '?' + params.toString();
+                    
+                    fetchAndRefreshTable(url);
+                    
+                    // Update URL without reloading to allow sharing the filtered state
+                    window.history.pushState({}, '', url);
+                }
+            });
+
+            // Helper function for AJAX fetch
+            function fetchAndRefreshTable(url) {
                 const container = document.getElementById('appointments-table-container');
                 if (container) {
                     const loading = document.getElementById('appointments-loading');
                     if (loading) loading.style.display = 'block';
                     container.style.opacity = '0.5';
                     
-                    fetch(url, {
+                    // Add AJAX parameter so the controller knows to return only the table
+                    const fetchUrl = new URL(url, window.location.origin);
+                    fetchUrl.searchParams.append('ajax', '1');
+
+                    fetch(fetchUrl.toString(), {
                         headers: {
                             'X-Requested-With': 'XMLHttpRequest'
                         }
@@ -514,8 +568,8 @@
                         container.innerHTML = html;
                         if (loading) loading.style.display = 'none';
                         container.style.opacity = '1';
-                        // Scroll to table
-                        document.getElementById('mis-turnos')?.scrollIntoView({ behavior: 'smooth' });
+                        // Scroll to table smoothly
+                        document.getElementById('mis-turnos')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                     })
                     .catch(err => {
                         console.error(err);
@@ -528,14 +582,14 @@
                     window.location.href = url;
                 }
             }
-        });
+        }
     </script>
 
 @else
     <div style="flex-grow: 1; display: flex; align-items: center; justify-content: center; flex-direction: column; padding: 3rem; border: 3px dashed #000; border-radius: 12px; background: #fafafa; margin: 1rem 0;">
         <i class="fa-solid fa-calendar-xmark" style="font-size: 3rem; color: #ccc; margin-bottom: 1rem;"></i>
         <p style="font-weight: 800; color: #000; text-align: center; font-size: 1.1rem; margin-bottom: 1.5rem;">No hay turnos que coincidan con tu búsqueda.</p>
-        <a href="{{ route('patient.dashboard') }}" class="neobrutalist-btn bg-amarillo" style="text-decoration: none; color: #000; padding: 0.8rem 1.5rem; font-weight: 800; border: 3px solid #000; box-shadow: 4px 4px 0px #000;">
+        <a href="{{ route('patient.dashboard') }}#mis-turnos" class="neobrutalist-btn bg-amarillo reset-filters-btn" style="text-decoration: none; color: #000; padding: 0.8rem 1.5rem; font-weight: 800; border: 3px solid #000; box-shadow: 4px 4px 0px #000;">
             <i class="fa-solid fa-list"></i> Ver todos los turnos
         </a>
     </div>

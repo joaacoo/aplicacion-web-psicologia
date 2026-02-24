@@ -649,10 +649,10 @@
                                         <i class="fa-solid fa-check"></i>
                                     </button>
                                 </form>
-                                <form id="reject-form-{{ $receipt['turno']->id }}" action="{{ route('admin.appointments.cancel', $receipt['turno']->id) }}" method="POST" style="flex: 1;">
+                                <form id="reject-form-{{ $receipt['turno']->payment->id }}" action="{{ route('admin.payments.reject', $receipt['turno']->payment->id) }}" method="POST" style="flex: 1;">
                                     @csrf
                                     <button type="button" class="neobrutalist-btn" 
-                                            onclick="showConfirm('¿Rechazar turno y comprobante?', function() { document.getElementById('reject-form-{{ $receipt['turno']->id }}').submit(); })"
+                                            onclick="showConfirm('¿Rechazar comprobante?', function() { document.getElementById('reject-form-{{ $receipt['turno']->payment->id }}').submit(); })"
                                             style="width: 100%; background: #ef4444; color: white; padding: 0.6rem; font-size: 0.85rem; border: 2px solid #000; box-shadow: 2px 2px 0px #000; display: flex; justify-content: center; align-items: center;">
                                         <i class="fa-solid fa-times"></i>
                                     </button>
@@ -922,7 +922,7 @@
                 <i class="fa-solid fa-spinner fa-spin" style="font-size: 2rem; color: white;"></i>
             </div>
             {{-- Image for regular photos --}}
-            <img id="proofModalImg" src="" alt="Comprobante" style="max-width: 100%; max-height: 60vh; border: 2px solid #fff; box-shadow: 0 0 15px rgba(0,0,0,0.5); display: none; margin: 0 auto;" onload="document.getElementById('proofLoader').style.display='none'; this.style.display='block';">
+            <img id="proofModalImg" src="" alt="Comprobante" style="max-width: 100%; max-height: 60vh; border: 2px solid #fff; box-shadow: 0 0 15px rgba(0,0,0,0.5); display: none; margin: 0 auto;" onload="document.getElementById('proofLoader').style.display='none'; this.style.display='block'; this.style.animation='fadeIn 0.3s ease-in-out';">
             {{-- Iframe for PDFs --}}
             <iframe id="proofModalPdf" src="" style="width: 100%; height: 65vh; border: 2px solid #fff; display: none; margin: 0 auto; background: white;"></iframe>
         </div>
@@ -973,7 +973,7 @@
                 const match = onclickAttr.match(/openProofModalHelper\('([^']+)',\s*'([^']+)',\s*'([^']+)'(?:,\s*(\d+))?\)/);
                 if (match) {
                     const approveForm = item.querySelector('form[action*="confirm"]');
-                    const rejectForm = item.querySelector('form[action*="cancel"]');
+                    const rejectForm = item.querySelector('form[action*="reject"]');
                     return {
                         url: match[1],
                         userName: match[2],
@@ -1030,22 +1030,22 @@
         fetch(proof.url, { method: 'HEAD' })
             .then(res => {
                 const ct = res.headers.get('Content-Type') || '';
-                loader.style.display = 'none';
                 if (ct.includes('pdf')) {
                     // PDF: show iframe
+                    loader.style.display = 'none';
                     pdfEl.src = proof.url;
                     pdfEl.style.display = 'block';
+                    pdfEl.style.animation = 'fadeIn 0.3s ease-in-out';
                 } else {
-                    // Image: show img
+                    // Image: show img (onload will hide loader)
                     imgEl.src = proof.url;
-                    imgEl.style.display = 'block';
+                    imgEl.style.animation = 'fadeIn 0.3s ease-in-out';
                 }
             })
             .catch(() => {
                 // Fallback: try as image
-                loader.style.display = 'none';
                 imgEl.src = proof.url;
-                imgEl.style.display = 'block';
+                imgEl.style.animation = 'fadeIn 0.3s ease-in-out';
             });
     }
     
@@ -1074,7 +1074,7 @@
     }
     
     function rejectFromModal() {
-        if (confirm('¿Rechazar turno y comprobante?')) {
+        showConfirm('¿Rechazar comprobante?', function() {
             const action = document.getElementById('proofModalReject').getAttribute('data-reject-action');
             if (action) {
                 const form = document.createElement('form');
@@ -1088,7 +1088,7 @@
                 document.body.appendChild(form);
                 form.submit();
             }
-        }
+        });
     }
 
     function closeProofModal() {

@@ -2139,7 +2139,7 @@ $blockedDays = $blockedDays ?? [];
             if (file.type.startsWith('image/')) {
                 const reader = new FileReader();
                 reader.onload = e => {
-                    preview.innerHTML = `<img src="${e.target.result}" style="max-width: 100%; border-radius: 4px;">`;
+                    preview.innerHTML = `<img src="${e.target.result}" style="max-width: 100%; max-height: 200px; border-radius: 4px;">`;
                 };
                 reader.readAsDataURL(file);
             } else {

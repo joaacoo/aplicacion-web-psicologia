@@ -298,7 +298,7 @@ class DashboardController extends Controller
         // ...
         
         if (request()->ajax()) {
-            return view('dashboard.patient', [
+            return view('dashboard.partials.appointments_table', [
                 'appointments' => $visibleFutureSessions,
                 'projectedAppointments' => $projectedAppointments,
                 'visibleFutureSessions' => $visibleFutureSessions,
@@ -488,10 +488,11 @@ class DashboardController extends Controller
             $this->syncService->sync(auth()->user());
         }
 
-        // Turnos de hoy (Upcoming only)
+        // Turnos de hoy (Upcoming only, excluyendo cancelados)
         $todayAppointments = Appointment::with(['user', 'payment'])
             ->whereDate('fecha_hora', \Carbon\Carbon::today())
             ->where('fecha_hora', '>=', now()) // Filter past appointments
+            ->where('estado', '!=', 'cancelado')
             ->orderBy('fecha_hora', 'asc')
             ->get();
             
