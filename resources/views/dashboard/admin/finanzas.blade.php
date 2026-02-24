@@ -214,8 +214,7 @@
         transition: transform 0.2s ease, opacity 0.2s ease;
     }
     .notification-bell-container:hover {
-        transform: scale(1.1);
-        opacity: 0.8;
+        /* No hover effect: keep static */
     }
     /* Fixed Height Controls */
     .filter-control {
@@ -918,11 +917,14 @@
             </div>
             <button onclick="closeProofModal()" class="neobrutalist-btn" style="background: #ff5252; color: white; padding: 0.4rem 0.8rem; font-size: 1rem;"><i class="fa-solid fa-times"></i></button>
         </div>
-        <div style="padding: 2rem; text-align: center; background: #333;">
+        <div style="padding: 2rem; text-align: center; background: #333; min-height: 200px;">
             <div id="proofLoader" style="display: none; padding: 2rem; text-align: center;">
                 <i class="fa-solid fa-spinner fa-spin" style="font-size: 2rem; color: white;"></i>
             </div>
-            <img id="proofModalImg" src="" alt="Comprobante" style="max-width: 100%; max-height: 60vh; border: 2px solid #fff; box-shadow: 0 0 15px rgba(0,0,0,0.5); display: none;" onload="document.getElementById('proofLoader').style.display='none'; this.style.display='block';">
+            {{-- Image for regular photos --}}
+            <img id="proofModalImg" src="" alt="Comprobante" style="max-width: 100%; max-height: 60vh; border: 2px solid #fff; box-shadow: 0 0 15px rgba(0,0,0,0.5); display: none; margin: 0 auto;" onload="document.getElementById('proofLoader').style.display='none'; this.style.display='block';">
+            {{-- Iframe for PDFs --}}
+            <iframe id="proofModalPdf" src="" style="width: 100%; height: 65vh; border: 2px solid #fff; display: none; margin: 0 auto; background: white;"></iframe>
         </div>
         <div class="modal-footer" style="padding: 1rem; border-top: 3px solid #000; background: white; display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap;">
             <!-- Navigation Buttons -->
@@ -999,22 +1001,52 @@
         if (index < 0 || index >= allProofs.length) return;
         
         const proof = allProofs[index];
-        document.getElementById('proofLoader').style.display = 'block';
-        document.getElementById('proofModalImg').style.display = 'none';
-        document.getElementById('proofModalImg').src = proof.url;
+        const imgEl  = document.getElementById('proofModalImg');
+        const pdfEl  = document.getElementById('proofModalPdf');
+        const loader = document.getElementById('proofLoader');
+
+        // Reset both viewers
+        imgEl.style.display = 'none';
+        pdfEl.style.display = 'none';
+        imgEl.src = '';
+        pdfEl.src = '';
+        loader.style.display = 'block';
+
         document.getElementById('proofModalTitle').innerText = 'Comprobante: ' + proof.userName;
         document.getElementById('proofModalSubtitle').innerText = 'Subido el ' + proof.date;
         document.getElementById('proofModalDownload').href = proof.url;
         
-        // Update navigation buttons
+        // Navigation buttons
         document.getElementById('proofModalPrev').disabled = (index === 0);
         document.getElementById('proofModalNext').disabled = (index === allProofs.length - 1);
         document.getElementById('proofModalPrev').style.opacity = (index === 0) ? '0.5' : '1';
         document.getElementById('proofModalNext').style.opacity = (index === allProofs.length - 1) ? '0.5' : '1';
-        
-        // Store current appointment ID for approve/reject
+
+        // Approve / reject actions
         document.getElementById('proofModalApprove').setAttribute('data-approve-action', proof.approveAction || '');
         document.getElementById('proofModalReject').setAttribute('data-reject-action', proof.rejectAction || '');
+
+        // Detect if file is PDF via HEAD request
+        fetch(proof.url, { method: 'HEAD' })
+            .then(res => {
+                const ct = res.headers.get('Content-Type') || '';
+                loader.style.display = 'none';
+                if (ct.includes('pdf')) {
+                    // PDF: show iframe
+                    pdfEl.src = proof.url;
+                    pdfEl.style.display = 'block';
+                } else {
+                    // Image: show img
+                    imgEl.src = proof.url;
+                    imgEl.style.display = 'block';
+                }
+            })
+            .catch(() => {
+                // Fallback: try as image
+                loader.style.display = 'none';
+                imgEl.src = proof.url;
+                imgEl.style.display = 'block';
+            });
     }
     
     function navigateProof(direction) {
@@ -1063,6 +1095,9 @@
         document.getElementById('proofModal').style.display = 'none';
         document.body.style.overflow = 'auto';
         document.getElementById('proofModalImg').src = '';
+        document.getElementById('proofModalImg').style.display = 'none';
+        document.getElementById('proofModalPdf').src = '';
+        document.getElementById('proofModalPdf').style.display = 'none';
         allProofs = [];
         currentProofIndex = 0;
     }
