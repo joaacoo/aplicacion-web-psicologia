@@ -148,15 +148,17 @@ class Appointment extends Model
      */
     public function isPayable(?bool $hasCredit = null): bool
     {
-        // Los turnos de recuperación nunca deberían generar un nuevo pago
-        if ($this->es_recuperacion) return false;
-
         if ($this->estado_pago === 'verificado') return false;
         if ($this->estado === 'cancelado') return false;
         if ($this->fecha_hora->isPast()) return false;
 
         $horasHasta = $this->fecha_hora->diffInHours(now());
-        if ($horasHasta < 24) return false;
+        
+        // Excepción: Si fue asignado desde la list de espera, siempre puede pagarlo
+        $isAssignedByLic = ($this->notas === 'Asignado por la Lic.' || str_contains($this->notas, 'Turno de recuperación'));
+        if ($horasHasta < 24 && !$isAssignedByLic) {
+            return false;
+        }
 
         // Si explícitamente se pasa que tiene crédito, no es pagable
         if ($hasCredit === true) return false;
@@ -171,12 +173,12 @@ class Appointment extends Model
     public function getPaymentBlockReason(): ?string
     {
         if ($this->estado_pago === 'verificado') return 'Pagado ✅';
-        if ($this->es_recuperacion) return 'Turno de recuperación (no genera nuevo pago).';
         if ($this->estado === 'cancelado') return 'Cancelado';
         if ($this->fecha_hora->isPast()) return 'Sesión pasada';
 
         $horasHasta = $this->fecha_hora->diffInHours(now());
-        if ($horasHasta < 24) {
+        $isAssignedByLic = ($this->notas === 'Asignado por la Lic.' || str_contains($this->notas, 'Turno de recuperación'));
+        if ($horasHasta < 24 && !$isAssignedByLic) {
             return '❌ Pasó el plazo de pago (24hs antes). Esta sesión se cancelará automáticamente.';
         }
 

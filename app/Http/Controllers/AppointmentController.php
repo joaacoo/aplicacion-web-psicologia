@@ -515,52 +515,60 @@ class AppointmentController extends Controller
         ]);
 
         $waitlist = \App\Models\Waitlist::with('user')->findOrFail($request->waitlist_id);
-        $fecha_hora = \Carbon\Carbon::parse($request->fecha . ' ' . $request->hora);
-
-        // [REGLA FINAL] 
-        // 1. El turno nace como "confirmado" (ya que la psicóloga lo agendó)
-        // 2. es_recuperacion = true
-        // 3. ui_status = 'recuperado' para insignias visuales
-        // 4. NO es recurrente / NO es fijo
+        $pacienteId = $waitlist->user->paciente->id ?? null;
         
+        // Find if there's an active credit
+        $tieneCredito = false;
+        if ($pacienteId) {
+            $creditQuery = \App\Models\PatientCredit::where('paciente_id', $pacienteId)
+                ->where('status', 'active');
+                
+            $credit = (clone $creditQuery)->where('appointment_id', $waitlist->original_appointment_id)->first() ?? $creditQuery->orderBy('created_at', 'asc')->first();
+            $tieneCredito = $credit ? true : false;
+        }
+
+        $precio = 0;
+        if (!$tieneCredito) {
+            $precio = $waitlist->user->paciente->honorario_pactado ?? \App\Models\Setting::get('precio_base_sesion', 20000);
+            if (!$precio) $precio = \App\Models\Setting::get('precio_base_sesion', 20000);
+        }
+
         $appointment = Appointment::create([
             'usuario_id' => $waitlist->usuario_id,
-            'paciente_id' => $waitlist->user->paciente->id ?? null,
+            'paciente_id' => $pacienteId,
             'fecha_hora' => $fecha_hora,
             'modalidad' => $request->modalidad,
             'estado' => Appointment::ESTADO_CONFIRMADO,
             'ui_status' => 'recuperado',
             'es_recurrente' => false,
-            'es_recuperacion' => true,
+            'es_recuperacion' => false, // To allow normal payment flow if no credit
             'waitlist_id' => $waitlist->id,
-            'notas' => 'Turno de recuperación agendado desde lista de espera.',
+            'notas' => 'Asignado por la Lic.',
             'frecuencia' => 'eventual',
-            'debe_pagarse' => false, // No se vuelve a cobrar si ya pagó, o si es recuperación > 24hs
+            'debe_pagarse' => !$tieneCredito,
+            'monto_final' => $precio,
         ]);
 
-        // Consumir crédito si existe
-        if ($waitlist->original_appointment_id) {
-            \App\Models\PatientCredit::where('paciente_id', $waitlist->user->paciente->id ?? 0)
-                ->where('appointment_id', $waitlist->original_appointment_id)
-                ->where('status', 'active')
-                ->update(['status' => 'used']);
-        } else {
-            // Fallback: consumir el más antiguo activo si no hay original_id directo
-            \App\Models\PatientCredit::where('paciente_id', $waitlist->user->paciente->id ?? 0)
-                ->where('status', 'active')
-                ->orderBy('created_at', 'asc')
-                ->limit(1)
-                ->update(['status' => 'used']);
-        }
 
         // Eliminar de la lista de espera
         $waitlist->delete();
 
         // Notificar al paciente
         if ($appointment->user) {
+            $isRecovery = !empty($waitlist->original_appointment_id);
+            
+            $appMsg = $isRecovery 
+                ? 'La licenciada te asignó un turno de recuperación desde la lista de espera.'
+                : 'La licenciada te asignó un turno disponible desde la lista de espera.';
+                
+            $mailMsg = $isRecovery
+                ? 'Te asignaron un turno de recuperación disponible. Ingresá para verlo, confirmarlo o gestionarlo.'
+                : 'Te asignaron un turno disponible. Ingresá para verlo, confirmarlo o gestionarlo.';
+
             $appointment->user->notify(new \App\Notifications\PatientNotification([
-                'title' => 'Turno de Recuperación Agendado',
-                'mensaje' => 'La Licenciada ha agendado tu sesión de recuperación para el ' . $fecha_hora->format('d/m H:i') . '.',
+                'title' => $isRecovery ? 'Turno de Recuperación Agendado' : 'Turno Asignado',
+                'mensaje' => $appMsg,
+                'email_mensaje' => $mailMsg,
                 'link' => route('patient.dashboard'),
                 'type' => 'success'
             ]));

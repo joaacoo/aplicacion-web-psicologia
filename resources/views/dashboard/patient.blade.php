@@ -407,7 +407,7 @@ function togglePatientMenu() {
                         <form action="{{ route('appointments.cancelFixed') }}" method="POST" style="width: 100%;">
                             @csrf
                             <button type="button" 
-                                    onclick="window.showConfirm('⚠️ ¿ESTÁS SEGURO? Esto cancelará todas tus sesiones fijas de aquí en adelante y liberarás tu horario de forma permanente.', () => this.closest('form').submit())"
+                                    onclick="window.showConfirm('⚠️ ¿ESTÁS SEGURO? Esto cancelará todas tus sesiones fijas de aquí en adelante y liberarás tu horario de forma permanente.', () => { if(typeof window.showProcessing === 'function') window.showProcessing('Cancelando reserva fija...'); this.closest('form').submit(); })"
                                     class="neobrutalist-btn" 
                                     style="width: 100%; background: #fee2e2; color: #e11d48; border: 2px solid #e11d48; padding: 0.8rem; font-weight: 800; font-size: 0.8rem; box-shadow: 3px 3px 0px #e11d48;">
                                 <i class="fa-solid fa-calendar-xmark"></i> CANCELAR MI RESERVA FIJA
@@ -1448,6 +1448,7 @@ $fixedBlockedSlots = $fixedBlockedSlots ?? [];
         }
         
         window.showConfirm('¿Confirmás tu RESERVA FIJA ' + selectedFrequency.toUpperCase() + ' para los ' + selectedDayName + ' a las ' + selectedTime + '?', function() {
+            if(typeof window.showProcessing === 'function') window.showProcessing('Creando reserva fija...');
             document.getElementById('reserve-form').submit();
         });
     }
@@ -1918,7 +1919,7 @@ $fixedBlockedSlots = $fixedBlockedSlots ?? [];
             return;
         }
 
-        if (typeof window.showLoader === 'function') window.showLoader();
+        if (typeof window.showProcessing === 'function') window.showProcessing('Procesando solicitud...');
 
         const btn = document.getElementById('recovery-confirm-btn');
         btn.disabled = true;
@@ -2198,7 +2199,7 @@ $fixedBlockedSlots = $fixedBlockedSlots ?? [];
                 <div id="payment-file-preview" style="display: none; margin-top: 1rem; border: 2px solid #000; padding: 5px; background: #eee; border-radius: 4px; text-align: center;"></div>
             </div>
 
-            <button type="submit" onclick="if(this.form.checkValidity()) window.showLoader()" class="neobrutalist-btn bg-verde" style="width: 100%; padding: 0.8rem; font-size: 1rem; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 8px;">
+            <button type="submit" onclick="if(this.form.checkValidity()) { if(typeof window.showProcessing === 'function') window.showProcessing('Enviando comprobante...'); }" class="neobrutalist-btn bg-verde" style="width: 100%; padding: 0.8rem; font-size: 1rem; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 8px;">
                 <i class="fa-solid fa-paper-plane"></i> Enviar Comprobante
             </button>
         </form>

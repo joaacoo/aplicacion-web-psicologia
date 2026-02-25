@@ -46,7 +46,7 @@
                     <textarea name="availability" class="neobrutalist-input" rows="3" required placeholder="Ej: Lunes a Viernes después de las 17hs..."></textarea>
                 </div>
 
-                <button type="submit" class="neobrutalist-btn bg-verde w-full">Unirme a la Lista</button>
+                <button type="submit" onclick="if(this.form.checkValidity()) { if(typeof window.showProcessing === 'function') window.showProcessing('Anotando...'); }" class="neobrutalist-btn bg-verde w-full">Unirme a la Lista</button>
             </form>
            
             <div style="margin-top: 1.5rem;">

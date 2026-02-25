@@ -294,8 +294,8 @@ class DashboardController extends Controller
                     $appt->is_payable = false;
                     $creditAppliedToThisSession = true;
                 } 
-                // Caso 2: Es pagable (es el primero en la cola activa y cumple condiciones)
-                elseif ($isFirstActive && $appt->isPayable(false)) {
+                // Caso 2: Es pagable (es el primero en la cola activa o asignado por lic., y cumple condiciones)
+                elseif (($isFirstActive || (isset($appt->notas) && ($appt->notas === 'Asignado por la Lic.' || str_contains($appt->notas, 'Turno de recuperación')))) && $appt->isPayable(false)) {
                     $appt->ui_status = 'payable';
                     $appt->is_payable = true;
                     $payableAppointment = $appt;
@@ -378,9 +378,9 @@ class DashboardController extends Controller
         $completedAppointments = $completedAppointmentsCollection;
 
         // Get pending recovery requests keyed by appointment ID
-        $pendingRecoveryIds = \App\Models\Waitlist::where('usuario_id', Auth::id())
-            ->whereNotNull('original_appointment_id')
-            ->pluck('original_appointment_id')
+        $pendingRecoveryIds = \App\Models\Appointment::where('usuario_id', Auth::id())
+            ->whereNotNull('recovery_requested_at')
+            ->pluck('id')
             ->toArray();
 
         // Extraer datos de UI para la tabla principal (paginada) --> We don't really use this map anymore in view, we use objects directly
@@ -810,9 +810,9 @@ class DashboardController extends Controller
         $appointments = $query->paginate($perPage)->appends(request()->query());
 
         // Fetch Pending Recovery IDs
-        $pendingRecoveryIds = \App\Models\Waitlist::where('usuario_id', Auth::id())
-            ->whereNotNull('original_appointment_id')
-            ->pluck('original_appointment_id')
+        $pendingRecoveryIds = \App\Models\Appointment::where('usuario_id', Auth::id())
+            ->whereNotNull('recovery_requested_at')
+            ->pluck('id')
             ->toArray();
 
         // Fetch Credit Balance

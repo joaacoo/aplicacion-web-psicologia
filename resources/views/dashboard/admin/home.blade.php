@@ -167,7 +167,7 @@
                                             @csrf
                                             <input type="hidden" name="fecha_hora" value="{{ is_string($appt->fecha_hora) ? $appt->fecha_hora : $appt->fecha_hora->format('Y-m-d H:i:s') }}">
                                             <input type="hidden" name="usuario_id" value="{{ $appt->usuario_id }}">
-                                            <button type="button" onclick="window.showConfirm('¿Estás seguro de cancelar este turno definitivamente? La paciente no tendrá que abonar nada.', function() { document.getElementById('cancel-form-proj-{{ abs($appt->id) }}').submit(); })" style="background: white; color: #dc2626; border: 2px solid #000; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; padding: 0; border-radius: 6px; font-weight: 700; cursor: pointer; box-shadow: 2px 2px 0px #000; font-size: 1.1rem;" title="Cancelar Turno">
+                                            <button type="button" onclick="window.showConfirm('¿Estás seguro de cancelar este turno definitivamente? La paciente no tendrá que abonar nada.', function() { if(typeof window.showProcessing === 'function') window.showProcessing('Cancelando turno...'); document.getElementById('cancel-form-proj-{{ abs($appt->id) }}').submit(); })" style="background: white; color: #dc2626; border: 2px solid #000; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; padding: 0; border-radius: 6px; font-weight: 700; cursor: pointer; box-shadow: 2px 2px 0px #000; font-size: 1.1rem;" title="Cancelar Turno">
                                                 <i class="fa-solid fa-xmark"></i>
                                             </button>
                                         </form>
@@ -175,7 +175,7 @@
                                         <form id="cancel-form-{{ $appt->id }}" action="{{ route('admin.appointments.cancel', $appt->id) }}" method="POST" style="margin: 0;">
                                             @csrf
                                             @method('POST')
-                                            <button type="button" onclick="window.showConfirm('¿Estás seguro de cancelar este turno definitivamente? La paciente no tendrá que abonar nada.', function() { document.getElementById('cancel-form-{{ $appt->id }}').submit(); })" style="background: white; color: #dc2626; border: 2px solid #000; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; padding: 0; border-radius: 6px; font-weight: 700; cursor: pointer; box-shadow: 2px 2px 0px #000; font-size: 1.1rem;" title="Cancelar Turno">
+                                            <button type="button" onclick="window.showConfirm('¿Estás seguro de cancelar este turno definitivamente? La paciente no tendrá que abonar nada.', function() { if(typeof window.showProcessing === 'function') window.showProcessing('Cancelando turno...'); document.getElementById('cancel-form-{{ $appt->id }}').submit(); })" style="background: white; color: #dc2626; border: 2px solid #000; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; padding: 0; border-radius: 6px; font-weight: 700; cursor: pointer; box-shadow: 2px 2px 0px #000; font-size: 1.1rem;" title="Cancelar Turno">
                                                 <i class="fa-solid fa-xmark"></i>
                                             </button>
                                         </form>

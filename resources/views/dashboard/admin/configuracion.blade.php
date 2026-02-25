@@ -181,7 +181,7 @@
                                     <form id="delete-avail-{{ $avail->id }}" action="{{ route('admin.availabilities.destroy', $avail->id) }}" method="POST">
                                         @csrf
                                         @method('DELETE')
-                                        <button type="button" class="neobrutalist-btn" style="background: var(--color-rosa); padding: 0.3rem 0.6rem; font-size: 0.7rem;" onclick="confirmAction('delete-avail-{{ $avail->id }}', '¿Eliminar este horario de atención?')"><i class="fa-solid fa-trash"></i></button>
+                                        <button type="button" class="neobrutalist-btn" style="background: var(--color-rosa); padding: 0.3rem 0.6rem; font-size: 0.7rem;" onclick="confirmAction('delete-avail-{{ $avail->id }}', '¿Eliminar este horario de atención?', 'Eliminando...')"><i class="fa-solid fa-trash"></i></button>
                                     </form>
                                 </td>
                             </tr>
@@ -249,7 +249,7 @@
                         <label style="display:block; font-weight: 800; font-size: 0.85rem; margin-bottom: 0.3rem;">Motivo (Opcional):</label>
                         <input type="text" name="reason" placeholder="Ej: Vacaciones / Licencia" class="neobrutalist-input w-full" style="margin-bottom: 0;">
                     </div>
-                    <button type="button" class="neobrutalist-btn bg-verde w-full" style="margin-bottom: 0; padding: 10px;" onclick="confirmAction('block-day-form', '¿Bloquear fecha o período?')">Bloquear</button>
+                    <button type="button" class="neobrutalist-btn bg-verde w-full" style="margin-bottom: 0; padding: 10px;" onclick="confirmAction('block-day-form', '¿Bloquear fecha o período?', 'Bloqueando...')">Bloquear</button>
                 </form>
             </div>
 
@@ -271,7 +271,7 @@
                                 <form id="delete-blocked-{{ $bd->id }}" action="{{ route('admin.blocked-days.destroy', $bd->id) }}" method="POST">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="button" class="neobrutalist-btn" style="background: var(--color-rosa); padding: 2px 6px; font-size: 0.7rem;" onclick="confirmAction('delete-blocked-{{ $bd->id }}', '¿Desbloquear este día?')"><i class="fa-solid fa-trash"></i></button>
+                                    <button type="button" class="neobrutalist-btn" style="background: var(--color-rosa); padding: 2px 6px; font-size: 0.7rem;" onclick="confirmAction('delete-blocked-{{ $bd->id }}', '¿Desbloquear este día?', 'Desbloqueando...')"><i class="fa-solid fa-trash"></i></button>
                                 </form>
                             </div>
                         @empty
@@ -418,7 +418,7 @@
     // Confirm Action Logic
     let pendingActionFormId = null;
 
-    window.confirmAction = function(formId, message) {
+    window.confirmAction = function(formId, message, loaderText = 'Procesando...') {
         const form = document.getElementById(formId);
         if (!form) {
             console.error('Form not found:', formId);
@@ -442,12 +442,18 @@
             newBtn.addEventListener('click', function() {
                 if (pendingActionFormId) {
                     const f = document.getElementById(pendingActionFormId);
-                    if(f) f.submit(); 
+                    if(f) {
+                        if(typeof window.showProcessing === 'function') window.showProcessing(loaderText);
+                        f.submit(); 
+                    }
                 }
                 closeActionModal();
             });
         } else {
-            if(confirm(message)) form.submit();
+            if(confirm(message)) {
+                if(typeof window.showProcessing === 'function') window.showProcessing(loaderText);
+                form.submit();
+            }
         }
     };
 

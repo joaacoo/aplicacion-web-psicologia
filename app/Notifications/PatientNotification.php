@@ -39,7 +39,7 @@ class PatientNotification extends Notification
         return (new MailMessage)
             ->subject('Actualización de tu turno: ' . ($this->data['title'] ?? 'Novedades'))
             ->greeting('Hola ' . $notifiable->nombre . '!')
-            ->line($this->data['mensaje'])
+            ->line($this->data['email_mensaje'] ?? $this->data['mensaje'])
             ->action('Ver mi portal', $this->data['link'] ?? route('patient.dashboard'))
             ->line('¡Nos vemos pronto!')
             ->salutation('Lic. Nazarena De Luca');

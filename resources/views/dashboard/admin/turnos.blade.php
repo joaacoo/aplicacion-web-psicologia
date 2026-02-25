@@ -60,13 +60,13 @@
                                     @if($appt->estado == 'pendiente')
                                         <form id="confirm-all-{{ $appt->id }}" action="{{ route('admin.appointments.confirm', $appt->id) }}" method="POST">
                                             @csrf
-                                            <button type="button" class="neobrutalist-btn no-select" style="padding: 0.4rem 0.8rem; font-size: 0.8rem; background: var(--color-verde);" onclick="confirmAction('confirm-all-{{ $appt->id }}', '¿Confirmar este turno?')">Confirmar</button>
+                                            <button type="button" class="neobrutalist-btn no-select" style="padding: 0.4rem 0.8rem; font-size: 0.8rem; background: var(--color-verde);" onclick="confirmAction('confirm-all-{{ $appt->id }}', '¿Confirmar este turno?', 'Confirmando turno...')">Confirmar</button>
                                         </form>
                                     @endif
                                     @if($appt->estado != 'cancelado')
                                         <form id="cancel-all-{{ $appt->id }}" action="{{ route('admin.appointments.cancel', $appt->id) }}" method="POST">
                                             @csrf
-                                            <button type="button" class="neobrutalist-btn no-select" style="padding: 0.4rem 0.8rem; font-size: 0.8rem; background: var(--color-lila);" onclick="confirmAction('cancel-all-{{ $appt->id }}', '¿Cancelar turno?')">Cancelar</button>
+                                            <button type="button" class="neobrutalist-btn no-select" style="padding: 0.4rem 0.8rem; font-size: 0.8rem; background: var(--color-lila);" onclick="confirmAction('cancel-all-{{ $appt->id }}', '¿Cancelar turno?', 'Cancelando turno...')">Cancelar</button>
                                         </form>
                                     @endif
                                 </div>

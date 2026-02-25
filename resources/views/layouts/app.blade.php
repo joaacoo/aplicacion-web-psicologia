@@ -2335,24 +2335,39 @@
     </script>
     <!-- Global Loading Overlay -->
     <div id="global-loader-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.8); backdrop-filter: blur(4px); z-index: 100000; align-items: center; justify-content: center; flex-direction: column; font-family: 'Syne', sans-serif;">
-        <div class="neobrutalist-card" style="background: white; padding: 2rem; border: 4px solid #000; box-shadow: 10px 10px 0px #000; display: flex; flex-direction: column; align-items: center; gap: 1rem;">
-            <i class="fa-solid fa-spinner fa-spin" style="font-size: 3rem; color: #000;"></i>
-            <h2 style="margin: 0; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;">Cargando...</h2>
-            <p style="margin: 0; font-weight: 600; font-size: 0.9rem; color: #444;">Por favor, esperá un momento.</p>
+        <div class="neobrutalist-card" style="background: white; padding: 2rem; border: 4px solid #000; box-shadow: 10px 10px 0px #000; display: flex; flex-direction: column; align-items: center; gap: 1rem; border-radius: 12px;">
+            <i class="fa-solid fa-spinner fa-spin" style="font-size: 3.5rem; color: #000;"></i>
+            <h2 id="global-loader-text" style="margin: 0; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; font-size: 1.4rem; text-align: center;">Procesando...</h2>
+            <p style="margin: 0; font-weight: 600; font-size: 0.95rem; color: #444; text-align: center;">Por favor, esperá un momento.</p>
         </div>
     </div>
 
     <script>
-        window.showLoader = function() {
+        window.showProcessing = function(text = 'Procesando...') {
             const loader = document.getElementById('global-loader-overlay');
+            const textEl = document.getElementById('global-loader-text');
+            if (textEl) textEl.textContent = text;
             if (loader) loader.style.display = 'flex';
             document.body.style.overflow = 'hidden';
         };
-        window.hideLoader = function() {
+
+        window.hideProcessing = function() {
             const loader = document.getElementById('global-loader-overlay');
             if (loader) loader.style.display = 'none';
             document.body.style.overflow = '';
         };
+
+        // Aliases for retro-compatibility
+        window.showLoader = window.showProcessing;
+        window.hideLoader = window.hideProcessing;
+
+        // Fallbacks de seguridad (Evita que el spinner quede trabado de por vida)
+        window.addEventListener('unhandledrejection', function() {
+            window.hideProcessing();
+        });
+        window.addEventListener('error', function() {
+            window.hideProcessing();
+        });
     </script>
 
 </body>

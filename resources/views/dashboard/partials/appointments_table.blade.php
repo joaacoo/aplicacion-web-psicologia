@@ -199,6 +199,11 @@
                                             <i class="fa-solid fa-repeat" style="color: #6366f1;"></i> Fijo
                                         </div>
                                     @endif
+                                    @if($appt->notas === 'Asignado por la Lic.' || str_contains($appt->notas ?? '', 'Turno de recuperación'))
+                                        <div style="font-size: 0.65rem; color: #4338ca; font-weight: 800; text-transform: uppercase; margin-top: 2px;">
+                                            Asignado por la Lic.
+                                        </div>
+                                    @endif
                                 </div>
                             </td>
                             <td style="padding: 0.5rem; text-align: center;">
@@ -249,7 +254,7 @@
                                                 @if(!$appt->id) <input type="hidden" name="date" value="{{ $appt->fecha_hora->format('Y-m-d H:i:s') }}"> @endif
                                                 <button type="button" class="neobrutalist-btn bg-lila cancel-btn" 
                                                         style="padding: 0.3rem 0.6rem; font-size: 0.75rem; width: 100%; height: 32px; display: inline-flex; align-items: center; justify-content: center; white-space: nowrap;" 
-                                                        onclick="window.showConfirm('{{ $cancelMsg }}', () => this.closest('form').submit())">
+                                                        onclick="window.showConfirm('{{ $cancelMsg }}', () => { window.showProcessing('Cancelando turno...'); this.closest('form').submit(); })">
                                                     Cancelar
                                                 </button>
                                             </form>
@@ -378,6 +383,11 @@
                                     <i class="fa-solid fa-repeat" style="color: #6366f1;"></i> Fijo
                                 </div>
                             @endif
+                            @if($appt->notas === 'Asignado por la Lic.' || str_contains($appt->notas ?? '', 'Turno de recuperación'))
+                                <div style="font-size: 0.7rem; color: #4338ca; font-weight: 800; text-transform: uppercase; margin-top: 4px;">
+                                    Asignado por la Lic.
+                                </div>
+                            @endif
                         </span>
                     </div>
                     <div class="card-row">
@@ -394,12 +404,12 @@
                     <div class="actions-wrapper">
                         @if(!$isFinished && ($appt->estado != 'cancelado' || $showRecoverBtn || $hasPendingRecovery))
                             @if(($isPaid || $paymentPending || $isCreditApplied) && $isVirtual && !$hasPendingRecovery && $appt->estado != 'cancelado')
-                                <a href="{{ $appt->meet_link ?: '#' }}" target="_blank" class="neobrutalist-btn join-btn {{ $canJoin ? 'bg-celeste' : 'disabled-btn' }}" style="flex: 1; height: 32px; font-size: 0.75rem; display: flex; align-items: center; justify-content: center; text-decoration: none; color: #000;" data-start="{{ $appt->fecha_hora->toISOString() }}">
+                                <a href="{{ $appt->meet_link ?: '#' }}" target="_blank" class="neobrutalist-btn join-btn {{ $canJoin ? 'bg-celeste' : 'disabled-btn' }}" style="flex: 1; min-height: 38px; height: auto; padding: 0.4rem; font-size: 0.9rem; display: flex; align-items: center; justify-content: center; text-decoration: none; color: #000;" data-start="{{ $appt->fecha_hora->toISOString() }}">
                                     <i class="fa-solid fa-video"></i> Unirse
                                 </a>
                             @endif
                             @if($showPayBtn)
-                                <button onclick="openPaymentModal({{ $appt->id ?? 0 }}, {{ auth()->user()->paciente->precio_sesion ?? $appt->monto_final }})" class="neobrutalist-btn bg-verde {{ $canPayThisOne ? '' : 'disabled-btn' }}" {{ $canPayThisOne ? '' : 'disabled' }} style="flex: 1; height: 32px; font-size: 0.75rem;" title="{{ $appt->payment_block_reason }}">
+                                <button onclick="openPaymentModal({{ $appt->id ?? 0 }}, {{ auth()->user()->paciente->precio_sesion ?? $appt->monto_final }})" class="neobrutalist-btn bg-verde {{ $canPayThisOne ? '' : 'disabled-btn' }}" {{ $canPayThisOne ? '' : 'disabled' }} style="flex: 1; min-height: 38px; height: auto; padding: 0.4rem; font-size: 0.9rem;" title="{{ $appt->payment_block_reason }}">
                                     <i class="fa-solid fa-dollar-sign"></i> Pagar
                                 </button>
                             @endif
@@ -407,7 +417,7 @@
                                 <form action="{{ $appt->id ? route('appointments.cancel', $appt->id) : route('appointments.cancelProjected') }}" method="POST" style="flex: 1;">
                                     @csrf
                                     @if(!$appt->id) <input type="hidden" name="date" value="{{ $appt->fecha_hora->format('Y-m-d H:i:s') }}"> @endif
-                                    <button type="button" class="neobrutalist-btn bg-lila cancel-btn" style="width: 100%; height: 32px; font-size: 0.75rem; display: flex; align-items: center; justify-content: center;" onclick="window.showConfirm('{{ $cancelMsg }}', () => this.closest('form').submit())">
+                                    <button type="button" class="neobrutalist-btn bg-lila cancel-btn" style="width: 100%; min-height: 38px; height: auto; padding: 0.4rem; font-size: 0.9rem; display: flex; align-items: center; justify-content: center;" onclick="window.showConfirm('{{ $cancelMsg }}', () => { window.showProcessing('Cancelando turno...'); this.closest('form').submit(); })">
                                         Cancelar
                                     </button>
                                 </form>
@@ -422,7 +432,7 @@
                             @if($showRecoverBtn)
                                 <button onclick="openRecoveryModal({{ $appt->id }})" 
                                         class="neobrutalist-btn bg-amarillo"
-                                        style="flex: 1; height: 32px; font-size: 0.75rem; display: flex; align-items: center; justify-content: center;">
+                                        style="flex: 1; min-height: 38px; height: auto; padding: 0.4rem; font-size: 0.9rem; display: flex; align-items: center; justify-content: center;">
                                     <i class="fa-solid fa-rotate-left"></i> Recuperar
                                 </button>
                             @endif

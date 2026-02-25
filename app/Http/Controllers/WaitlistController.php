@@ -27,6 +27,7 @@ class WaitlistController extends Controller
         if ($request->boolean('is_recovery')) {
             $originalAppointmentId = $request->original_appointment_id ?? $request->appointment_id;
             if (!$originalAppointmentId) {
+                if ($request->ajax() || $request->wantsJson()) return response()->json(['error' => 'ID de turno original requerido para recuperación.'], 403);
                 abort(403, 'ID de turno original requerido para recuperación.');
             }
 
@@ -34,16 +35,18 @@ class WaitlistController extends Controller
 
             // Verificar que el turno pertenezca al usuario
             if ($appointment->usuario_id !== $user->id) {
+                if ($request->ajax() || $request->wantsJson()) return response()->json(['error' => 'No tienes permiso para recuperar este turno.'], 403);
                 abort(403, 'No tienes permiso para recuperar este turno.');
             }
 
             // Verificar que esté cancelado
             if ($appointment->estado !== 'cancelado') {
+                if ($request->ajax() || $request->wantsJson()) return response()->json(['error' => 'Solo se pueden recuperar turnos cancelados.'], 403);
                 abort(403, 'Solo se pueden recuperar turnos cancelados.');
             }
 
             // Verificar que no se haya solicitado ya la recuperación
-            if ($appointment->recovery_requested_at) {
+            if (!is_null($appointment->recovery_requested_at)) {
                 if ($request->ajax() || $request->wantsJson()) {
                     return response()->json(['error' => 'Ya has solicitado la recuperación de este turno.'], 403);
                 }
@@ -53,6 +56,7 @@ class WaitlistController extends Controller
             // Aplicar reglas de recuperación
             $canRecover = !$appointment->isInCriticalZone() || ($appointment->payment && $appointment->payment->estado == 'verificado');
             if (!$canRecover) {
+                if ($request->ajax() || $request->wantsJson()) return response()->json(['error' => 'No cumples con las condiciones para recuperar este turno.'], 403);
                 abort(403, 'No cumples con las condiciones para recuperar este turno.');
             }
 

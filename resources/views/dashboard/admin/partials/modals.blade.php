@@ -84,7 +84,7 @@
 
             <div style="display: flex; gap: 1rem; justify-content: flex-end;">
                 <button type="button" onclick="closeRecoverAssignModal()" class="neobrutalist-btn bg-white" style="padding: 0.5rem 1rem;">Cancelar</button>
-                <button type="submit" class="neobrutalist-btn bg-verde" style="padding: 0.5rem 1rem;">Confirmar y Agendar</button>
+                <button type="submit" onclick="if(this.form.checkValidity()) { if(typeof window.showProcessing === 'function') window.showProcessing('Asignando turno...'); }" class="neobrutalist-btn bg-verde" style="padding: 0.5rem 1rem;">Confirmar y Agendar</button>
             </div>
         </form>
     </div>

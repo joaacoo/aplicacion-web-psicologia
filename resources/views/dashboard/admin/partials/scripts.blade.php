@@ -2,7 +2,7 @@
     // Confirm Action Logic
     let pendingActionFormId = null;
 
-    window.confirmAction = function(formId, message) {
+    window.confirmAction = function(formId, message, loaderText = 'Procesando...') {
         const form = document.getElementById(formId);
         if (!form) {
             console.error('Form not found:', formId);
@@ -27,14 +27,17 @@
                 if (pendingActionFormId) {
                     const f = document.getElementById(pendingActionFormId);
                     if(f) {
-                        window.showLoader();
+                        if(typeof window.showProcessing === 'function') window.showProcessing(loaderText);
                         f.submit(); 
                     }
                 }
                 closeActionModal();
             });
         } else {
-            if(confirm(message)) form.submit();
+            if(confirm(message)) {
+                if(typeof window.showProcessing === 'function') window.showProcessing(loaderText);
+                form.submit();
+            }
         }
     };
 
