@@ -135,7 +135,7 @@
 
                             // Mensaje de cancelación
                             if ($isPaid) {
-                                $cancelMsg = '¿Seguro querés cancelar este turno? El pago fue verificado, así que se generará un crédito a tu favor automáticamente.';
+                                $cancelMsg = '¿Seguro querés cancelar este turno? El pago fue verificado, así que se generará un crédito para tu próxima sesión automáticamente.';
                             } elseif ($paymentPending) {
                                 $cancelMsg = 'Tu comprobante está siendo verificado. Si cancelás ahora, el análisis quedará pendiente.';
                             } else {
@@ -316,7 +316,7 @@
                     }
 
                     if ($isPaid) {
-                        $cancelMsg = '¿Seguro querés cancelar? El pago fue verificado, se generará un crédito a tu favor.';
+                        $cancelMsg = '¿Seguro querés cancelar? El pago fue verificado, se generará un crédito para tu próxima sesión.';
                     } else {
                         $cancelMsg = '¿Seguro querés cancelar este turno?' . ($isCriticalZone ? ' Al faltar menos de 24hs, se considerará sesión perdida.' : '');
                     }

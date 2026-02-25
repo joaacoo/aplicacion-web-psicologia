@@ -247,7 +247,7 @@ class AppointmentController extends Controller
                     'reason' => 'Crédito por cancelación de la profesional (' . $appointment->fecha_hora->format('d/m H:i') . ')',
                     'status' => 'active'
                 ]);
-                $msg .= ' Se generó crédito para el paciente.';
+                $msg .= ' Se generó crédito para la próxima sesión del paciente.';
             }
         } elseif ($isCriticalZone) {
             // ZONA CRÍTICA: ≤ 24hs
@@ -292,7 +292,7 @@ class AppointmentController extends Controller
                     'reason' => 'Crédito por cancelación > 24hs del turno ' . $appointment->fecha_hora->format('d/m H:i'),
                     'status' => 'active'
                 ]);
-                $msg = 'Turno cancelado y crédito generado. Puedes recuperar este turno.';
+                $msg = 'Turno cancelado y crédito generado para tu próxima sesión.';
             } else {
                 $msg = 'Turno cancelado correctamente. Puedes recuperar este turno.';
             }
@@ -484,7 +484,7 @@ class AppointmentController extends Controller
             ]));
         }
 
-        $successMsg = "Tu reserva fija ha sido cancelada. Se han cancelado {$count} turnos futuros" . ($creditsGenerated > 0 ? " y se generaron {$creditsGenerated} créditos por pagos previos." : ".");
+        $successMsg = "Tu reserva fija ha sido cancelada. Se han cancelado {$count} turnos futuros" . ($creditsGenerated > 0 ? " y se generaron {$creditsGenerated} créditos para tus próximas sesiones." : ".");
 
         return back()->with('success', $successMsg);
     }
