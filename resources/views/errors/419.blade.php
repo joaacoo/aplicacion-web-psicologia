@@ -29,11 +29,11 @@
             <i class="fa-solid fa-rotate"></i> REFRESCAR LA PÁGINA
         </a>
 
-        <a href="{{ route('dashboard') }}" 
+        <a href="{{ url('/') }}" 
            style="display: block; padding: 1rem; background: #fff; border: 3px solid #000; border-radius: 12px; color: #000; font-weight: 900; text-decoration: none; box-shadow: 4px 4px 0px #000; transition: transform 0.2s;"
            onmouseover="this.style.transform='translate(-2px, -2px)'"
            onmouseout="this.style.transform='none'">
-            <i class="fa-solid fa-house"></i> IR AL DASHBOARD
+            <i class="fa-solid fa-house"></i> IR AL INICIO
         </a>
     </div>
 

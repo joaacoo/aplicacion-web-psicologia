@@ -50,7 +50,7 @@
             </form>
            
             <div style="margin-top: 1.5rem;">
-                <a href="{{ route('dashboard') }}" style="color: #666; font-weight: 600; text-decoration: none;">&larr; Volver al inicio</a>
+                <a href="{{ url('/') }}" style="color: #666; font-weight: 600; text-decoration: none;">&larr; Volver al inicio</a>
             </div>
         </div>
     </div>
