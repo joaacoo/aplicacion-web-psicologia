@@ -22,6 +22,11 @@
             .appointments-cards {
                 display: block;
             }
+            .cancel-btn {
+                width: 100%;
+                justify-content: center;
+                text-align: center;
+            }
         }
         @media (min-width: 769px) {
             .appointments-table {
@@ -85,17 +90,73 @@
                             $canJoin = $appt->canJoinMeet();
                             $isFinished = $appt->estado === \App\Models\Appointment::ESTADO_FINALIZADO || ($appt->fecha_hora->copy()->addMinutes(45)->isPast());
                             $isCriticalZone = $appt->isInCriticalZone();
+                            
                             $paymentStatus = $appt->payment->estado ?? 'pendiente_pago';
                             $isPaid = $paymentStatus === 'verificado';
-                            $alreadyHasPayment = !is_null($appt->payment); // Ya subió comprobante aunque no esté verificado
-                            $canPayThisOne = in_array($appt->id ?? $appt->fecha_hora->timestamp, $payableApptIds);
-                            // Mensaje de cancelación inteligente
+                            $paymentPending = $paymentStatus === 'pendiente';
+                            $paymentRejected = $paymentStatus === 'rechazado';
+                            
+                            $uiStatus = $appt->ui_status ?? 'locked_sequential';
+                            $isCreditApplied = $uiStatus === 'credit_applied';
+                            $canPayThisOne = $uiStatus === 'payable';
+                            
+                            // REGLAS CRÍTICAS DE UI
+                            $showPayBtn = false;
+                            $showCancelBtn = false;
+                            
+                            if (!$isFinished && $appt->estado != 'cancelado') {
+                                // 1. Botón Pagar: Solo si no está pago ni en revisión ni cubierto por crédito
+                                if (!$isPaid && !$paymentPending && !$isCreditApplied) {
+                                    $showPayBtn = true;
+                                }
+                                
+                                // 2. Botón Cancelar:
+                                if ($isPaid) {
+                                    // Si está pago, siempre puede cancelar (genera crédito)
+                                    $showCancelBtn = true;
+                                } elseif ($isCriticalZone) {
+                                    // REGLA: < 24hs -> OCULTAR CANCELAR (Incluso si está pago, el usuario no debería cancelar a último momento? No, el usuario dijo: "Si el turno NO está pago -> solo se permite pagar. No se permite cancelar ni recuperar.")
+                                    // Si está PAGO y < 24hs, ¿debería poder cancelar? 
+                                    // La regla dice: "Dentro de las 24 horas: Si el turno NO está pago -> solo se permite pagar. No se permite cancelar ni recuperar."
+                                    // Implica que si ESTÁ PAGO sí podría cancelar (generando crédito/sesión perdida según política anterior, pero esta nueva regla es más restrictiva).
+                                    // Vamos a ser estrictos: Dentro de las 24hs NO se permite cancelar ni recuperar si NO está pago.
+                                    $showCancelBtn = $isPaid; 
+                                } else {
+                                    // > 24hs y No pago -> Puede cancelar
+                                    $showCancelBtn = true;
+                                }
+                                
+                                // 3. Pago en revisión -> OCULTAR AMBOS
+                                if ($paymentPending) {
+                                    $showPayBtn = false;
+                                    $showCancelBtn = false;
+                                }
+                            }
+
+                            // Mensaje de cancelación
                             if ($isPaid) {
                                 $cancelMsg = '¿Seguro querés cancelar este turno? El pago fue verificado, así que se generará un crédito a tu favor automáticamente.';
-                            } elseif ($alreadyHasPayment && $appt->payment->estado !== 'rechazado') {
-                                $cancelMsg = '¿Seguro querés cancelar este turno? Tu comprobante aún está siendo verificado por la Lic. Si se aprueba, se generará el crédito. Si cancelás ahora, el análisis quedará pendiente de resolución.';
+                            } elseif ($paymentPending) {
+                                $cancelMsg = 'Tu comprobante está siendo verificado. Si cancelás ahora, el análisis quedará pendiente.';
                             } else {
-                                $cancelMsg = '¿Seguro querés cancelar este turno?';
+                                $cancelMsg = '¿Seguro querés cancelar este turno?' . ($isCriticalZone ? ' Al faltar menos de 24hs, se considerará sesión perdida.' : '');
+                            }
+
+                            // REGLAS RECUPERAR (SEGÚN TABLA DE VERDAD):
+                            // > 24hs + No pagó    -> ✅ Sí puede recuperar
+                            // > 24hs + Sí pagó    -> ✅ Sí puede recuperar
+                            // ≤ 24hs + No pagó    -> ❌ NO puede recuperar
+                            // ≤ 24hs + Sí pagó    -> ✅ Sí puede recuperar
+                            $showRecoverBtn = false;
+                            $hasPendingRecovery = in_array($appt->id, $pendingRecoveryIds ?? []);
+                            $canceladoConMasDe24hs = $appt->cancelado_con_mas_de_24hs ?? false;
+                            
+                            // El turno está cancelado, es futuro, y no tiene recuperación pendiente
+                            if ($appt->estado === 'cancelado' && $appt->fecha_hora->isFuture() && !$hasPendingRecovery) {
+                                // Puede recuperar si: canceló con > 24hs (sin importar pago) O si canceló ≤ 24hs pero ya había pagado
+                                if ($canceladoConMasDe24hs || $isPaid) {
+                                    $showRecoverBtn = true;
+                                }
                             }
                         @endphp
                         <tr style="border-bottom: 1px solid #2D2D2D;">
@@ -106,26 +167,24 @@
                             </td>
                             <td style="padding: 0.5rem; white-space: nowrap;">
                                 @php
-                                    $isRecuperada = $appt->recuperada ?? false;
                                     $statusName = match($appt->estado) {
                                         'confirmado' => 'Confirmado',
                                         'cancelado' => 'Cancelado',
-                                        'recuperada' => 'Recuperada',
                                         \App\Models\Appointment::ESTADO_FINALIZADO => 'Finalizado',
                                         default => ucfirst($appt->estado)
                                     };
                                     $statusBg = match(true) {
-                                        $isRecuperada => '#e0e7ff',
                                         $appt->estado === 'confirmado' => '#f0fdf4',
                                         $appt->estado === 'cancelado' => '#fff1f2',
                                         $appt->estado === \App\Models\Appointment::ESTADO_FINALIZADO => '#f1f5f9',
+                                        $appt->estado === \App\Models\Appointment::ESTADO_RECUPERADO => '#eef2ff',
                                         default => '#fffbeb'
                                     };
                                     $statusColor = match(true) {
-                                        $isRecuperada => '#4338ca',
                                         $appt->estado === 'confirmado' => '#166534',
                                         $appt->estado === 'cancelado' => '#e11d48',
                                         $appt->estado === \App\Models\Appointment::ESTADO_FINALIZADO => '#475569',
+                                        $appt->estado === \App\Models\Appointment::ESTADO_RECUPERADO => '#4338ca',
                                         default => '#92400e'
                                     };
                                 @endphp
@@ -133,7 +192,7 @@
                                     <span style="font-weight: 900; color: {{ $statusColor }}; background: {{ $statusBg }}; border: 1px solid {{ $statusColor }}; padding: 2px 8px; border-radius: 6px; font-size: 0.7rem; display: inline-block; text-transform: uppercase; white-space: nowrap;">
                                         {{ $statusName }}
                                     </span>
-                                    @if($appt->es_recurrente && !($appt->recuperada ?? false))
+                                    @if($appt->es_recurrente)
                                         <div style="font-size: 0.75rem; color: #000; font-weight: 900; text-transform: uppercase; display: flex; align-items: center; gap: 3px; white-space: nowrap;">
                                             <i class="fa-solid fa-repeat" style="color: #6366f1;"></i> Fijo
                                         </div>
@@ -141,11 +200,13 @@
                                 </div>
                             </td>
                             <td style="padding: 0.5rem; text-align: center;">
-                                @if($appt->payment && $appt->payment->estado == 'verificado')
+                                @if($isPaid)
                                     <span style="color: green; font-weight: bold;">Verificado</span>
-                                @elseif($appt->payment && $appt->payment->estado == 'pendiente')
+                                @elseif($isCreditApplied)
+                                    <span style="color: #4338ca; font-weight: bold;">Crédito</span>
+                                @elseif($paymentPending)
                                     <span style="color: grey; font-weight: bold;">En Revisión</span>
-                                @elseif($appt->payment && $appt->payment->estado == 'rechazado')
+                                @elseif($paymentRejected)
                                     <span style="color: #e11d48; font-weight: bold;">Rechazado</span>
                                 @else
                                     <span style="color: #666; font-weight: bold;">Pendiente</span>
@@ -154,92 +215,71 @@
                             <td style="padding: 0.5rem;">
                                 @if($isFinished)
                                     <div style="text-align: center; color: #666; font-weight: 900;">—</div>
-                                @elseif($appt->estado != 'cancelado' && $appt->estado != \App\Models\Appointment::ESTADO_SESION_PERDIDA)
+                                @elseif($appt->estado != 'cancelado')
                                     <div class="actions-wrapper" style="display: flex; gap: 5px; flex-wrap: wrap; justify-content: center;">
-                                        {{-- If already has valid payment (verified OR en revision): just show join btn and cancel --}}
-                                        @if($alreadyHasPayment && $appt->payment->estado != 'rechazado')
-                                            @if($isVirtual && $appt->estado != 'pendiente' && $appt->estado != 'cancelado')
-                                                <a href="{{ $appt->meet_link ?: '#' }}" 
-                                                   target="_blank" 
-                                                   class="neobrutalist-btn join-btn {{ $canJoin ? 'bg-celeste' : 'disabled-btn' }}" 
-                                                   style="flex: 1 1 0%; padding: 0.3rem 0.6rem; font-size: 0.75rem; border: 2px solid #000; text-decoration: none; color: #000; display: inline-flex; align-items: center; gap: 4px; justify-content: center; min-width: 90px; height: 32px; white-space: nowrap;"
-                                                   data-start="{{ $appt->fecha_hora->toISOString() }}"
-                                                   data-paid="true"
-                                                   data-estado="{{ $appt->estado }}">
-                                                    <i class="fa-solid fa-video"></i> Unirse
-                                                </a>
-                                            @endif
-                                        @elseif($appt->is_virtual ?? false)
-                                            {{-- Projected virtual appointment: estado=pendiente, show locked Pagar --}}
-                                            <button class="neobrutalist-btn bg-verde disabled-btn" disabled
-                                                style="flex: 1 1 0%; padding: 0.3rem 0.6rem; font-size: 0.75rem; min-width: 90px; height: 32px; display: inline-flex; align-items: center; justify-content: center; white-space: nowrap;"
-                                                title="El pago se habilitará cuando se acerque la fecha de la sesión">
-                                                <i class="fa-solid fa-dollar-sign"></i> Pagar
-                                            </button>
-                                        @else
-                                            {{-- No payment yet or REJECTED: show Pay button with sequential logic --}}
-                                            @php
-                                                $montoAPagar = auth()->user()->paciente->precio_sesion ?? $appt->monto_final;
-                                            @endphp
-                                            @if($canPayThisOne)
-                                                <button onclick="openPaymentModal({{ $appt->id ?? 0 }}, {{ $montoAPagar }})" class="neobrutalist-btn bg-verde" style="flex: 1 1 0%; padding: 0.3rem 0.6rem; font-size: 0.75rem; min-width: 90px; height: 32px; display: inline-flex; align-items: center; justify-content: center; white-space: nowrap;">
-                                                    <i class="fa-solid fa-dollar-sign"></i> Pagar
-                                                </button>
-                                            @else
-                                                <button class="neobrutalist-btn bg-verde disabled-btn" disabled style="flex: 1 1 0%; padding: 0.3rem 0.6rem; font-size: 0.75rem; min-width: 90px; height: 32px; display: inline-flex; align-items: center; justify-content: center; white-space: nowrap;" title="Pagá la sesión anterior primero">
-                                                    <i class="fa-solid fa-dollar-sign"></i> Pagar
-                                                </button>
-                                            @endif
+                                        
+                                        {{-- JOIN BUTTON --}}
+                                        @if(($isPaid || $paymentPending || $isCreditApplied) && $isVirtual)
+                                            <a href="{{ $appt->meet_link ?: '#' }}" 
+                                               target="_blank" 
+                                               class="neobrutalist-btn join-btn {{ $canJoin ? 'bg-celeste' : 'disabled-btn' }}" 
+                                               style="flex: 1 1 0%; padding: 0.3rem 0.6rem; font-size: 0.75rem; border: 2px solid #000; text-decoration: none; color: #000; display: inline-flex; align-items: center; gap: 4px; justify-content: center; min-width: 90px; height: 32px; white-space: nowrap;"
+                                               data-start="{{ $appt->fecha_hora->toISOString() }}">
+                                                <i class="fa-solid fa-video"></i> Unirse
+                                            </a>
                                         @endif
 
-                                         @if(!$isCriticalZone || $isPaid)
-                                            @if($appt->id)
-                                                <form action="{{ route('appointments.cancel', $appt->id) }}" method="POST" style="display:inline; flex: 1 1 0%; min-width: 90px;">
-                                                    @csrf
-                                                    <button type="button" class="neobrutalist-btn bg-lila" style="padding: 0.3rem 0.6rem; font-size: 0.75rem; width: 100%; height: 32px; display: inline-flex; align-items: center; justify-content: center; white-space: nowrap;" onclick="window.showConfirm('{{ $cancelMsg }}', () => this.closest('form').submit())">
-                                                        Cancelar
-                                                    </button>
-                                                </form>
-                                            @else
-                                                <form action="{{ route('appointments.cancelProjected') }}" method="POST" style="display:inline; flex: 1 1 0%; min-width: 90px;">
-                                                    @csrf
-                                                    <input type="hidden" name="date" value="{{ $appt->fecha_hora->format('Y-m-d H:i:s') }}">
-                                                    <button type="button" class="neobrutalist-btn bg-lila" style="padding: 0.3rem 0.6rem; font-size: 0.75rem; width: 100%; height: 32px; display: inline-flex; align-items: center; justify-content: center; white-space: nowrap;" onclick="window.showConfirm('{{ $cancelMsg }}', () => this.closest('form').submit())">
-                                                        Cancelar
-                                                    </button>
-                                                </form>
-                                            @endif
+                                        {{-- PAY BUTTON --}}
+                                        @if($showPayBtn)
+                                            <button onclick="openPaymentModal({{ $appt->id ?? 0 }}, {{ auth()->user()->paciente->precio_sesion ?? $appt->monto_final }})" 
+                                                    class="neobrutalist-btn bg-verde {{ $canPayThisOne ? '' : 'disabled-btn' }}"
+                                                    {{ $canPayThisOne ? '' : 'disabled' }}
+                                                    style="flex: 1 1 0%; padding: 0.3rem 0.6rem; font-size: 0.75rem; min-width: 90px; height: 32px; display: inline-flex; align-items: center; justify-content: center; white-space: nowrap;"
+                                                    title="{{ $appt->payment_block_reason }}">
+                                                <i class="fa-solid fa-dollar-sign"></i> Pagar
+                                            </button>
                                         @endif
-                                    </div>
-                                @else
-                                    <div style="text-align: center;">
-                                        @if($appt->recuperada ?? false)
-                                            <span class="neobrutalist-btn disabled-btn" style="font-size: 0.7rem; padding: 0.3rem 0.8rem; opacity: 0.6; cursor: default; background: #e0e7ff; color: #4338ca;"><i class="fa-solid fa-check-double"></i> Recuperada</span>
-                                        @elseif($appt->id && !$appt->debe_pagarse)
-                                            <button onclick="openRecoveryModal({{ $appt->id }}, '{{ $appt->fecha_hora->format('Y-m-d H:i') }}')" class="neobrutalist-btn" style="background: var(--color-amarillo); color: #000; font-size: 0.7rem; padding: 0.3rem 0.8rem; border: 2px solid #000; box-shadow: 2px 2px 0px #000;">
+
+                                        {{-- CANCEL BUTTON --}}
+                                        @if($showCancelBtn)
+                                            <form action="{{ $appt->id ? route('appointments.cancel', $appt->id) : route('appointments.cancelProjected') }}" method="POST" style="display:inline; flex: 1 1 0%; min-width: 90px;">
+                                                @csrf
+                                                @if(!$appt->id) <input type="hidden" name="date" value="{{ $appt->fecha_hora->format('Y-m-d H:i:s') }}"> @endif
+                                                <button type="button" class="neobrutalist-btn bg-lila cancel-btn" 
+                                                        style="padding: 0.3rem 0.6rem; font-size: 0.75rem; width: 100%; height: 32px; display: inline-flex; align-items: center; justify-content: center; white-space: nowrap;" 
+                                                        onclick="window.showConfirm('{{ $cancelMsg }}', () => this.closest('form').submit())">
+                                                    Cancelar
+                                                </button>
+                                            </form>
+                                        @endif
+
+                                        
+                                        @if($paymentPending)
+                                            <div style="flex: 1 1 100%; text-align: center; font-size: 0.7rem; color: #666; font-weight: 800; margin-top: 4px;">
+                                                <i class="fa-solid fa-clock"></i> Pago en revisión
+                                            </div>
+                                        @endif
+
+                                        {{-- RECOVER BUTTON --}}
+                                        @if($showRecoverBtn)
+                                            <button onclick="openRecoveryModal({{ $appt->id }})" 
+                                                    class="neobrutalist-btn bg-amarillo"
+                                                    style="flex: 1 1 0%; padding: 0.3rem 0.6rem; font-size: 0.75rem; min-width: 90px; height: 32px; display: inline-flex; align-items: center; justify-content: center; white-space: nowrap;">
                                                 <i class="fa-solid fa-rotate-left"></i> Recuperar
                                             </button>
-                                        @elseif($appt->id && $appt->debe_pagarse && (!$alreadyHasPayment || ($appt->payment && $appt->payment->estado == 'rechazado')))
-                                            @php
-                                                $montoAPagar = auth()->user()->paciente->precio_sesion ?? $appt->monto_final;
-                                            @endphp
-                                            @if($canPayThisOne)
-                                                <button onclick="openPaymentModal({{ $appt->id ?? 0 }}, {{ $montoAPagar }})" class="neobrutalist-btn bg-verde" style="font-size: 0.7rem; padding: 0.3rem 0.8rem; border: 2px solid #000; box-shadow: 2px 2px 0px #000; display: inline-flex; align-items: center; justify-content: center;">
-                                                    <i class="fa-solid fa-dollar-sign"></i> Pagar
-                                                </button>
-                                            @else
-                                                <button class="neobrutalist-btn bg-verde disabled-btn" disabled style="font-size: 0.7rem; padding: 0.3rem 0.8rem; border: 2px solid #000; box-shadow: 2px 2px 0px #000; display: inline-flex; align-items: center; justify-content: center;" title="Pagá la sesión anterior primero">
-                                                    <i class="fa-solid fa-dollar-sign"></i> Pagar
-                                                </button>
-                                            @endif
-                                        @else
-                                            <span style="color: grey; font-size: 0.8rem; font-weight: 700;">—</span>
+                                        @endif
+
+                                        @if($hasPendingRecovery)
+                                            <div style="flex: 1 1 100%; text-align: center; font-size: 0.7rem; color: #92400e; font-weight: 800; margin-top: 4px;">
+                                                <i class="fa-solid fa-hourglass-half"></i> Recuperación pendiente
+                                            </div>
                                         @endif
                                     </div>
                                 @endif
                             </td>
                         </tr>
                     @endforeach
+
                 </tbody>
             </table>
         </div>
@@ -252,16 +292,42 @@
                     $canJoin = $appt->canJoinMeet();
                     $isFinished = $appt->estado === \App\Models\Appointment::ESTADO_FINALIZADO || ($appt->fecha_hora->copy()->addMinutes(45)->isPast());
                     $isCriticalZone = $appt->isInCriticalZone();
+                    
                     $paymentStatus = $appt->payment->estado ?? 'pendiente_pago';
                     $isPaid = $paymentStatus === 'verificado';
-                    $alreadyHasPayment = !is_null($appt->payment);
-                    $canPayThisOne = in_array($appt->id ?? $appt->fecha_hora->timestamp, $payableApptIds);
+                    $paymentPending = $paymentStatus === 'pendiente';
+                    $paymentRejected = $paymentStatus === 'rechazado';
+                    
+                    $uiStatus = $appt->ui_status ?? 'locked_sequential';
+                    $isCreditApplied = $uiStatus === 'credit_applied';
+                    $canPayThisOne = $uiStatus === 'payable';
+
+                    $showPayBtn = false;
+                    $showCancelBtn = false;
+                    
+                    if (!$isFinished && $appt->estado != 'cancelado') {
+                        if (!$isPaid && !$paymentPending && !$isCreditApplied) $showPayBtn = true;
+                        
+                        if ($isPaid) $showCancelBtn = true;
+                        elseif ($isCriticalZone) $showCancelBtn = false; 
+                        else $showCancelBtn = true;
+                        
+                        if ($paymentPending) { $showPayBtn = false; $showCancelBtn = false; }
+                    }
+
                     if ($isPaid) {
                         $cancelMsg = '¿Seguro querés cancelar? El pago fue verificado, se generará un crédito a tu favor.';
-                    } elseif ($alreadyHasPayment && $paymentStatus !== 'rechazado') {
-                        $cancelMsg = '¿Seguro querés cancelar este turno? Tu comprobante aún está siendo verificado por la Lic. Si se aprueba, se generará el crédito. Si cancelás ahora, el análisis quedará pendiente de resolución.';
                     } else {
-                        $cancelMsg = '¿Seguro querés cancelar este turno?';
+                        $cancelMsg = '¿Seguro querés cancelar este turno?' . ($isCriticalZone ? ' Al faltar menos de 24hs, se considerará sesión perdida.' : '');
+                    }
+
+                    $showRecoverBtn = false;
+                    $hasPendingRecovery = in_array($appt->id, $pendingRecoveryIds ?? []);
+                    $canceladoConMasDe24hs = $appt->cancelado_con_mas_de_24hs ?? false;
+                    if ($appt->estado === 'cancelado' && $appt->fecha_hora->isFuture() && !$hasPendingRecovery) {
+                        if ($canceladoConMasDe24hs || $isPaid) {
+                            $showRecoverBtn = true;
+                        }
                     }
                 @endphp
                 <div class="appointment-card">
@@ -292,7 +358,7 @@
                                     'confirmado' => '#f0fdf4',
                                     'cancelado' => '#fef2f2',
                                     \App\Models\Appointment::ESTADO_SESION_PERDIDA => '#fff1f2',
-                                    \App\Models\Appointment::ESTADO_FINALIZADO => '#f1f5f9',
+                                    \App\Models\Appointment::ESTADO_RECUPERADO => '#eef2ff',
                                     default => '#fffbeb'
                                 };
                                 $statusColor = match($appt->estado) {
@@ -300,6 +366,7 @@
                                     'cancelado' => '#991b1b',
                                     \App\Models\Appointment::ESTADO_SESION_PERDIDA => '#e11d48',
                                     \App\Models\Appointment::ESTADO_FINALIZADO => '#475569',
+                                    \App\Models\Appointment::ESTADO_RECUPERADO => '#4338ca',
                                     default => '#92400e'
                                 };
                             @endphp
@@ -316,99 +383,57 @@
                     <div class="card-row">
                         <span class="card-label">Pago:</span>
                         <span class="card-value">
-                            @if($appt->payment && $appt->payment->estado == 'verificado')
-                                <span style="color: green; font-weight: bold;">Verificado</span>
-                            @elseif($appt->payment && $appt->payment->estado == 'pendiente')
-                                <span style="color: grey; font-weight: bold;">En Revisión</span>
-                            @elseif($appt->payment && $appt->payment->estado == 'rechazado')
-                                <span style="color: #e11d48; font-weight: bold;">Rechazado</span>
-                            @else
-                                <span style="color: #666; font-weight: bold;">Pendiente</span>
+                            @if($isPaid) <span style="color: green; font-weight: bold;">Verificado</span>
+                            @elseif($isCreditApplied) <span style="color: #4338ca; font-weight: bold;">Crédito</span>
+                            @elseif($paymentPending) <span style="color: grey; font-weight: bold;">En Revisión</span>
+                            @elseif($paymentRejected) <span style="color: #e11d48; font-weight: bold;">Rechazado</span>
+                            @else <span style="color: #666; font-weight: bold;">Pendiente</span>
                             @endif
                         </span>
                     </div>
                     <div class="actions-wrapper">
-                        @if($isFinished)
-                            <div style="width: 100%; text-align: center; color: #666; font-weight: 900; padding: 0.5rem;">—</div>
-                        @elseif($appt->estado != 'cancelado' && $appt->estado != \App\Models\Appointment::ESTADO_SESION_PERDIDA)
-                                @if($alreadyHasPayment && $appt->payment->estado != 'rechazado')
-                                {{-- Already submitted payment (verified or pending review) -> show join btn, no pay btn --}}
-                                    @if($isVirtual && $appt->estado != 'pendiente' && $appt->estado != 'cancelado')
-                                        <a href="{{ $appt->meet_link ?: '#' }}" 
-                                           target="_blank" 
-                                           class="neobrutalist-btn join-btn {{ $canJoin ? 'bg-celeste' : 'disabled-btn' }}" 
-                                           style="flex: 1; padding: 0.3rem 0.6rem; font-size: 0.75rem; border: 2px solid #000; text-decoration: none; color: #000; display: inline-flex; align-items: center; gap: 4px; justify-content: center; min-width: 90px; height: 32px; white-space: nowrap;"
-                                           data-start="{{ $appt->fecha_hora->toISOString() }}"
-                                           data-paid="true"
-                                           data-estado="{{ $appt->estado }}">
-                                            <i class="fa-solid fa-video"></i> Unirse
-                                        </a>
-                                    @endif
-                                @elseif($appt->is_virtual ?? false)
-                                    {{-- Virtual projected (no payment yet): show locked Pagar --}}
-                                    <button class="neobrutalist-btn bg-verde disabled-btn" disabled
-                                        style="flex: 1; padding: 0.3rem 0.6rem; font-size: 0.75rem; display: inline-flex; align-items: center; justify-content: center; height: 32px; min-width: 90px;"
-                                        title="El pago se habilitará cuando se acerque la fecha de la sesión">
-                                        <i class="fa-solid fa-dollar-sign"></i> Pagar
+                        @if(!$isFinished && $appt->estado != 'cancelado')
+                            @if(($isPaid || $paymentPending || $isCreditApplied) && $isVirtual)
+                                <a href="{{ $appt->meet_link ?: '#' }}" target="_blank" class="neobrutalist-btn join-btn {{ $canJoin ? 'bg-celeste' : 'disabled-btn' }}" style="flex: 1; height: 32px; font-size: 0.75rem; display: flex; align-items: center; justify-content: center; text-decoration: none; color: #000;" data-start="{{ $appt->fecha_hora->toISOString() }}">
+                                    <i class="fa-solid fa-video"></i> Unirse
+                                </a>
+                            @endif
+                            @if($showPayBtn)
+                                <button onclick="openPaymentModal({{ $appt->id ?? 0 }}, {{ auth()->user()->paciente->precio_sesion ?? $appt->monto_final }})" class="neobrutalist-btn bg-verde {{ $canPayThisOne ? '' : 'disabled-btn' }}" {{ $canPayThisOne ? '' : 'disabled' }} style="flex: 1; height: 32px; font-size: 0.75rem;" title="{{ $appt->payment_block_reason }}">
+                                    <i class="fa-solid fa-dollar-sign"></i> Pagar
+                                </button>
+                            @endif
+                            @if($showCancelBtn)
+                                <form action="{{ $appt->id ? route('appointments.cancel', $appt->id) : route('appointments.cancelProjected') }}" method="POST" style="flex: 1;">
+                                    @csrf
+                                    @if(!$appt->id) <input type="hidden" name="date" value="{{ $appt->fecha_hora->format('Y-m-d H:i:s') }}"> @endif
+                                    <button type="button" class="neobrutalist-btn bg-lila cancel-btn" style="width: 100%; height: 32px; font-size: 0.75rem; display: flex; align-items: center; justify-content: center;" onclick="window.showConfirm('{{ $cancelMsg }}', () => this.closest('form').submit())">
+                                        Cancelar
                                     </button>
-                                @else
-                                    @php
-                                        $montoAPagar = auth()->user()->paciente->precio_sesion ?? $appt->monto_final;
-                                    @endphp
-                                    @if($canPayThisOne)
-                                        <button onclick="openPaymentModal({{ abs($appt->id ?? 0) }}, {{ $montoAPagar }})" class="neobrutalist-btn bg-verde" style="flex: 1; padding: 0.3rem 0.6rem; font-size: 0.75rem; display: inline-flex; align-items: center; justify-content: center; height: 32px;">
-                                            <i class="fa-solid fa-dollar-sign"></i> Pagar
-                                        </button>
-                                    @else
-                                        <button class="neobrutalist-btn bg-verde disabled-btn" disabled style="flex: 1; padding: 0.3rem 0.6rem; font-size: 0.75rem; display: inline-flex; align-items: center; justify-content: center; height: 32px;" title="Pagá la sesión anterior primero">
-                                            <i class="fa-solid fa-dollar-sign"></i> Pagar
-                                        </button>
-                                    @endif
-                                @endif
+                                </form>
+                            @endif
+                            @if($isCreditApplied && !$isPaid)
+                                <div style="width: 100%; text-align: center; font-size: 0.7rem; color: #4338ca; font-weight: 800;">Cubierto con crédito</div>
+                            @endif
+                            @if($paymentPending)
+                                <div style="width: 100%; text-align: center; font-size: 0.7rem; color: #666; font-weight: 800;"><i class="fa-solid fa-clock"></i> Pago en revisión</div>
+                            @endif
 
-                                @if(!$isCriticalZone || $isPaid)
-                                    @if($appt->id)
-                                        <form action="{{ route('appointments.cancel', abs($appt->id)) }}" method="POST" style="display:inline; flex: 1;">
-                                            @csrf
-                                            <button type="button" class="neobrutalist-btn bg-lila" style="padding: 0.3rem 0.6rem; font-size: 0.75rem; width: 100%; height: 32px; display: inline-flex; align-items: center; justify-content: center; white-space: nowrap;" onclick="window.showConfirm('{{ $cancelMsg }}', () => this.closest('form').submit())">
-                                                Cancelar
-                                            </button>
-                                        </form>
-                                    @else
-                                        <form action="{{ route('appointments.cancelProjected') }}" method="POST" style="display:inline; flex: 1;">
-                                            @csrf
-                                            <input type="hidden" name="date" value="{{ $appt->fecha_hora->format('Y-m-d H:i:s') }}">
-                                            <button type="button" class="neobrutalist-btn bg-lila" style="padding: 0.3rem 0.6rem; font-size: 0.75rem; width: 100%; height: 32px; display: inline-flex; align-items: center; justify-content: center; white-space: nowrap;" onclick="window.showConfirm('{{ $cancelMsg }}', () => this.closest('form').submit())">
-                                                Cancelar
-                                            </button>
-                                        </form>
-                                    @endif
-                                @endif
-                        @else
-                            <div style="text-align: center; padding: 0.3rem;">
-                                @if($appt->recuperada ?? false)
-                                    <span class="neobrutalist-btn disabled-btn" style="font-size: 0.7rem; padding: 0.3rem 0.8rem; opacity: 0.6; cursor: default; background: #e0e7ff; color: #4338ca;"><i class="fa-solid fa-check-double"></i> Recuperada</span>
-                                @elseif($appt->id && !$appt->debe_pagarse)
-                                    <button onclick="openRecoveryModal({{ $appt->id }}, '{{ $appt->fecha_hora->format('Y-m-d H:i') }}')" class="neobrutalist-btn" style="flex: 1; background: var(--color-amarillo); color: #000; font-size: 0.75rem; padding: 0.3rem 0.6rem; border: 2px solid #000; box-shadow: 2px 2px 0px #000; height: 32px; display: inline-flex; justify-content: center; align-items: center; width: 100%;">
-                                        <i class="fa-solid fa-rotate-left" style="margin-right: 4px;"></i> Recuperar
-                                    </button>
-                                @elseif($appt->id && $appt->debe_pagarse && (!$alreadyHasPayment || ($appt->payment && $appt->payment->estado == 'rechazado')))
-                                    @php
-                                        $montoAPagar = auth()->user()->paciente->precio_sesion ?? $appt->monto_final;
-                                    @endphp
-                                    @if($canPayThisOne)
-                                        <button onclick="openPaymentModal({{ abs($appt->id ?? 0) }}, {{ $montoAPagar }})" class="neobrutalist-btn bg-verde" style="flex: 1; padding: 0.3rem 0.6rem; font-size: 0.75rem; display: inline-flex; align-items: center; justify-content: center; height: 32px; width: 100%;">
-                                            <i class="fa-solid fa-dollar-sign"></i> Pagar
-                                        </button>
-                                    @else
-                                        <button class="neobrutalist-btn bg-verde disabled-btn" disabled style="flex: 1; padding: 0.3rem 0.6rem; font-size: 0.75rem; display: inline-flex; align-items: center; justify-content: center; height: 32px; width: 100%;" title="Pagá la sesión anterior primero">
-                                            <i class="fa-solid fa-dollar-sign"></i> Pagar
-                                        </button>
-                                    @endif
-                                @else
-                                    <span style="color: grey; font-size: 0.8rem; font-weight: 700;">—</span>
-                                @endif
-                            </div>
+                            @if($showRecoverBtn)
+                                <button onclick="openRecoveryModal({{ $appt->id }})" 
+                                        class="neobrutalist-btn bg-amarillo"
+                                        style="flex: 1; height: 32px; font-size: 0.75rem; display: flex; align-items: center; justify-content: center;">
+                                    <i class="fa-solid fa-rotate-left"></i> Recuperar
+                                </button>
+                            @endif
+
+                            @if($hasPendingRecovery)
+                                <div style="width: 100%; text-align: center; font-size: 0.7rem; color: #92400e; font-weight: 800;">
+                                    <i class="fa-solid fa-hourglass-half"></i> Recuperación pendiente
+                                </div>
+                            @endif
+@else
+                           <div style="width: 100%; text-align: center; color: #666;">—</div>
                         @endif
                     </div>
                 </div>
@@ -588,9 +613,6 @@
 @else
     <div style="flex-grow: 1; display: flex; align-items: center; justify-content: center; flex-direction: column; padding: 3rem; border: 3px dashed #000; border-radius: 12px; background: #fafafa; margin: 1rem 0;">
         <i class="fa-solid fa-calendar-xmark" style="font-size: 3rem; color: #ccc; margin-bottom: 1rem;"></i>
-        <p style="font-weight: 800; color: #000; text-align: center; font-size: 1.1rem; margin-bottom: 1.5rem;">No hay turnos que coincidan con tu búsqueda.</p>
-        <a href="{{ route('patient.dashboard') }}#mis-turnos" class="neobrutalist-btn bg-amarillo reset-filters-btn" style="text-decoration: none; color: #000; padding: 0.8rem 1.5rem; font-weight: 800; border: 3px solid #000; box-shadow: 4px 4px 0px #000;">
-            <i class="fa-solid fa-list"></i> Ver todos los turnos
-        </a>
+        <p style="font-weight: 800; color: #000; text-align: center; font-size: 1.1rem; margin-bottom: 0;">No hay turnos que coincidan con tu búsqueda.</p>
     </div>
 @endif

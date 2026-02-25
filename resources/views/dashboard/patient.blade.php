@@ -763,79 +763,18 @@ function togglePatientMenu() {
                     </div>
                 @endif
 
-                <!-- Advanced Filters Bar -->
-                <div class="neobrutalist-card" style="margin-bottom: 2rem; padding: 1rem; background: #fafafa; border: 3px solid #000; box-shadow: 4px 4px 0px #000;">
-                    <form id="appointments-filter-form" action="{{ route('patient.dashboard') }}" method="GET" style="display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: flex-end; width: 100%;">
-                        <input type="hidden" name="filter" value="1">
-                        
-                        <div class="filter-selects" style="display: flex; gap: 0.6rem; flex: 1; min-width: 100%; flex-wrap: wrap;">
-                            <div style="flex: 1; min-width: 120px;">
-                                <label style="display: block; font-weight: 800; font-size: 0.65rem; margin-bottom: 3px; text-transform: uppercase; color: #666;">Mes</label>
-                                <select name="month_filter" class="neobrutalist-input" style="width: 100%; padding: 6px; font-size: 0.8rem; cursor: pointer; height: 38px; background-color: white !important; color: black !important; border: 2px solid #000;">
-                                    <option value="">Todos</option>
-                                    @for($m = 1; $m <= 12; $m++)
-                                        <option value="{{ $m }}" {{ request('month_filter') == $m ? 'selected' : '' }}>
-                                            {{ ucfirst(\Carbon\Carbon::create(null, $m, 1)->locale('es')->monthName) }}
-                                        </option>
-                                    @endfor
-                                </select>
-                            </div>
-
-                            <div style="flex: 1; min-width: 120px;">
-                                <label style="display: block; font-weight: 800; font-size: 0.65rem; margin-bottom: 3px; text-transform: uppercase; color: #666;">Estado</label>
-                                <select name="status" class="neobrutalist-input" style="width: 100%; padding: 6px; font-size: 0.8rem; cursor: pointer; height: 38px; background-color: white !important; color: black !important; border: 2px solid #000;">
-                                    <option value="">Todos</option>
-                                    <option value="confirmado" {{ request('status') == 'confirmado' ? 'selected' : '' }}>Confirmado</option>
-                                    <option value="cancelado" {{ request('status') == 'cancelado' ? 'selected' : '' }}>Cancelado</option>
-                                    <option value="finalizado" {{ request('status') == 'finalizado' ? 'selected' : '' }}>Finalizado</option>
-                                    <option value="sesion_perdida" {{ request('status') == 'sesion_perdida' ? 'selected' : '' }}>Sesión Perdida</option>
-                                    <option value="recuperada" {{ request('status') == 'recuperada' ? 'selected' : '' }}>Recuperada</option>
-                                </select>
-                            </div>
-
-                            <div style="flex: 1; min-width: 120px;">
-                                <label style="display: block; font-weight: 800; font-size: 0.65rem; margin-bottom: 3px; text-transform: uppercase; color: #666;">Pago</label>
-                                <select name="pago_estado" class="neobrutalist-input" style="width: 100%; padding: 6px; font-size: 0.8rem; cursor: pointer; height: 38px; background-color: white !important; color: black !important; border: 2px solid #000;">
-                                    <option value="">Todos</option>
-                                    <option value="verificado" {{ request('pago_estado') == 'verificado' ? 'selected' : '' }}>Verificado</option>
-                                    <option value="pendiente" {{ request('pago_estado') == 'pendiente' ? 'selected' : '' }}>Pendiente</option>
-                                    <option value="rechazado" {{ request('pago_estado') == 'rechazado' ? 'selected' : '' }}>Rechazado</option>
-                                </select>
-                            </div>
+                @if(isset($creditBalance) && $creditBalance > 0)
+                    <!-- Credit Balance Banner (NEW) -->
+                    <div class="neobrutalist-card bg-verde" style="margin-bottom: 1.5rem; padding: 1.2rem; border: 3px solid #000; box-shadow: 4px 4px 0px #000; display: flex; align-items: center; gap: 15px;">
+                        <div style="background: white; border: 2px solid #000; border-radius: 50%; width: 45px; height: 45px; display: flex; align-items: center; justify-content: center; box-shadow: 2px 2px 0px #000;">
+                            <i class="fa-solid fa-piggy-bank" style="font-size: 1.5rem;"></i>
                         </div>
-
-                        <div style="display: flex; gap: 0.4rem; flex-wrap: nowrap; flex: 0 0 auto;">
-                            <button type="submit" class="neobrutalist-btn bg-celeste" style="padding: 0px 10px; font-size: 0.8rem; font-weight: 800; height: 38px; min-width: 40px; border: 2px solid #000; box-shadow: 2px 2px 0px #000;">
-                                <i class="fa-solid fa-magnifying-glass"></i>
-                            </button>
-                            <a href="{{ route('patient.dashboard') }}" id="clear-filters" class="neobrutalist-btn bg-amarillo text-center" style="padding: 0px 10px; font-size: 0.7rem; font-weight: 800; text-decoration: none; color: #000; height: 38px; min-width: 70px; display: flex; align-items: center; justify-content: center; white-space: nowrap; border: 2px solid #000; box-shadow: 2px 2px 0px #000;">
-                                <i class="fa-solid fa-eraser"></i> Limpiar
-                            </a>
+                        <div>
+                            <p style="margin: 0; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; color: #000;">Saldo a tu favor</p>
+                            <h4 style="margin: 0; font-size: 1.4rem; font-weight: 900; font-family: 'Syne', sans-serif;">${{ number_format($creditBalance, 0, ',', '.') }}</h4>
                         </div>
-                    </form>
-                </div>
-                <style>
-                    @media (max-width: 480px) {
-                        #appointments-filter-form {
-                            flex-direction: column !important;
-                            align-items: stretch !important;
-                        }
-                        #appointments-filter-form .filter-selects {
-                            flex-direction: column !important;
-                            min-width: 100% !important;
-                        }
-                        #appointments-filter-form .filter-selects > div {
-                            min-width: 100% !important;
-                        }
-                        #appointments-filter-form .filter-buttons {
-                            width: 100% !important;
-                            justify-content: stretch !important;
-                        }
-                        #appointments-filter-form .filter-buttons button {
-                            flex: 1 !important;
-                        }
-                    }
-                </style>
+                    </div>
+                @endif
 
                 <div id="appointments-loading" style="display: none; text-align: center; padding: 2rem;">
                     <i class="fa-solid fa-spinner fa-spin" style="font-size: 2rem; color: #000;"></i>
@@ -974,6 +913,7 @@ $user = auth()->user();
 $tipoPaciente = $user && $user->paciente ? $user->paciente->tipo_paciente : 'nuevo';
 $blockWeekends = $blockWeekends ?? false;
 $blockedDays = $blockedDays ?? [];
+$fixedBlockedSlots = $fixedBlockedSlots ?? [];
 @endphp
 
 <script>
@@ -983,6 +923,7 @@ $blockedDays = $blockedDays ?? [];
     const userType = "{{ $tipoPaciente }}";
     const weekendsBlocked = @json($blockWeekends);
     const specificBlockedDays = @json($blockedDays);
+    const fixedBlockedSlots = @json($fixedBlockedSlots);
     const patientAppointments = @json($patientAppointmentsDates ?? []);
     
     let selectedDayOfWeek = null; // 0-6
@@ -1148,6 +1089,14 @@ $blockedDays = $blockedDays ?? [];
     }
 
 
+    function getIsoWeek(d) {
+        d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+        d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+        var yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+        var weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+        return weekNo;
+    }
+
     function generateTimes() {
         const grid = document.getElementById('times-grid');
         grid.innerHTML = '';
@@ -1185,11 +1134,37 @@ $blockedDays = $blockedDays ?? [];
         const d = String(nextDate.getDate()).padStart(2, '0');
         const dateStr = `${y}-${m}-${d}`;
 
+        const currentWeekParity = getIsoWeek(nextDate) % 2;
+
         slotsToRender.forEach(slot => {
             const timeStr = slot.hora_inicio.substring(0, 5); // HH:mm
             const displayLabel = slot.label || timeStr; // Use range label if available
             const fullDateTime = dateStr + ' ' + timeStr + ':00';
-            const isOccupied = occupiedSlots.includes(fullDateTime);
+            
+            // FIX (BLOQUEO REFINADO): 
+            // 1. Ocupación puntual por turnos existentes
+            const isPunctuallyOccupied = occupiedSlots.includes(fullDateTime);
+            
+            // 2. Bloqueo por Reservas Fijas (Global)
+            const isGloballyBlocked = fixedBlockedSlots.some(f => {
+                if (f.dia != selectedDayOfWeek) return false;
+                if (!f.hora.startsWith(timeStr)) return false;
+
+                // Si el NUEVO paciente quiere SEMANAL: Cualquier reserva fija bloquea.
+                if (selectedFrequency === 'semanal') return true;
+
+                // Si el NUEVO paciente quiere QUINCENAL:
+                if (selectedFrequency === 'quincenal') {
+                    // Bloquea si la reserva existente es SEMANAL
+                    if (f.frecuencia === 'semanal') return true;
+                    // Bloquea si la reserva existente es QUINCENAL y es la MISMA paridad de semana
+                    if (f.frecuencia === 'quincenal' && f.week_parity === currentWeekParity) return true;
+                }
+                
+                return false;
+            });
+
+            const isOccupied = isPunctuallyOccupied || isGloballyBlocked;
             
             const pillContainer = document.createElement('div');
             pillContainer.style.display = 'flex';
@@ -1919,7 +1894,8 @@ $blockedDays = $blockedDays ?? [];
                     fecha_especifica: recoverySelectedDay, 
                     availability: `SOLICITUD RECUPERACIÓN (${recoverySelectedDay}) - Preferencia: ${rangeStr} (${mod.toUpperCase()})`,
                     modality: mod.charAt(0).toUpperCase() + mod.slice(1),
-                    is_recovery: true
+                    is_recovery: true,
+                    original_appointment_id: window.currentRecoveryApptId
                 })
             });
 
@@ -2094,7 +2070,8 @@ $blockedDays = $blockedDays ?? [];
                 fecha_especifica: recoverySelectedDay, 
                 availability: `SOLICITUD RECUPERACIÓN (${recoverySelectedDay}) - Preferencia: de ${document.getElementById('recovery-time-from').value} a ${document.getElementById('recovery-time-to').value} (${document.getElementById('selected_recovery_modality').value.toUpperCase()})`,
                 modality: document.getElementById('selected_recovery_modality').value.charAt(0).toUpperCase() + document.getElementById('selected_recovery_modality').value.slice(1),
-                is_recovery: true
+                is_recovery: true,
+                original_appointment_id: window.currentRecoveryApptId
             })
         });
 

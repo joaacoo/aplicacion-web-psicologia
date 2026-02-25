@@ -26,10 +26,11 @@ class AppointmentController extends Controller
 
         $appointmentDate = \Carbon\Carbon::parse($request->appointment_date);
         
-        // [RESTRICTION] One appointment per day per patient
+        // [RESTRICTION] One ACTIVE appointment per day per patient
         $existingAppt = Appointment::where('usuario_id', Auth::id())
             ->whereDate('fecha_hora', $appointmentDate->toDateString())
-            ->where('estado', '!=', 'cancelado')
+            // Solo cuentan turnos realmente activos (pendiente/confirmado), no cancelados ni recuperaciones pasadas
+            ->whereIn('estado', ['pendiente', 'confirmado'])
             ->exists();
 
         if ($existingAppt) {
@@ -56,10 +57,10 @@ class AppointmentController extends Controller
         $currentDate = $appointmentDate->copy();
 
         for ($i = 0; $i < $iterations; $i++) {
-            // Check for conflict on this specific date
+            // Check for conflict on this specific date (solo turnos activos)
             $exists = Appointment::where('usuario_id', Auth::id())
                 ->whereDate('fecha_hora', $currentDate->toDateString())
-                ->where('estado', '!=', 'cancelado')
+                ->whereIn('estado', ['pendiente', 'confirmado'])
                 ->exists();
 
             if (!$exists) {
@@ -220,22 +221,67 @@ class AppointmentController extends Controller
         $isCriticalZone = $appointment->isInCriticalZone();
         $isPaid = $appointment->payment && $appointment->payment->estado === 'verificado';
 
-        // El paciente SIEMPRE puede cancelar. Si es en zona crítica, pasa a Sesión Perdida.
-        // Si no pagó, debe pagarse = true. Si pagó, no se reintegra.
+        // ═══════════════════════════════════════════════════════════
+        // TABLA DE VERDAD DE CANCELACIÓN
+        // ═══════════════════════════════════════════════════════════
+        // Cancelación	Pagó	¿Puede recuperar?	¿Debe pagar?
+        // > 24 hs	    No	    ✅ Sí	            ❌ No
+        // > 24 hs	    Yes	✅ Sí	            ❌ No
+        // ≤ 24 hs	    No	    ❌ No	            ✅ Sí (bloqueado)
+        // ≤ 24 hs	    Yes	✅ Sí	            ❌ No
 
-        if (!$isAdmin && $isCriticalZone) {
-            // Lógica < 24hs (solo para paciente): Sesión Perdida, no se reintegra
+        // Si es Admin, la cancelación es total y gratuita SIEMPRE.
+        if ($isAdmin) {
             $appointment->update([
                 'estado' => 'cancelado',
-                'debe_pagarse' => true,
+                'debe_pagarse' => false,
+                'cancelado_con_mas_de_24hs' => true
+            ]);
+            $msg = 'Turno cancelado por la profesional.';
+            // Si ya estaba pago, generamos crédito (porque la psicólogos canceló, el paciente no pierde su dinero)
+            if ($isPaid) {
+                \App\Models\PatientCredit::create([
+                    'paciente_id' => $appointment->user->paciente->id,
+                    'appointment_id' => $appointment->id,
+                    'amount' => $appointment->monto_final,
+                    'reason' => 'Crédito por cancelación de la profesional (' . $appointment->fecha_hora->format('d/m H:i') . ')',
+                    'status' => 'active'
+                ]);
+                $msg .= ' Se generó crédito para el paciente.';
+            }
+        } elseif ($isCriticalZone) {
+            // ZONA CRÍTICA: ≤ 24hs
+            // Si no pagó -> debe pagarse (bloqueado), NO puede recuperar
+            // Si pagó -> puede recuperar, NO debe pagarse
+            $appointment->update([
+                'estado' => 'cancelado',
+                'debe_pagarse' => !$isPaid, // Debe pagar si NO está pagado
+                'cancelado_con_mas_de_24hs' => false,
                 'motivo_cancelacion' => 'Cancelación en zona crítica (< 24hs).'
             ]);
-            $msg = 'Sesión marcada como perdida por política de 24hs, no se generará crédito.';
+            
+            if ($isPaid) {
+                // Generar crédito por cancelación dentro de las 24hs si ya pagó
+                \App\Models\PatientCredit::create([
+                    'paciente_id' => $appointment->user->paciente->id,
+                    'appointment_id' => $appointment->id,
+                    'amount' => $appointment->monto_final,
+                    'reason' => 'Crédito por cancelación > 24hs del turno ' . $appointment->fecha_hora->format('d/m H:i'),
+                    'status' => 'active'
+                ]);
+                $msg = 'Turno cancelado. Puedes recuperar este turno.';
+            } else {
+                // Sesión perdida - debe pagar
+                $msg = 'Sesión perdida. No se puede recuperar este turno hasta realizar el pago.';
+            }
         } else {
-            // Lógica > 24hs (o Admin cancelando): Cancelación normal, generar crédito si estaba paga
+            // ZONA NORMAL: > 24hs
+            // Siempre puede recuperar, nunca debe pagar
             $appointment->update([
                 'estado' => 'cancelado',
-                'debe_pagarse' => false
+                'debe_pagarse' => false,
+                'cancelado_con_mas_de_24hs' => true,
+                'motivo_cancelacion' => 'Cancelación con más de 24hs de anticipación.'
             ]);
 
             if ($isPaid) {
@@ -246,12 +292,33 @@ class AppointmentController extends Controller
                     'reason' => 'Crédito por cancelación > 24hs del turno ' . $appointment->fecha_hora->format('d/m H:i'),
                     'status' => 'active'
                 ]);
-                $msg = 'Turno cancelado y crédito generado por sesión abonada.';
+                $msg = 'Turno cancelado y crédito generado. Puedes recuperar este turno.';
             } else {
-                $msg = 'Turno cancelado correctamente.';
+                $msg = 'Turno cancelado correctamente. Puedes recuperar este turno.';
             }
-        }
 
+            // ═══════════════════════════════════════════════════════════
+            // CREAR ENTRADA EN WAITLIST PARA RECUPERACIÓN
+            // ═══════════════════════════════════════════════════════════
+            // Solo si: > 24hs y (no pagó O pagó)
+            // No crear waitlist si: ≤ 24hs y no pagó
+            \App\Models\Waitlist::create([
+                'usuario_id' => $appointment->usuario_id,
+                'name' => $appointment->user->nombre,
+                'phone' => $appointment->user->paciente->telefono ?? '',
+                'email' => $appointment->user->email,
+                'availability' => json_encode([
+                    'modalidad' => $appointment->modalidad,
+                    'hora_preferida' => $appointment->fecha_hora->format('H:i'),
+                    'dias_preferidos' => [$appointment->fecha_hora->dayOfWeek]
+                ]),
+                'modality' => $appointment->modalidad,
+                'original_appointment_id' => $appointment->id,
+                'dia_semana' => $appointment->fecha_hora->dayOfWeek,
+                'hora_inicio' => $appointment->fecha_hora->format('H:i:s'),
+            ]);
+        }
+        
         // Notificar al Paciente (Mail + DB)
         if ($appointment->user) {
             $appointment->user->notify(new \App\Notifications\PatientNotification([
@@ -317,109 +384,167 @@ class AppointmentController extends Controller
     public function cancelProjected(Request $request)
     {
         $request->validate([
-            'date' => 'required|date'
+            'fecha_hora' => 'required',
+            'usuario_id' => 'sometimes|exists:users,id'
         ]);
 
-        $user = auth()->user();
-        $date = \Carbon\Carbon::parse($request->date);
+        $isAdmin = auth()->user() && auth()->user()->rol === 'admin';
+        $userId = $isAdmin && $request->has('usuario_id') ? $request->usuario_id : auth()->id();
+        $date = \Carbon\Carbon::parse($request->fecha_hora);
 
-        // Validar zona crítica
-        $isCriticalZone = $date->diffInHours(now()) < 24 && $date->isFuture();
-        if ($isCriticalZone) {
-            return back()->with('error', 'No puedes cancelar una proyección con menos de 24 horas de anticipación. Debes abonar y cancelar o esperar a que se genere la sesión.');
+        // Validar zona crítica SOLO para pacientes
+        if (!$isAdmin) {
+            $isCriticalZone = $date->diffInHours(now()) < 24 && $date->isFuture();
+            if ($isCriticalZone) {
+                return back()->with('error', 'No puedes cancelar una proyección con menos de 24 horas de anticipación. Debes abonar y cancelar o esperar a que se genere la sesión.');
+            }
         }
 
         // Buscar reserva fija base
-        $baseReservation = Appointment::where('usuario_id', $user->id)
+        $baseReservation = Appointment::where('usuario_id', $userId)
                                     ->where('es_recurrente', true)
                                     ->first();
 
         if (!$baseReservation) {
-            return back()->with('error', 'No se encontró tu reserva fija.');
+            return back()->with('error', 'No se encontró la reserva fija.');
         }
 
-        // Crear el turno directamente como cancelado pero manteniendo el flag recurrente
+        // Crear el turno directamente como cancelado
         Appointment::create([
-            'usuario_id' => $user->id,
+            'usuario_id' => $userId,
             'fecha_hora' => $date,
             'modalidad' => $baseReservation->modalidad,
             'monto_final' => $baseReservation->monto_final,
             'estado' => 'cancelado',
-            'notas' => 'Turno proyectado cancelado por el paciente.',
+            'motivo_cancelacion' => $isAdmin ? 'Turno proyectado cancelado por la profesional (Reserva fija).' : 'Turno proyectado cancelado por el paciente (Reserva fija).',
             'es_recurrente' => true,
             'frecuencia' => $baseReservation->frecuencia,
+            'debe_pagarse' => false, // Siempre false si es proyección o admin cancela
         ]);
 
-        return back()->with('success', 'Turno proyectado cancelado correctamente. Podrás recuperarlo.');
+        return back()->with('success', 'Turno cancelado correctamente.');
     }
 
     public function cancelFixedReservation()
     {
-        $user = Auth::user();
-        
-        // Buscar todos los turnos futuros de reserva fija del paciente
-        $turnosFijos = Appointment::where('usuario_id', $user->id)
-            ->where('es_recurrente', true)
-            ->where('fecha_hora', '>', now())
-            ->where('estado', '!=', 'cancelado')
-            ->get();
+        $user = auth()->user();
+        if (!$user) return back()->with('error', 'No autorizado.');
 
-        if ($turnosFijos->isEmpty()) {
-            return back()->with('error', 'No tienes reservas fijas activas para cancelar.');
+        // 1. Buscar todos los turnos futuros marcados como recurrentes
+        $futureRecurring = Appointment::where('usuario_id', $user->id)
+                                    ->where('es_recurrente', true)
+                                    ->where('fecha_hora', '>=', now())
+                                    ->get();
+
+        if ($futureRecurring->isEmpty()) {
+            return back()->with('error', 'No se encontraron turnos de reserva fija activa en el futuro.');
         }
 
-        $cancelados = 0;
-        $creditosGenerados = 0;
+        $count = $futureRecurring->count();
+        $creditsGenerated = 0;
 
-        foreach ($turnosFijos as $turno) {
-            $isPaid = $turno->payment && $turno->payment->estado === 'verificado';
+        foreach ($futureRecurring as $appt) {
+            $isPaid = $appt->paymentWasVerified();
 
-            // Cancelar el turno
-            $turno->update([
+            // Marcar como cancelado y NO recurrente
+            $appt->update([
                 'estado' => 'cancelado',
-                'es_recurrente' => false, // Quitar la marca de recurrente
-                'motivo_cancelacion' => 'Cancelación de reserva fija por el paciente.'
+                'es_recurrente' => false,
+                'debe_pagarse' => false,
+                'motivo_cancelacion' => 'Reserva fija cancelada por el paciente.'
             ]);
 
-            // Si estaba pagado, generar crédito
+            // Si estaba pago, generar crédito
             if ($isPaid) {
                 \App\Models\PatientCredit::create([
                     'paciente_id' => $user->paciente->id,
-                    'appointment_id' => $turno->id,
-                    'amount' => $turno->monto_final,
-                    'reason' => 'Crédito por cancelación de reserva fija del ' . $turno->fecha_hora->format('d/m H:i'),
+                    'appointment_id' => $appt->id,
+                    'amount' => $appt->monto_final,
+                    'reason' => 'Crédito por cancelación de reserva fija (' . $appt->fecha_hora->format('d/m H:i') . ')',
                     'status' => 'active'
                 ]);
-                $creditosGenerados++;
+                $creditsGenerated++;
             }
-
-            $cancelados++;
         }
 
-        // Notificar a la paciente
-        $user->notify(new \App\Notifications\PatientNotification([
-            'title' => 'Reserva Fija Cancelada',
-            'mensaje' => "Has cancelado tu lugar fijo. Se cancelaron {$cancelados} turnos futuros." . ($creditosGenerados > 0 ? " Se generaron {$creditosGenerados} crédito(s) a tu favor." : ""),
-            'link' => route('patient.dashboard'),
-            'type' => 'cancelado'
-        ]));
+        $this->logActivity('reserva_fija_cancelada', "Canceló su reserva fija. Se cancelaron {$count} turnos futuros.", [
+            'paciente' => $user->nombre,
+            'turnos_cancelados' => $count,
+            'creditos_generados' => $creditsGenerated
+        ]);
 
-        // Notificar a la admin
+        // Notificar a la Admin (Nazarena)
         $admin = \App\Models\User::where('rol', 'admin')->first();
         if ($admin) {
             $admin->notify(new \App\Notifications\AdminNotification([
-                'title' => 'Reserva Fija Cancelada por Paciente',
-                'mensaje' => "El paciente {$user->nombre} canceló su lugar fijo. Se cancelaron {$cancelados} turnos.",
+                'title' => 'Reserva Fija Finalizada',
+                'mensaje' => "El paciente {$user->nombre} ha cancelado su reserva fija. Se liberaron {$count} turnos de su agenda.",
                 'link' => route('admin.agenda'),
                 'type' => 'cancelacion_paciente'
             ]));
         }
 
-        $msg = "Reserva fija cancelada. {$cancelados} turno(s) cancelado(s).";
-        if ($creditosGenerados > 0) {
-            $msg .= " Se generaron {$creditosGenerados} crédito(s).";
+        $successMsg = "Tu reserva fija ha sido cancelada. Se han cancelado {$count} turnos futuros" . ($creditsGenerated > 0 ? " y se generaron {$creditsGenerated} créditos por pagos previos." : ".");
+
+        return back()->with('success', $successMsg);
+    }
+
+    /**
+     * Store a recovered appointment created by the admin from the waitlist.
+     */
+    public function storeRecovery(Request $request)
+    {
+        $request->validate([
+            'waitlist_id' => 'required|exists:waitlists,id',
+            'fecha' => 'required|date',
+            'hora' => 'required',
+            'modalidad' => 'required|in:virtual,presencial',
+        ]);
+
+        $waitlist = \App\Models\Waitlist::with('user')->findOrFail($request->waitlist_id);
+        $fecha_hora = \Carbon\Carbon::parse($request->fecha . ' ' . $request->hora);
+
+        // [REGLA FINAL] 
+        // 1. El turno nace como "confirmado" (ya que la psicóloga lo agendó)
+        // 2. es_recuperacion = true
+        // 3. ui_status = 'recuperado' para insignias visuales
+        // 4. NO es recurrente / NO es fijo
+        
+        $appointment = Appointment::create([
+            'usuario_id' => $waitlist->usuario_id,
+            'paciente_id' => $waitlist->user->paciente->id ?? null,
+            'fecha_hora' => $fecha_hora,
+            'modalidad' => $request->modalidad,
+            'estado' => Appointment::ESTADO_CONFIRMADO,
+            'ui_status' => 'recuperado',
+            'es_recurrente' => false,
+            'es_recuperacion' => true,
+            'waitlist_id' => $waitlist->id,
+            'notas' => 'Turno de recuperación agendado desde lista de espera.',
+            'frecuencia' => 'eventual',
+            'debe_pagarse' => false, // No se vuelve a cobrar si ya pagó, o si es recuperación > 24hs
+        ]);
+
+        // Eliminar de la lista de espera
+        $waitlist->delete();
+
+        // Notificar al paciente
+        if ($appointment->user) {
+            $appointment->user->notify(new \App\Notifications\PatientNotification([
+                'title' => 'Turno de Recuperación Agendado',
+                'mensaje' => 'La Licenciada ha agendado tu sesión de recuperación para el ' . $fecha_hora->format('d/m H:i') . '.',
+                'link' => route('patient.dashboard'),
+                'type' => 'success'
+            ]));
         }
 
-        return back()->with('success', $msg);
+        // Registrar actividad
+        $this->logActivity('turno_recuperado', 'Agendó turno de recuperación para ' . $waitlist->name . ' el ' . $fecha_hora->format('d/m H:i'), [
+            'turno_id' => $appointment->id,
+            'paciente' => $waitlist->name
+        ]);
+
+        return redirect()->route('admin.waitlist')->with('success', 'Turno de recuperación agendado correctamente.');
     }
+
 }

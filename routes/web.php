@@ -88,6 +88,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/admin', [DashboardController::class, 'adminHome'])->name('admin.home');
         Route::get('/admin/dashboard', [DashboardController::class, 'adminHome'])->name('admin.dashboard');
         Route::get('/admin/agenda', [DashboardController::class, 'adminAgenda'])->name('admin.agenda');
+        Route::get('/admin/agenda/day-details', [DashboardController::class, 'getAgendaDayDetails'])->name('admin.agenda.day-details');
         Route::get('/admin/pacientes', [DashboardController::class, 'adminPacientes'])->name('admin.pacientes');
         Route::get('/admin/pagos', [DashboardController::class, 'adminPagos'])->name('admin.pagos');
         Route::get('/admin/turnos', [DashboardController::class, 'adminTurnos'])->name('admin.turnos');
@@ -107,6 +108,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/admin/appointments', [AppointmentController::class, 'index'])->name('admin.appointments');
         Route::post('/admin/appointments/{id}/confirm', [AppointmentController::class, 'confirm'])->name('admin.appointments.confirm');
         Route::post('/admin/appointments/{id}/cancel', [AppointmentController::class, 'cancel'])->name('admin.appointments.cancel');
+        Route::post('/admin/appointments/store-recovery', [AppointmentController::class, 'storeRecovery'])->name('admin.appointments.storeRecovery');
         Route::post('/admin/payments/{id}/verify', [PaymentController::class, 'verify'])->name('admin.payments.verify');
         Route::post('/admin/payments/{id}/reject', [PaymentController::class, 'reject'])->name('admin.payments.reject');
         
@@ -138,6 +140,10 @@ Route::middleware(['auth'])->group(function () {
         // Documents (Admin)
         Route::post('/admin/documents', [App\Http\Controllers\DocumentController::class, 'store'])->name('documents.store');
         Route::delete('/admin/documents/{document}', [App\Http\Controllers\DocumentController::class, 'destroy'])->name('documents.destroy');
+
+        // Agenda
+        Route::get('/admin/agenda', [App\Http\Controllers\DashboardController::class, 'adminAgenda'])->name('admin.agenda');
+        Route::get('/admin/agenda/day-details', [App\Http\Controllers\DashboardController::class, 'getAgendaDayDetails'])->name('admin.agenda.day-details');
 
         // Waitlist (Admin)
         Route::delete('/admin/waitlist/{id}', [\App\Http\Controllers\WaitlistController::class, 'destroy'])->name('admin.waitlist.destroy');

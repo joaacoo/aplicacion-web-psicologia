@@ -98,6 +98,7 @@
                 
                 <form id="manage-disassociate-form" method="POST" action="">
                     @csrf
+                    @method('DELETE')
                     <div class="mb-4">
                         <label style="font-size: 0.7rem; font-weight: 800; text-transform: uppercase; color: #fff; letter-spacing: 0.5px; display: block; margin-bottom: 0.5rem;">Motivo de la baja (opcional):</label>
                         <textarea name="motivo" placeholder="Ej: Fin del tratamiento..." class="neobrutalist-input" style="min-height: 120px; font-size: 0.9rem; padding: 10px; border: 2px solid #000; border-radius: 10px; box-shadow: none; background: #fff;"></textarea>

@@ -1,4 +1,13 @@
 <script>
+    window.showLoader = function() {
+        console.log('Loader shown');
+        // If there's a global loader element, show it here
+        // document.getElementById('global-loader')?.style.display = 'flex';
+    };
+    window.hideLoader = function() {
+        console.log('Loader hidden');
+        // document.getElementById('global-loader')?.style.display = 'none';
+    };
     // Confirm Action Logic
     let pendingActionFormId = null;
 
@@ -26,7 +35,10 @@
             newBtn.addEventListener('click', function() {
                 if (pendingActionFormId) {
                     const f = document.getElementById(pendingActionFormId);
-                    if(f) f.submit(); 
+                    if(f) {
+                        window.showLoader();
+                        f.submit(); 
+                    }
                 }
                 closeActionModal();
             });
@@ -159,7 +171,7 @@
         if(honorarioForm) honorarioForm.action = baseUrl + '/update-honorario';
 
         const disassociateForm = document.getElementById('manage-disassociate-form');
-        if(disassociateForm) disassociateForm.action = baseUrl + '/disassociate';
+        if(disassociateForm) disassociateForm.action = baseUrl;
 
         // Show Modal
         const modal = document.getElementById('manageModal');
@@ -199,6 +211,7 @@
 
     window.confirmDisassociate = function() {
         if(confirm('¿Estás seguro que querés dar de baja a este paciente de tu lista activa?')) {
+            window.showLoader();
             document.getElementById('manage-disassociate-form').submit();
         }
     };
@@ -277,7 +290,7 @@
                     this.submit();
                 });
             });
-        } // Missing closing brace here!
+        }
 
         const honorarioFormSubmit = document.getElementById('manage-honorario-form');
         if (honorarioFormSubmit) {

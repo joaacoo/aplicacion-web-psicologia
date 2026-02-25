@@ -23,9 +23,35 @@ class WaitlistController extends Controller
             'modality' => 'nullable|string',
         ]);
 
+        // Validación para solicitudes de recuperación
+        if ($request->boolean('is_recovery')) {
+            $originalAppointmentId = $request->original_appointment_id ?? $request->appointment_id;
+            if (!$originalAppointmentId) {
+                abort(403, 'ID de turno original requerido para recuperación.');
+            }
+
+            $appointment = \App\Models\Appointment::findOrFail($originalAppointmentId);
+
+            // Verificar que el turno pertenezca al usuario
+            if ($appointment->usuario_id !== $user->id) {
+                abort(403, 'No tienes permiso para recuperar este turno.');
+            }
+
+            // Verificar que esté cancelado
+            if ($appointment->estado !== 'cancelado') {
+                abort(403, 'Solo se pueden recuperar turnos cancelados.');
+            }
+
+            // Aplicar reglas de recuperación
+            $canRecover = !$appointment->isInCriticalZone() || ($appointment->payment && $appointment->payment->estado == 'verificado');
+            if (!$canRecover) {
+                abort(403, 'No cumples con las condiciones para recuperar este turno.');
+            }
+        }
+
         $waitlist = Waitlist::create([
             'usuario_id' => $user ? $user->id : null,
-            'original_appointment_id' => $request->appointment_id,
+            'original_appointment_id' => $request->original_appointment_id ?? $request->appointment_id,
             'name' => $request->name ?? ($user ? $user->nombre . ' ' . $user->apellido : 'Guest'),
             'phone' => $request->phone ?? ($user && $user->telefono ? $user->telefono : 'N/A'),
             'availability' => $request->availability ?? 'Horario Específico',

@@ -15,6 +15,7 @@ class Appointment extends Model
     const ESTADO_CANCELADO = 'cancelado';
     const ESTADO_FINALIZADO = 'finalizado';
     const ESTADO_SESION_PERDIDA = 'sesion_perdida';
+    const ESTADO_RECUPERADO = 'recuperado';
     
     protected $table = 'turnos';
 
@@ -38,6 +39,10 @@ class Appointment extends Model
         'motivo_cancelacion',
         'cancelado_por',
         'estado_pago',
+        'es_recuperacion',
+        'waitlist_id',
+        'ui_status',
+        'cancelado_con_mas_de_24hs',
     ];
 
     /**
@@ -52,6 +57,8 @@ class Appointment extends Model
     protected $casts = [
         'fecha_hora' => 'datetime',
         'es_recurrente' => 'boolean',
+        'es_recuperacion' => 'boolean',
+        'cancelado_con_mas_de_24hs' => 'boolean',
         'vence_en' => 'datetime',
         'notificado_una_hora_en' => 'datetime',
     ];
@@ -129,9 +136,19 @@ class Appointment extends Model
 
     /**
      * ¿Puede el paciente PAGAR esta sesión AHORA?
+     * Se puede pagar si:
+     * - No está pagado ni verificado.
+     * - No está cancelado.
+     * - No es un turno de recuperación (no genera nuevo pago).
+     * - No es pasado.
+     * - Faltan más de 24hs.
+     * - NO tiene créditos activos (el crédito manda).
      */
-    public function isPayable(): bool
+    public function isPayable(?bool $hasCredit = null): bool
     {
+        // Los turnos de recuperación nunca deberían generar un nuevo pago
+        if ($this->es_recuperacion) return false;
+
         if ($this->estado_pago === 'verificado') return false;
         if ($this->estado === 'cancelado') return false;
         if ($this->fecha_hora->isPast()) return false;
@@ -139,9 +156,12 @@ class Appointment extends Model
         $horasHasta = $this->fecha_hora->diffInHours(now());
         if ($horasHasta < 24) return false;
 
-        // Note: Sequential logic (only the next one) will be handled in the controller
+        // Si explícitamente se pasa que tiene crédito, no es pagable
+        if ($hasCredit === true) return false;
+
         return true;
     }
+
 
     /**
      * Obtener razón por la que NO es pagable
@@ -149,6 +169,7 @@ class Appointment extends Model
     public function getPaymentBlockReason(): ?string
     {
         if ($this->estado_pago === 'verificado') return 'Pagado ✅';
+        if ($this->es_recuperacion) return 'Turno de recuperación (no genera nuevo pago).';
         if ($this->estado === 'cancelado') return 'Cancelado';
         if ($this->fecha_hora->isPast()) return 'Sesión pasada';
 
@@ -176,6 +197,15 @@ class Appointment extends Model
     public function getPaymentDeadline()
     {
         return $this->fecha_hora->copy()->subHours(24);
+    }
+
+    // ═════════════════════════════════════════════════════════==
+    /**
+     * Check if the associated payment is verified.
+     */
+    public function paymentWasVerified(): bool
+    {
+        return $this->payment && $this->payment->estado === 'verificado';
     }
 
     // ═══════════════════════════════════════════════════════════

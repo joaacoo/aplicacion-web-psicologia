@@ -333,13 +333,20 @@
                                 </div>
                             </td>
                             <td data-label="Acciones" style="padding: 0.8rem; text-align: center; width: 150px;">
-                                <form id="delete-waitlist-{{ $entry->id }}" action="{{ route('admin.waitlist.destroy', $entry->id) }}" method="POST" style="margin:0;">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="button" class="neobrutalist-btn bg-lila" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;" onclick="confirmAction('delete-waitlist-{{ $entry->id }}', '¿Remover de la lista de espera?')">
-                                        <i class="fa-solid fa-trash"></i>
-                                    </button>
-                                </form>
+                                    <div style="display: flex; gap: 5px; justify-content: center; align-items: center;">
+                                        <button type="button" class="neobrutalist-btn bg-verde" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;" 
+                                                onclick="openRecoverAssignModal({{ $entry->id }}, '{{ addslashes($entry->name) }}', '{{ addslashes($entry->modality) }}')"
+                                                title="Agendar recuperación">
+                                            <i class="fa-solid fa-calendar-plus"></i>
+                                        </button>
+                                        <form id="delete-waitlist-{{ $entry->id }}" action="{{ route('admin.waitlist.destroy', $entry->id) }}" method="POST" style="margin:0;">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="button" class="neobrutalist-btn bg-lila" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;" onclick="confirmAction('delete-waitlist-{{ $entry->id }}', '¿Remover de la lista de espera?')">
+                                                <i class="fa-solid fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
                             </td>
                         </tr>
                     @empty
@@ -352,6 +359,76 @@
         </div>
     </div>
 </div>
+
+<!-- Modal: Agendar Recuperación -->
+<div id="recoverAssignModal" class="modal-overlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; padding: 1rem;">
+    <div class="neobrutalist-card" style="background: #fff; width: 100%; max-width: 500px; padding: 2rem; position: relative;">
+        <button onclick="closeRecoverAssignModal()" style="position: absolute; top: 1rem; right: 1rem; background: none; border: none; font-size: 1.5rem; cursor: pointer;">&times;</button>
+        <h3 style="margin-top: 0; border-bottom: 3px solid #000; padding-bottom: 0.5rem; margin-bottom: 1.5rem;">
+            <i class="fa-solid fa-calendar-plus"></i> Agendar Recuperación
+        </h3>
+        <form action="{{ route('admin.appointments.storeRecovery') }}" method="POST">
+            @csrf
+            <input type="hidden" id="recover_waitlist_id" name="waitlist_id">
+            
+            <div style="margin-bottom: 1rem;">
+                <label style="display: block; font-weight: 800; margin-bottom: 0.5rem;">Paciente</label>
+                <input type="text" id="recover_patient_name" readonly style="width: 100%; padding: 0.5rem; border: 2px solid #000; border-radius: 4px; background: #eee;">
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                <div>
+                    <label style="display: block; font-weight: 800; margin-bottom: 0.5rem;">Fecha</label>
+                    <input type="date" name="fecha" required style="width: 100%; padding: 0.5rem; border: 2px solid #000; border-radius: 4px;">
+                </div>
+                <div>
+                    <label style="display: block; font-weight: 800; margin-bottom: 0.5rem;">Hora</label>
+                    <input type="time" name="hora" required style="width: 100%; padding: 0.5rem; border: 2px solid #000; border-radius: 4px;">
+                </div>
+            </div>
+
+            <div style="margin-bottom: 1.5rem;">
+                <label style="display: block; font-weight: 800; margin-bottom: 0.5rem;">Modalidad</label>
+                <select name="modalidad" id="recover_modalidad" required style="width: 100%; padding: 0.5rem; border: 2px solid #000; border-radius: 4px;">
+                    <option value="virtual">Virtual</option>
+                    <option value="presencial">Presencial</option>
+                </select>
+            </div>
+
+            <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                <button type="button" onclick="closeRecoverAssignModal()" class="neobrutalist-btn bg-white" style="padding: 0.5rem 1rem;">Cancelar</button>
+                <button type="submit" class="neobrutalist-btn bg-verde" style="padding: 0.5rem 1rem;">Confirmar y Agendar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openRecoverAssignModal(id, name, modality) {
+        console.log('Opening recovery modal for:', id, name, modality);
+        
+        const idInput = document.getElementById('recover_waitlist_id');
+        const nameInput = document.getElementById('recover_patient_name');
+        const modal = document.getElementById('recoverAssignModal');
+        const select = document.getElementById('recover_modalidad');
+
+        if (!idInput || !nameInput || !modal || !select) {
+            console.error('Modal elements missing');
+            return;
+        }
+
+        idInput.value = id;
+        nameInput.value = name;
+        modal.style.display = 'flex';
+        
+        if (modality && modality.toLowerCase().includes('virtual')) select.value = 'virtual';
+        else if (modality && modality.toLowerCase().includes('presencial')) select.value = 'presencial';
+    }
+
+    function closeRecoverAssignModal() {
+        document.getElementById('recoverAssignModal').style.display = 'none';
+    }
+</script>
 
 @include('dashboard.admin.partials.modals')
 @include('dashboard.admin.partials.scripts')

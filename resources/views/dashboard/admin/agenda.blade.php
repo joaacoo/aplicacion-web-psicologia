@@ -140,7 +140,10 @@
         border-radius: 50%;
     }
 
-    .event-dot.internal { background: var(--color-celeste); }
+    .event-dot.confirmed { background: var(--color-verde); }
+    .event-dot.cancelled { background: var(--color-rojo); }
+    .event-dot.fixed { background: var(--color-celeste); }
+    .event-dot.recovered { background: var(--color-lila); }
     .event-dot.external { background: #ff9500; }
     .event-dot.blocked { background: #ff3b30; }
 
@@ -277,7 +280,7 @@
                     // Re-implement filtering logic
                     $dayAppointments = $appointments->filter(function($app) use ($dayStr) {
                          $appDate = is_string($app->fecha_hora) ? substr($app->fecha_hora, 0, 10) : $app->fecha_hora->format('Y-m-d');
-                         return $appDate == $dayStr && $app->estado != 'cancelado';
+                         return $appDate == $dayStr;
                     });
                     
                     $dayExternal = $externalEvents->filter(function($evt) use ($day) {
@@ -291,7 +294,14 @@
                     <div class="day-number">{{ $day->day }}</div>
                     <div class="event-dots">
                         @if($isBlocked)<span class="event-dot blocked"></span>@endif
-                        @if($dayAppointments->count() > 0)<span class="event-dot internal"></span>@endif
+                        @php
+                            $hasConfirmed = $dayAppointments->contains('estado', 'confirmado');
+                            $hasFixed = $dayAppointments->filter(fn($a) => $a->estado !== 'cancelado')->contains('es_recurrente', true);
+                            $hasRecovered = $dayAppointments->contains('es_recuperacion', true);
+                        @endphp
+                        @if($hasConfirmed)<span class="event-dot confirmed"></span>@endif
+                        @if($hasFixed)<span class="event-dot fixed"></span>@endif
+                        @if($hasRecovered)<span class="event-dot recovered"></span>@endif
                         @if($dayExternal->count() > 0)<span class="event-dot external"></span>@endif
                     </div>
                 </div>
@@ -347,101 +357,120 @@
     }
 
     function showDayDetails(dateStr, dateDisplay, shouldScroll = true) {
-        document.getElementById('day-details-section').style.display = 'block';
-        document.getElementById('details-title').innerText = dateDisplay;
-        
-        // Filter appointments: must match date AND NOT be cancelled
-        // Include both regular appointments AND projected fixed appointments (is_projected)
-        const dayAppsRaw = appointments.filter(app => {
-            if (!app.fecha_hora) return false;
-            
-            // Handle both string and object dates (if passed poorly through JSON)
-            const dateStrApp = typeof app.fecha_hora === 'string' 
-                ? app.fecha_hora.substring(0, 10) 
-                : new Date(app.fecha_hora).toISOString().split('T')[0];
-                
-            const matchesDate = dateStrApp === dateStr;
-            const isNotCancelled = app.estado !== 'cancelado';
-            
-            return matchesDate && isNotCancelled;
-        });
-        const seen = new Set();
-        const dayApps = dayAppsRaw.filter(app => {
-            const time = typeof app.fecha_hora === 'string'
-                ? app.fecha_hora.substring(11, 16)
-                : new Date(app.fecha_hora).toISOString().substring(11, 16);
-                
-            // Deduplicate by time and userId to be safe
-            const userId = app.usuario_id || (app.user ? app.user.id : 'unknown');
-            const key = `${time}-${userId}`;
-            if (seen.has(key)) return false;
-            seen.add(key);
-            return true;
-        });
-
-        // Sort by time
-        dayApps.sort((a, b) => {
-            const timeA = typeof a.fecha_hora === 'string' ? a.fecha_hora : new Date(a.fecha_hora).toISOString();
-            const timeB = typeof b.fecha_hora === 'string' ? b.fecha_hora : new Date(b.fecha_hora).toISOString();
-            return timeA.localeCompare(timeB);
-        });
-
+        const detailsSection = document.getElementById('day-details-section');
+        const detailsContent = document.getElementById('details-content');
         const internalContainer = document.getElementById('internal-appointments');
         const noInternal = document.getElementById('no-internal');
+        const titleLabel = document.getElementById('details-title');
+
+        detailsSection.style.display = 'block';
+        titleLabel.innerText = dateDisplay;
         
-        internalContainer.innerHTML = '';
-        if (dayApps.length > 0) {
-            noInternal.style.display = 'none';
-            dayApps.forEach(app => {
-                const time = typeof app.fecha_hora === 'string'
-                    ? app.fecha_hora.substring(11, 16)
-                    : new Date(app.fecha_hora).toISOString().substring(11, 16);
-                    
-                // Calculate end time (+1 hour typically)
-                let [hours, minutes] = time.split(':').map(Number);
-                hours = (hours + 1) % 24;
-                const endTime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-                    
-                const userName = app.user ? app.user.nombre + (app.user.apellido ? ' ' + app.user.apellido : '') : 'Paciente Desconocido';
-                    
-                const div = document.createElement('div');
-                div.className = 'event-pill internal';
-                div.style.padding = '10px 15px';
-                div.style.fontSize = '1.05rem';
-                div.style.fontWeight = '700';
-                div.style.border = '2px solid #000';
-                div.style.boxShadow = '3px 3px 0px #000';
-                div.style.background = 'white';
-                div.style.display = 'flex';
-                div.style.alignItems = 'center';
-                div.style.gap = '10px';
-                div.innerHTML = `
-                    <span style="background: var(--color-celeste); padding: 3px 10px; border: 2px solid #000; border-radius: 6px; font-size: 0.95rem; white-space: nowrap;">${time} - ${endTime} hs</span> 
-                    <a href="/admin/pacientes?search=${encodeURIComponent(userName)}" 
-                       style="color: #000; text-decoration: underline; font-weight: 800; font-size: 1rem; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
-                       title="Gestionar paciente">
-                        ${userName}
-                        ${app.is_projected ? '<span style="font-size: 0.75rem; background: var(--color-amarillo); padding: 2px 6px; border-radius: 4px; border: 1px solid #000; margin-left: 5px;">Proyectado</span>' : ''}
-                    </a>
-                `;
-                internalContainer.appendChild(div);
-            });
-        } else {
-            noInternal.style.display = 'block';
-        }
+        // Show loading state
+        internalContainer.innerHTML = '<div style="text-align: center; padding: 2rem;"><i class="fa-solid fa-circle-notch fa-spin fa-2xl"></i><p style="margin-top: 1rem; font-weight: 700;">Cargando turnos...</p></div>';
+        noInternal.style.display = 'none';
 
         if (shouldScroll) {
-            // Scroll to details with offset for header
-            const element = document.getElementById('day-details-section');
+            const element = detailsSection;
             const headerOffset = 100;
             const elementPosition = element.getBoundingClientRect().top;
             const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
-
-            window.scrollTo({
-                top: offsetPosition,
-                behavior: "smooth"
-            });
+            window.scrollTo({ top: offsetPosition, behavior: "smooth" });
         }
+
+        // AJAX Fetch for fresh state
+        fetch(`${window.location.origin}/admin/agenda/day-details?date=${dateStr}`)
+            .then(response => response.json())
+            .then(data => {
+                internalContainer.innerHTML = '';
+                
+                if (data.appointments && data.appointments.length > 0) {
+                    noInternal.style.display = 'none';
+                    data.appointments.forEach(app => {
+                        // REGLA: Los turnos NUNCA se eliminan, todo queda visible
+                        // Los cancelados se muestran con opacidad reducida
+                        
+                        const div = document.createElement('div');
+                        
+                        // Determinar si es cancelado para aplicar opacidad
+                        const isCancelled = app.status_type === 'cancelado' || app.status_type === 'cancelado_fijo';
+                        const opacity = isCancelled ? '0.6' : '1';
+                        
+                        // Badge Selection
+                        let badgeHtml = '';
+                        switch (app.status_type) {
+                            case 'confirmado': badgeHtml = '<span style="background: var(--color-verde); color: #fff; padding: 2px 8px; border: 2px solid #000; border-radius: 6px; font-size: 0.75rem; font-weight: 800;">CONFIRMADO</span>'; break;
+                            case 'cancelado': badgeHtml = '<span style="background: var(--color-rojo); color: #fff; padding: 2px 8px; border: 2px solid #000; border-radius: 6px; font-size: 0.75rem; font-weight: 800;">CANCELADO</span>'; break;
+                            case 'cancelado_fijo': badgeHtml = '<span style="background: var(--color-rojo); color: #fff; padding: 2px 8px; border: 2px solid #000; border-radius: 6px; font-size: 0.75rem; font-weight: 800;">CANCELADO - FIJO</span>'; break;
+                            case 'fijo': badgeHtml = '<span style="background: var(--color-celeste); padding: 2px 8px; border: 2px solid #000; border-radius: 6px; font-size: 0.75rem; font-weight: 800;">FIJO</span>'; break;
+                            case 'recuperado': badgeHtml = '<span style="background: var(--color-lila); padding: 2px 8px; border: 2px solid #000; border-radius: 6px; font-size: 0.75rem; font-weight: 800;">RECUPERADO</span>'; break;
+                            case 'ausente': badgeHtml = '<span style="background: #000; color: #fff; padding: 2px 8px; border: 2px solid #000; border-radius: 6px; font-size: 0.75rem; font-weight: 800;">AUSENTE</span>'; break;
+                            case 'finalizado': badgeHtml = '<span style="background: #fff; border: 2px solid #000; padding: 2px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 800;">FINALIZADO</span>'; break;
+                            default: badgeHtml = '<span style="background: #eee; border: 2px solid #000; padding: 2px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 800;">' + app.status_type.toUpperCase() + '</span>';
+                        }
+
+                        // Calculate end time
+                        let [h, m] = app.time.split(':').map(Number);
+                        let eh = (h + 1) % 24;
+                        let endTime = `${eh.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+
+                        div.style.cssText = `
+                            padding: 10px 15px;
+                            font-size: 1.05rem;
+                            font-weight: 700;
+                            border: 2px solid #000;
+                            box-shadow: 3px 3px 0px #000;
+                            background: white;
+                            display: flex;
+                            align-items: center;
+                            gap: 12px;
+                            opacity: ${opacity};
+                            margin-bottom: 0.8rem;
+                        `;
+                        
+                        div.innerHTML = `
+                            <div style="flex-shrink: 0; min-width: 130px; text-align: center;">
+                                <span style="background: #eee; padding: 3px 8px; border: 2px solid #000; border-radius: 6px; font-size: 0.85rem; white-space: nowrap;">${app.time} - ${endTime} hs</span>
+                            </div>
+                            <div style="flex: 1; min-width: 0;">
+                                <a href="/admin/pacientes?search=${encodeURIComponent(app.user_name)}" 
+                                   style="color: #000; text-decoration: underline; font-weight: 800; font-size: 1rem; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                    ${app.user_name}
+                                </a>
+                            </div>
+                            <div style="flex-shrink: 0;">
+                                ${badgeHtml}
+                            </div>
+                        `;
+                        internalContainer.appendChild(div);
+                    });
+                } else {
+                    noInternal.style.display = 'block';
+                    internalContainer.innerHTML = '';
+                }
+
+                // Add External Events if any
+                if (data.external_events && data.external_events.length > 0) {
+                    const extHeader = document.createElement('h3');
+                    extHeader.innerHTML = '<i class="fa-brands fa-google"></i> Eventos Google';
+                    extHeader.style.cssText = "font-size: 1.1rem; font-weight: 800; margin-top: 1.5rem; margin-bottom: 1rem; color: #666; font-family: 'Syne', sans-serif; border-bottom: 2px solid #eee; padding-bottom: 0.3rem;";
+                    internalContainer.appendChild(extHeader);
+                    
+                    data.external_events.forEach(evt => {
+                        const div = document.createElement('div');
+                        div.style.cssText = "padding: 8px 15px; font-size: 0.95rem; border: 2px solid #eee; border-radius: 10px; background: #fafafa; display: flex; align-items: center; gap: 10px; margin-bottom: 0.5rem; color: #666;";
+                        div.innerHTML = `
+                            <span style="font-weight: 800; color: #ff9500;">${evt.start} - ${evt.end}</span>
+                            <span style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${evt.title}</span>
+                        `;
+                        internalContainer.appendChild(div);
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching day details:', error);
+                internalContainer.innerHTML = '<div class="alert alert-danger" style="margin: 1rem;">Error al cargar los detalles. Por favor, reintentá.</div>';
+            });
     }
 
     function closeDayDetails() {

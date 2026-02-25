@@ -27,6 +27,8 @@ class DashboardController extends Controller
             $isMobile = true;
         }
 
+        $paciente = Auth::user()->paciente;
+
         // Obtener configuración del Admin
         $adminUser = \App\Models\User::where('rol', 'admin')->with('profesional')->first();
         $sessionDuration = $adminUser->duracion_sesion ?? 45;
@@ -112,6 +114,22 @@ class DashboardController extends Controller
             ->pluck('date')
             ->map(fn($d) => is_string($d) ? \Carbon\Carbon::parse($d)->format('Y-m-d') : $d->format('Y-m-d'))
             ->toArray();
+
+        // FIX (BLOQUEO REFINADO): Identificar horarios ocupados por reservas fijas con metadata
+        $fixedBlockedSlots = Appointment::where('es_recurrente', true)
+            ->get()
+            ->map(function($a) {
+                return [
+                    'dia' => $a->fecha_hora->dayOfWeek === 0 ? 7 : $a->fecha_hora->dayOfWeek,
+                    'hora' => $a->fecha_hora->format('H:i'),
+                    'frecuencia' => $a->frecuencia, // 'semanal' / 'quincenal'
+                    'modalidad' => $a->modalidad,   // 'presencial' / 'virtual'
+                    'week_parity' => $a->fecha_hora->weekOfYear % 2 // 0 or 1
+                ];
+            })->unique(function($item) {
+                // Unicidad por todo para no enviar duplicados exactos, pero permitimos misma hora en distinta paridad si es quincenal
+                return $item['dia'].$item['hora'].$item['frecuencia'].$item['week_parity'];
+            })->values()->toArray();
         // We add them as "occupied" but the frontend will handle them specially if needed.
         // Actually, for full day blocking, we need to handle it in the view or here.
         // Let's pass $blockedDays to the view separately to disable the whole day in the calendar.
@@ -124,8 +142,13 @@ class DashboardController extends Controller
         $blockWeekends = $adminUser->block_weekends ?? false;
 
         // For Sequential Payment logic, we need ALL appointments to find the "next" one
+        // REGLA: Los turnos cancelados NUNCA se borran y deben verse siempre en la tabla
         $allAppointments = Appointment::where('usuario_id', Auth::id())
-            ->where('estado', '!=', 'cancelado')
+            ->where('fecha_hora', '>=', now()->subYear()) // Mostrar turnos desde hace 1 año
+            ->where(function($q) {
+                $q->where('estado', '!=', 'cancelado')
+                  ->orWhere('motivo_cancelacion', 'not like', '%Reserva fija%');
+            })
             ->orderBy('fecha_hora', 'asc')
             ->get()
             ->map(function ($turno) {
@@ -158,14 +181,14 @@ class DashboardController extends Controller
         // LOGICA DE PAGO SECUENCIAL Y VISIBILIDAD (4 SESIONES)
         // ---------------------------------------------------------
         
-        // 1. Obtener sesiones futuras o pasadas sin pago
+        // 1. Obtener sesiones activas (que aún no terminaron)
         $allFuture = $allAppointments->filter(function($a) {
-            return $a->fecha_hora->isFuture() || ($a->isPastSessionTime() && (!$a->payment || $a->payment->estado !== 'verificado'));
+            return !$a->isPastSessionTime();
         });
 
-        // 1b. Obtener sesiones pasadas que ya fueron pagadas (finalizadas)
+        // 1b. Obtener sesiones pasadas (finalizadas)
         $completedAppointmentsCollection = $allAppointments->filter(function($a) {
-            return $a->isPastSessionTime() && $a->payment && $a->payment->estado === 'verificado';
+            return $a->isPastSessionTime();
         });
 
         // 2. Tomar las próximas 4 para mostrar (aprox 1 mes)
@@ -218,29 +241,78 @@ class DashboardController extends Controller
 
         // Merge real and projected 
         $allFutureAndProjected = $allFuture->concat($projectedAppointments)->sortBy('fecha_hora')->values();
+
+        // Regla especial de UX para reserva fija en este dashboard principal:
+        // - Si el paciente tenía reserva fija y la canceló, el filtro robusto ya se encargó 
+        //   de ocultar esas sesiones muertas sin borrar los turnos individuales.
         
+        // Credits: Ver si tiene créditos activos
+        $activeCreditsCount = $paciente ? $paciente->credits()->where('status', 'active')->count() : 0;
+        $hasActiveCredit = $activeCreditsCount > 0;
+
         // Re-apply Sequential Logic on the combined list
+        // Create a separate queue for sequential logic that ignores cancelled turns
+        $paymentQueue = $allFutureAndProjected->filter(function($a) {
+            // No contar cancelados ni turnos de recuperación para bloquear pagos futuros
+            return $a->estado !== 'cancelado' && !($a->es_recuperacion ?? false);
+        })->values();
+
         $payableAppointment = null;
-        $allFutureAndProjected->transform(function($appt, $key) use (&$payableAppointment) {
-            // Is it the FIRST in this visible list?
-            $isFirst = ($key === 0); 
+        $creditAppliedToThisSession = false;
+
+        $allFutureAndProjected->transform(function($appt) use ($paymentQueue, &$payableAppointment, &$hasActiveCredit, &$creditAppliedToThisSession) {
+            // If it's cancelled, it shouldn't be part of the sequential logic blocking/payable flow
+            if ($appt->estado === 'cancelado') {
+                $appt->ui_status = 'cancelled';
+                $appt->is_payable = false;
+                $appt->payment_block_reason = 'Turno cancelado.';
+                return $appt;
+            }
+
+            // Find its index in the payment queue
+            $queueIndex = $paymentQueue->search(function($item) use ($appt) {
+                // For virtual we need date check, for real we can use ID
+                if ($appt->id && $item->id) return $appt->id === $item->id;
+                return $appt->fecha_hora->equalTo($item->fecha_hora);
+            });
+
+            // Is it the FIRST ACTIVE session in the queue?
+            $isFirstActive = ($queueIndex === 0); 
             
-            if ($isFirst && !$appt->is_virtual) {
-                if ($appt->isPayable()) {
+            // Si es un turno real (no virtual)
+            if (!$appt->is_virtual) {
+                // Caso 1: Tiene crédito activo y es el primero que puede recibirlo
+                if ($hasActiveCredit && !$creditAppliedToThisSession) {
+                    $appt->ui_status = 'credit_applied';
+                    $appt->is_payable = false;
+                    $creditAppliedToThisSession = true;
+                } 
+                // Caso 2: Es pagable (es el primero en la cola activa y cumple condiciones)
+                elseif ($isFirstActive && $appt->isPayable(false)) {
                     $appt->ui_status = 'payable';
+                    $appt->is_payable = true;
                     $payableAppointment = $appt;
-                } else {
-                    $appt->ui_status = 'locked';
+                } 
+                // Caso 3: Bloqueado por secuencia
+                else {
+                    $appt->ui_status = 'locked_sequential';
+                    $appt->is_payable = false;
+                    $appt->payment_block_reason = ($queueIndex > 0) ? 'Se habilitará al finalizar la sesión anterior.' : $appt->getPaymentBlockReason();
                 }
             } else {
+                // Turnos virtuales/proyectados siempre bloqueados por secuencia (a menos que fueran los primeros, pero isPayable fallará para virtuales usualmente)
                 $appt->ui_status = 'locked_sequential';
+                $appt->is_payable = false;
                 $appt->payment_block_reason = 'Se habilitará al finalizar la sesión anterior.';
             }
             return $appt;
         });
 
-        // Append completed sessions AT THE END (sorted most recent first)
-        $allFutureAndProjected = $allFutureAndProjected->concat($completedAppointmentsCollection->sortByDesc('fecha_hora'))->values();
+
+        // Append completed sessions ONLY if ver_todo or filter is requested
+        if (request()->has('ver_todo') || request()->has('filter')) {
+            $allFutureAndProjected = $allFutureAndProjected->concat($completedAppointmentsCollection->sortByDesc('fecha_hora'))->values();
+        }
 
         // Apply filters if present
         if (request()->has('filter')) {
@@ -268,11 +340,15 @@ class DashboardController extends Controller
             }
         }
 
-        // Paginate or Take 2 depending on ver_todo OR if filtering
-        if (request()->has('ver_todo') || request()->has('filter')) {
+        // Paginate or show all appointments depending on parameters
+        if (request()->has('ver_todo')) {
+            // Show all future and projected appointments without limiting
+            $visibleFutureSessions = $allFutureAndProjected;
+        } else {
+            // Default: paginate with 4 appointments per page (also when filter is applied)
             $perPage = 4;
             $page = \Illuminate\Pagination\Paginator::resolveCurrentPage() ?: 1;
-            
+
             $visibleFutureSessions = new \Illuminate\Pagination\LengthAwarePaginator(
                 $allFutureAndProjected->forPage($page, $perPage)->values(),
                 $allFutureAndProjected->count(),
@@ -280,8 +356,6 @@ class DashboardController extends Controller
                 $page,
                 ['path' => \Illuminate\Pagination\Paginator::resolveCurrentPath(), 'query' => request()->query()]
             );
-        } else {
-            $visibleFutureSessions = $allFutureAndProjected->take(2);
         }
 
         // 3. Sesiones COMPLETADAS (Historial para vista)
@@ -339,6 +413,7 @@ class DashboardController extends Controller
             'blockedDays',
             'blockWeekends',
             'occupiedSlots', 
+            'fixedBlockedSlots',
             'adminUser',
             'availabilities',
             'googleAvailableSlots',
@@ -492,7 +567,10 @@ class DashboardController extends Controller
         $todayAppointments = Appointment::with(['user', 'payment'])
             ->whereDate('fecha_hora', \Carbon\Carbon::today())
             ->where('fecha_hora', '>=', now()) // Filter past appointments
-            ->where('estado', '!=', 'cancelado')
+            ->where(function($q) {
+                $q->where('estado', '!=', 'cancelado')
+                  ->orWhere('motivo_cancelacion', 'not like', '%Reserva fija%');
+            })
             ->orderBy('fecha_hora', 'asc')
             ->get();
             
@@ -553,6 +631,7 @@ class DashboardController extends Controller
         // Próximo turno
         $nextAdminAppointment = Appointment::with('user')
             ->where('fecha_hora', '>=', now())
+            ->where('estado', '!=', 'cancelado')
             ->orderBy('fecha_hora', 'asc')
             ->first();
 
@@ -646,8 +725,41 @@ class DashboardController extends Controller
         $isMobile = is_mobile();
         $perPage = 2;
 
-        $query = Appointment::where('usuario_id', Auth::id())
+        // Detectar si el paciente tiene / tuvo reserva fija
+        $userId = Auth::id();
+        $hasActiveFixed = Appointment::where('usuario_id', $userId)
+            ->where('es_recurrente', true)
+            ->where('fecha_hora', '>=', now())
+            ->exists();
+
+        $hadFixedCancelled = Appointment::where('usuario_id', $userId)
+            ->where('motivo_cancelacion', 'like', '%Reserva fija cancelada por el paciente%')
+            ->exists();
+
+        $query = Appointment::where('usuario_id', $userId)
             ->with(['payment'])
+            ->where(function($q) {
+                $q->where('estado', '!=', 'cancelado')
+                  ->orWhere('motivo_cancelacion', 'not like', '%Reserva fija%');
+            });
+
+        // REGLA EXTRA (para esta vista simple):
+        // Si tiene reserva fija activa: mostrar solo desde que empieza la reserva hasta fin de año de esa reserva.
+        if ($hasActiveFixed) {
+            $baseReservation = Appointment::where('usuario_id', $userId)
+                ->where('es_recurrente', true)
+                ->orderBy('fecha_hora', 'asc')
+                ->first();
+
+            if ($baseReservation && $baseReservation->fecha_hora) {
+                $start = $baseReservation->fecha_hora->copy()->startOfDay();
+                $end = \Carbon\Carbon::create($start->year, 12, 31)->endOfDay();
+                $query->whereBetween('fecha_hora', [$start, $end]);
+            }
+        }
+
+        // Aplicar filtros y orden a la query resultante
+        $query = $query
             ->when(request('month_filter'), function($q) {
                 $q->whereMonth('fecha_hora', request('month_filter'));
             })
@@ -665,6 +777,11 @@ class DashboardController extends Controller
         // Global Sequential Payment Helper: find the absolute first one that needs payment
         $firstUnpaidId = Appointment::where('usuario_id', Auth::id())
             ->where('estado', '!=', 'cancelado')
+            // No usar turnos de recuperación para bloquear el pago del siguiente turno
+            ->where(function($q) {
+                $q->whereNull('es_recuperacion')
+                  ->orWhere('es_recuperacion', false);
+            })
             ->where(function($q) {
                 $q->whereDoesntHave('payment')
                   ->orWhereHas('payment', function($pq) {
@@ -675,6 +792,12 @@ class DashboardController extends Controller
             ->value('id');
 
         $appointments = $query->paginate($perPage)->appends(request()->query());
+
+        // Fetch Pending Recovery IDs
+        $pendingRecoveryIds = \App\Models\Waitlist::where('usuario_id', Auth::id())
+            ->whereNotNull('original_appointment_id')
+            ->pluck('original_appointment_id')
+            ->toArray();
 
         // Fetch Credit Balance
         $creditBalance = 0;
@@ -691,11 +814,12 @@ class DashboardController extends Controller
                 'isMobile' => $isMobile,
                 'isAjax' => true,
                 'firstUnpaidId' => $firstUnpaidId,
-                'creditBalance' => $creditBalance
+                'creditBalance' => $creditBalance,
+                'pendingRecoveryIds' => $pendingRecoveryIds
             ])->render();
         }
 
-        return view('dashboard.patient', compact('appointments', 'isMobile', 'creditBalance'))->with([
+        return view('dashboard.patient', compact('appointments', 'isMobile', 'creditBalance', 'pendingRecoveryIds'))->with([
             'firstUnpaidId' => $firstUnpaidId
         ]);
     }
@@ -725,10 +849,15 @@ class DashboardController extends Controller
             $year = 2026;
         }
         
-        // Appointments del mes seleccionado
+        // Appointments del mes seleccionado - MOSTRAR TODOS LOS TURNOS (incluyendo cancelados)
+        // REGLA: Los turnos NUNCA se eliminan, todo queda visible y trazable
         $appointments = Appointment::with(['user', 'payment'])
             ->whereYear('fecha_hora', $year)
             ->whereMonth('fecha_hora', $month)
+            ->where(function($q) {
+                $q->where('estado', '!=', 'cancelado')
+                  ->orWhere('motivo_cancelacion', 'not like', '%Reserva fija%');
+            })
             ->orderBy('fecha_hora', 'asc')
             ->get();
 
@@ -846,6 +975,111 @@ class DashboardController extends Controller
         ));
     }
 
+    /**
+     * AJAX endpoint to fetch fresh day details for the admin agenda.
+     */
+    public function getAgendaDayDetails(Request $request)
+    {
+        $date = $request->input('date'); // YYYY-MM-DD
+        
+        if (!$date) return response()->json(['error' => 'No date provided'], 400);
+
+        $appointments = Appointment::with(['user', 'payment'])
+            ->whereDate('fecha_hora', $date)
+            ->where(function($q) {
+                $q->where('estado', '!=', 'cancelado')
+                  ->orWhere('motivo_cancelacion', 'not like', '%Reserva fija%');
+            })
+            ->orderBy('fecha_hora', 'asc')
+            ->get();
+
+        // Project fixed sessions for this specific day if not in DB
+        $dayStart = \Carbon\Carbon::parse($date)->startOfDay();
+        $dayEnd = $dayStart->copy()->endOfDay();
+        
+        $fixedReservations = Appointment::where('es_recurrente', true)
+            ->where('estado', '!=', 'cancelado')
+            ->whereNotNull('fecha_hora')
+            ->with('user')
+            ->get()
+            ->unique('usuario_id');
+
+        $projected = collect();
+        foreach($fixedReservations as $fixed) {
+            $frecuencia = $fixed->frecuencia;
+            $baseDate = $fixed->fecha_hora->copy();
+            $intervalDays = ($frecuencia === 'quincenal') ? 14 : 7;
+            
+            $iterDate = $baseDate->copy();
+            while ($iterDate->copy()->addDays($intervalDays)->lt($dayStart)) {
+                $iterDate->addDays($intervalDays);
+            }
+            if ($iterDate->lt($dayStart)) {
+                $iterDate->addDays($intervalDays);
+            }
+
+            if ($iterDate->gte($dayStart) && $iterDate->lte($dayEnd)) {
+                $exists = $appointments->contains(function($a) use ($iterDate, $fixed) {
+                    return $a->usuario_id == $fixed->usuario_id 
+                        && $a->fecha_hora->format('Y-m-d H:i') == $iterDate->format('Y-m-d H:i');
+                });
+
+                if (!$exists) {
+                    $virtual = new Appointment();
+                    $virtual->id = - abs(crc32('proj_day_' . $fixed->usuario_id . '_' . $iterDate->timestamp));
+                    $virtual->usuario_id = $fixed->usuario_id;
+                    $virtual->fecha_hora = $iterDate->copy();
+                    $virtual->estado = Appointment::ESTADO_CONFIRMADO;
+                    $virtual->es_recurrente = true;
+                    $virtual->is_projected = true;
+                    $virtual->user = $fixed->user;
+                    $projected->push($virtual);
+                }
+            }
+        }
+
+        $allApps = $appointments->concat($projected)->sortBy('fecha_hora')->values();
+
+        // Fetch external events for the day
+        $externalEvents = ExternalEvent::where(function($q) use ($dayStart, $dayEnd) {
+                $q->whereBetween('start_time', [$dayStart, $dayEnd])
+                  ->orWhereBetween('end_time', [$dayStart, $dayEnd]);
+            })->orderBy('start_time', 'asc')->get();
+
+        return response()->json([
+            'date' => $date,
+            'appointments' => $allApps->map(function($app) {
+                // Determine display status based on rules
+                $statusType = 'confirmado';
+                if ($app->estado === 'cancelado') {
+                    $statusType = $app->es_recurrente ? 'cancelado_fijo' : 'cancelado';
+                }
+                elseif ($app->es_recuperacion || $app->ui_status === 'recuperado') $statusType = 'recuperado';
+                elseif ($app->es_recurrente) $statusType = 'fijo';
+                elseif ($app->estado === 'ausente') $statusType = 'ausente';
+                elseif ($app->estado === 'completado') $statusType = 'finalizado';
+
+                return [
+                    'id' => $app->id,
+                    'time' => $app->fecha_hora->format('H:i'),
+                    'user_name' => $app->user ? $app->user->nombre : 'Paciente Desconocido',
+                    'estado' => $app->estado,
+                    'is_projected' => $app->is_projected ?? false,
+                    'status_type' => $statusType, 
+                    'es_recurrente' => $app->es_recurrente,
+                    'es_recuperacion' => $app->es_recuperacion || $app->ui_status === 'recuperado',
+                ];
+            }),
+            'external_events' => $externalEvents->map(function($evt) {
+                return [
+                    'title' => $evt->title,
+                    'start' => $evt->start_time->format('H:i'),
+                    'end' => $evt->end_time->format('H:i'),
+                ];
+            })
+        ]);
+    }
+
     public function adminPacientes(Request $request)
     {
         $search = $request->input('search');
@@ -856,7 +1090,10 @@ class DashboardController extends Controller
         $query = \App\Models\User::where('rol', 'paciente')
             ->select('id', 'nombre', 'email', 'created_at') // Limit columns for User
             ->with(['paciente:id,user_id,tipo_paciente,telefono,meet_link,precio_personalizado', 'turnos' => function($q) {
-                $q->where('es_recurrente', true)->orderBy('fecha_hora', 'desc')->limit(1); // Only need the most recent recurring one
+                $q->where('es_recurrente', true)
+                  ->where('estado', '!=', 'cancelado')
+                  ->orderBy('fecha_hora', 'desc')
+                  ->limit(1);
             }]);
 
         // Filter by Name
