@@ -349,7 +349,17 @@
                                                 $decoded = json_decode($availabilityText, true);
                                                 
                                                 if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
-                                                    $availabilityText = "De " . ($decoded['desde'] ?? '?') . " a " . ($decoded['hasta'] ?? '?');
+                                                    $parts = [];
+                                                    if (!empty($decoded['desde']) && !empty($decoded['hasta'])) {
+                                                        $parts[] = "De " . $decoded['desde'] . " a " . $decoded['hasta'];
+                                                    }
+                                                    if (!empty($decoded['texto'])) {
+                                                        $parts[] = "Texto: " . $decoded['texto'];
+                                                    }
+                                                    $availabilityText = implode(' | ', $parts);
+                                                    if (empty($availabilityText)) {
+                                                        $availabilityText = "No especificó detalle";
+                                                    }
                                                 } else {
                                                     // Legacy / fallback
                                                     $availabilityText = preg_replace('/\s*\(PRESENCIAL\)\s*/i', '', $availabilityText);
@@ -365,7 +375,10 @@
                             <td data-label="Acciones" style="padding: 0.8rem; text-align: center; width: 150px;">
                                     <div style="display: flex; gap: 5px; justify-content: center; align-items: center;">
                                         <button type="button" class="neobrutalist-btn bg-verde" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;" 
-                                                onclick="openRecoverAssignModal({{ $entry->id }}, '{{ addslashes($entry->name) }}', '{{ addslashes($entry->modality) }}')"
+                                                data-id="{{ $entry->id }}"
+                                                data-name="{{ trim($entry->name) }}"
+                                                data-modality="{{ trim($entry->modality) }}"
+                                                onclick="openRecoverAssignModal(this.dataset.id, this.dataset.name, this.dataset.modality)"
                                                 title="Agendar recuperación">
                                             <i class="fa-solid fa-calendar-plus"></i>
                                         </button>

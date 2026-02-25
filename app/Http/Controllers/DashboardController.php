@@ -300,10 +300,19 @@ class DashboardController extends Controller
                     $appt->payment_block_reason = ($queueIndex > 0) ? 'Se habilitará al finalizar la sesión anterior.' : $appt->getPaymentBlockReason();
                 }
             } else {
-                // Turnos virtuales/proyectados siempre bloqueados por secuencia (a menos que fueran los primeros, pero isPayable fallará para virtuales usualmente)
-                $appt->ui_status = 'locked_sequential';
-                $appt->is_payable = false;
-                $appt->payment_block_reason = 'Se habilitará al finalizar la sesión anterior.';
+                // Turnos virtuales/proyectados
+                if ($hasActiveCredit && !$creditAppliedToThisSession) {
+                    $appt->ui_status = 'credit_applied';
+                    $appt->is_payable = false;
+                    $creditAppliedToThisSession = true;
+                } elseif ($isFirstActive) {
+                    $appt->ui_status = 'payable';
+                    $appt->is_payable = true;
+                } else {
+                    $appt->ui_status = 'locked_sequential';
+                    $appt->is_payable = false;
+                    $appt->payment_block_reason = 'Se habilitará al finalizar la sesión anterior.';
+                }
             }
             return $appt;
         });

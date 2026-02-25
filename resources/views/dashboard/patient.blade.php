@@ -1684,21 +1684,29 @@ $fixedBlockedSlots = $fixedBlockedSlots ?? [];
             </div>
 
             <div style="margin-top: 1rem;">
-                <label style="font-size: 0.85rem; font-weight: 800; display: block; margin-bottom: 0.5rem; color: #444;">¿No encontrás ningún día? Dejá tu disponibilidad (Lun-Vie):</label>
-                <textarea id="recovery-custom-availability" class="neobrutalist-input w-full" rows="2" style="padding: 0.5rem; border-radius: 8px; font-weight: 600;" placeholder="Ej: Puedo los martes por la mañana o jueves a las 18hs..." oninput="checkRecoveryStepReady()"></textarea>
+                <label style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; font-weight: 800; cursor: pointer; margin-bottom: 0.5rem; color: #444;">
+                    <input type="checkbox" id="recovery-no-day-checkbox" onchange="toggleCustomAvailability()" style="width: 18px; height: 18px; accent-color: #000;">
+                    ¿No encontrás ningún día conveniente?
+                </label>
+                <div id="recovery-custom-text-container" style="display: none; margin-top: 0.5rem;">
+                    <label style="font-size: 0.85rem; font-weight: 700; display: block; margin-bottom: 0.5rem; color: #444;">Dejá tu disponibilidad (Lun-Vie):</label>
+                    <textarea id="recovery-custom-availability" class="neobrutalist-input w-full" rows="2" style="padding: 0.5rem; border-radius: 8px; font-weight: 600;" placeholder="Ej: Puedo los martes por la mañana o jueves a las 18hs..." oninput="checkRecoveryStepReady()"></textarea>
+                </div>
             </div>
         </div>
 
         <div style="margin-bottom: 1.5rem; display: none;" id="recovery-time-section">
-            <label class="block font-bold mb-2">2. Rango horario preferido:</label>
-            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
-                <div style="flex: 1;">
-                    <label style="font-size: 0.75rem; color: #666; font-weight: 800; display: block; margin-bottom: 5px;">DESDE:</label>
-                    <input type="time" id="recovery-time-from" class="neobrutalist-input w-full" style="padding: 0.5rem; border-radius: 8px; font-weight: 700;" onclick="this.showPicker ? this.showPicker() : this.click();">
-                </div>
-                <div style="flex: 1;">
-                    <label style="font-size: 0.75rem; color: #666; font-weight: 800; display: block; margin-bottom: 5px;">HASTA:</label>
-                    <input type="time" id="recovery-time-to" class="neobrutalist-input w-full" style="padding: 0.5rem; border-radius: 8px; font-weight: 700;" onclick="this.showPicker ? this.showPicker() : this.click();">
+            <div id="recovery-time-range-wrapper">
+                <label class="block font-bold mb-2">2. Rango horario preferido:</label>
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                    <div style="flex: 1;">
+                        <label style="font-size: 0.75rem; color: #666; font-weight: 800; display: block; margin-bottom: 5px;">DESDE:</label>
+                        <input type="time" id="recovery-time-from" class="neobrutalist-input w-full" style="padding: 0.5rem; border-radius: 8px; font-weight: 700;" onclick="this.showPicker ? this.showPicker() : this.click();">
+                    </div>
+                    <div style="flex: 1;">
+                        <label style="font-size: 0.75rem; color: #666; font-weight: 800; display: block; margin-bottom: 5px;">HASTA:</label>
+                        <input type="time" id="recovery-time-to" class="neobrutalist-input w-full" style="padding: 0.5rem; border-radius: 8px; font-weight: 700;" onclick="this.showPicker ? this.showPicker() : this.click();">
+                    </div>
                 </div>
             </div>
 
@@ -1746,12 +1754,32 @@ $fixedBlockedSlots = $fixedBlockedSlots ?? [];
         generateRecoveryDays(originalDate);
     }
 
-    function closeRecoveryModal() {
-        document.getElementById('recovery-overlay').style.display = 'none';
+    window.closeRecoveryModal = function() {
+        const modal = document.getElementById('recovery-overlay');
+        if (modal) modal.style.display = 'none';
+        
         recoverySelectedDay = null;
-        recoverySelectedTime = null;
+        document.getElementById('recovery-time-from').value = '';
+        document.getElementById('recovery-time-to').value = '';
         document.getElementById('recovery-custom-availability').value = '';
         document.getElementById('selected_recovery_modality').value = '';
+        
+        const checkbox = document.getElementById('recovery-no-day-checkbox');
+        if (checkbox) checkbox.checked = false;
+        
+        const textContainer = document.getElementById('recovery-custom-text-container');
+        if (textContainer) textContainer.style.display = 'none';
+        
+        const timeWrapper = document.getElementById('recovery-time-range-wrapper');
+        if (timeWrapper) timeWrapper.style.display = 'block';
+
+        document.querySelectorAll('.day-btn').forEach(b => {
+             b.classList.remove('selected'); // Remove selected class
+             b.style.background = 'white';
+             b.style.color = 'black';
+             b.style.boxShadow = 'none';
+             b.style.transform = 'none';
+        });
         document.querySelectorAll('.recovery-mod-btn').forEach(b => {
              b.style.background = 'white';
              b.style.boxShadow = 'none';
@@ -1759,6 +1787,40 @@ $fixedBlockedSlots = $fixedBlockedSlots ?? [];
         });
         document.getElementById('recovery-time-section').style.display = 'none';
         document.getElementById('recovery-confirm-btn').classList.add('disabled-btn');
+    }
+
+    window.toggleCustomAvailability = function() {
+        const checkbox = document.getElementById('recovery-no-day-checkbox');
+        const container = document.getElementById('recovery-custom-text-container');
+        const timeSection = document.getElementById('recovery-time-section');
+        const timeWrapper = document.getElementById('recovery-time-range-wrapper');
+
+        if (checkbox.checked) {
+            container.style.display = 'block';
+            timeSection.style.display = 'block';
+            if (timeWrapper) timeWrapper.style.display = 'none';
+
+            // Clear selected day
+            recoverySelectedDay = null;
+            document.querySelectorAll('.day-btn').forEach(b => {
+                b.classList.remove('selected'); // Remove selected class
+                b.style.background = 'white';
+                b.style.color = 'black';
+                b.style.boxShadow = 'none';
+                b.style.transform = 'none';
+            });
+            document.getElementById('recovery-time-from').value = '';
+            document.getElementById('recovery-time-to').value = '';
+        } else {
+            container.style.display = 'none';
+            document.getElementById('recovery-custom-availability').value = '';
+            if (timeWrapper) timeWrapper.style.display = 'block';
+            
+            if (!recoverySelectedDay) {
+                timeSection.style.display = 'none';
+            }
+        }
+        checkRecoveryStepReady();
     }
 
     window.selectRecoveryModality = function(mod) {
@@ -1783,7 +1845,6 @@ $fixedBlockedSlots = $fixedBlockedSlots ?? [];
         const customAvail = document.getElementById('recovery-custom-availability').value.trim();
         const mod = document.getElementById('selected_recovery_modality').value;
         const btn = document.getElementById('recovery-confirm-btn');
-        
         const hasSpecificTime = recoverySelectedDay && from && to;
         const hasCustomAvail = customAvail.length > 0;
 
@@ -1871,11 +1932,16 @@ $fixedBlockedSlots = $fixedBlockedSlots ?? [];
                 availabilityData = JSON.stringify({
                     modalidad: mod,
                     desde: from,
-                    hasta: to
+                    hasta: to,
+                    texto: customAvail || null
                 });
                 fechaEspec = recoverySelectedDay;
             } else {
-                availabilityData = customAvail;
+                availabilityData = JSON.stringify({
+                    modalidad: mod,
+                    texto: customAvail
+                });
+                fechaEspec = null;
             }
 
             const response = await fetch('{{ route("waitlist.store") }}', {
