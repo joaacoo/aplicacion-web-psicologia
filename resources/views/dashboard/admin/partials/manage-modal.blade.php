@@ -55,8 +55,8 @@
                     <form id="manage-type-form" method="POST" action="">
                         @csrf
                         <div style="display: flex; gap: 0.8rem;">
-                            <button type="submit" name="tipo_paciente" value="nuevo" id="btnTypeNuevo" class="neobrutalist-btn flex-1" style="font-size: 0.85rem; padding: 8px; border: 3px solid #000; background: #fef08a; box-shadow: 4px 4px 0px #000; border-radius: 8px; font-weight: 800;">NUEVO</button>
-                            <button type="submit" name="tipo_paciente" value="frecuente" id="btnTypeFrecuente" class="neobrutalist-btn flex-1" style="font-size: 0.85rem; padding: 8px; border: 3px solid #000; background: white; box-shadow: 4px 4px 0px #000; border-radius: 8px; font-weight: 800;">FRECUENTE</button>
+                            <button type="submit" name="tipo_paciente" value="nuevo" id="btnTypeNuevo" class="neobrutalist-btn flex-1" style="font-size: 0.85rem; padding: 8px; border: 3px solid #000; background: #fef08a; box-shadow: 4px 4px 0px #000; border-radius: 8px; font-weight: 800;" onclick="if(typeof window.showProcessing === 'function') window.showProcessing('Cambiando tipo...');">NUEVO</button>
+                            <button type="submit" name="tipo_paciente" value="frecuente" id="btnTypeFrecuente" class="neobrutalist-btn flex-1" style="font-size: 0.85rem; padding: 8px; border: 3px solid #000; background: white; box-shadow: 4px 4px 0px #000; border-radius: 8px; font-weight: 800;" onclick="if(typeof window.showProcessing === 'function') window.showProcessing('Cambiando tipo...');">FRECUENTE</button>
                         </div>
                     </form>
                 </div>
@@ -84,7 +84,7 @@
                             </div>
                         </div>
 
-                        <button type="submit" id="btnUpdateHonorario" class="neobrutalist-btn" style="width: 100%; background: #86efac; color: black; border: 3px solid #000; box-shadow: 4px 4px 0px #000; border-radius: 10px; font-weight: 800; padding: 0.6rem; font-size: 0.85rem; display: none;">
+                        <button type="submit" id="btnUpdateHonorario" class="neobrutalist-btn" style="width: 100%; background: #86efac; color: black; border: 3px solid #000; box-shadow: 4px 4px 0px #000; border-radius: 10px; font-weight: 800; padding: 0.6rem; font-size: 0.85rem; display: none;" onclick="if(this.form.checkValidity() && typeof window.showProcessing === 'function') window.showProcessing('Actualizando honorarios...');">
                             Actualizar
                         </button>
                     </form>

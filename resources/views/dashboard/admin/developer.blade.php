@@ -78,27 +78,11 @@
             <button onclick="runQuickAction('{{ route('admin.developer.maintenance-mode') }}')" class="dev-action-btn" style="padding: 0.5rem 1rem; border-radius: 8px; border: 1px solid #e5e7eb; background: white; cursor: pointer; font-size: 0.85rem; font-weight: 600;">
                 <i class="fa-solid fa-hammer" style="margin-right: 5px;"></i> Modo Mantenimiento
             </button>
-            <button onclick="testAI()" class="dev-action-btn" style="padding: 0.5rem 1rem; border-radius: 8px; border: 1px solid #e5e7eb; background: white; cursor: pointer; font-size: 0.85rem; font-weight: 600; color: #3b82f6;">
-                <i class="fa-solid fa-robot" style="margin-right: 5px;"></i> Testear IA
-            </button>
             <!-- Report Button (Modified) -->
             <button type="button" onclick="openReportModal(event)" style="background: transparent; border: none; color: #000; font-size: 0.85rem; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; font-family: 'Manrope', sans-serif; font-weight: 700; padding: 0.5rem 1rem; border: 1px solid #e5e7eb; border-radius: 8px;">
                 <i class="fa-solid fa-circle-exclamation" style="font-size: 0.9rem;"></i> Reportar un problema
             </button>
         </div>
-        <script>
-            function testAI() {
-                if(!confirm('¿Probar conexión con Gemini 1.5 Flash?')) return;
-                fetch('{{ route("admin.ai.chat") }}', { 
-                    method: 'POST', 
-                    headers: {'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}'},
-                    body: JSON.stringify({ message: 'Hola, esto es un test de conexión.' })
-                })
-                .then(r => r.json())
-                .then(d => alert('Respuesta IA: ' + d.response))
-                .catch(e => alert('Error: ' + e));
-            }
-        </script>
         <p style="font-size: 0.8rem; color: #6b7280; margin-bottom: 1.5rem;">
             <i class="fa-solid fa-info-circle" style="margin-right: 4px;"></i> 
             <strong>Limpiar Caché:</strong> Elimina archivos temporales para reflejar cambios recientes. 

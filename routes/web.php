@@ -156,8 +156,6 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/admin/calendar/sync-force', [\App\Http\Controllers\CalendarController::class, 'syncGoogleForce'])->name('admin.calendar.sync-force');
         Route::post('/admin/calendar/toggle-weekends', [\App\Http\Controllers\CalendarController::class, 'toggleWeekends'])->name('admin.calendar.toggle-weekends');
         
-        // Gemini AI
-        Route::post('/admin/ai/chat', [\App\Http\Controllers\AsistenteController::class, 'chat'])->name('admin.ai.chat');
         
         // Availabilities (Admin)
         Route::post('/admin/availabilities', [\App\Http\Controllers\CalendarController::class, 'storeAvailability'])->name('admin.availabilities.store');

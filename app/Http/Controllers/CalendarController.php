@@ -372,6 +372,7 @@ class CalendarController extends Controller
             'duracion_sesion' => 'sometimes|integer|min:15|max:180',
             'intervalo_sesion' => 'sometimes|integer|min:0|max:60',
             'precio_base_sesion' => 'sometimes|numeric|min:0',
+            'consultorio_link' => 'nullable|url',
         ]);
 
         $user = auth()->user();
@@ -384,6 +385,11 @@ class CalendarController extends Controller
         // Update Base Price if present
         if ($request->has('precio_base_sesion')) {
             \App\Models\Setting::set('precio_base_sesion', $request->precio_base_sesion);
+        }
+
+        // Update Office Link if present
+        if ($request->has('consultorio_link')) {
+            \App\Models\Setting::set('consultorio_link', $request->consultorio_link);
         }
 
         return redirect()->to(route('admin.configuracion') . '#general')->with('success', 'Configuración de sesiones actualizada.');

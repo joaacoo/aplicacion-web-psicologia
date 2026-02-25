@@ -2334,7 +2334,7 @@
         })();
     </script>
     <!-- Global Loading Overlay -->
-    <div id="global-loader-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.8); backdrop-filter: blur(4px); z-index: 100000; align-items: center; justify-content: center; flex-direction: column; font-family: 'Syne', sans-serif;">
+    <div id="global-loader-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.8); backdrop-filter: blur(4px); z-index: 9999999; align-items: center; justify-content: center; flex-direction: column; font-family: 'Syne', sans-serif;">
         <div class="neobrutalist-card" style="background: white; padding: 2rem; border: 4px solid #000; box-shadow: 10px 10px 0px #000; display: flex; flex-direction: column; align-items: center; gap: 1rem; border-radius: 12px;">
             <i class="fa-solid fa-spinner fa-spin" style="font-size: 3.5rem; color: #000;"></i>
             <h2 id="global-loader-text" style="margin: 0; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; font-size: 1.4rem; text-align: center;">Procesando...</h2>

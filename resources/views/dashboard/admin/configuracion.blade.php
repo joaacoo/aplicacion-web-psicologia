@@ -88,6 +88,12 @@
                         <label style="font-size: 0.8rem; font-weight: 800; display: block; margin-bottom: 0.5rem;">PRECIO BASE ($)</label>
                         <input type="number" name="precio_base_sesion" value="{{ \App\Models\Setting::get('precio_base_sesion', 0) }}" class="neobrutalist-input w-full" style="padding: 10px; font-size: 1rem;" required="">
                     </div>
+
+                    <div style="margin-bottom: 1.5rem;">
+                        <label style="font-size: 0.8rem; font-weight: 800; display: block; margin-bottom: 0.5rem;">LINK DEL CONSULTORIO (GOOGLE MAPS)</label>
+                        <input type="url" name="consultorio_link" value="{{ \App\Models\Setting::get('consultorio_link', '') }}" class="neobrutalist-input w-full" style="padding: 10px; font-size: 1rem;" placeholder="https://goo.gl/maps/...">
+                        <p style="font-size: 0.75rem; color: #666; margin-top: 0.3rem;">Este link se mostrará a los pacientes con turnos presenciales.</p>
+                    </div>
                     {{-- Preserve session settings when updating price --}}
                     <input type="hidden" name="duracion_sesion" value="{{ auth()->user()->profesional->duracion_sesion ?? 45 }}">
                     <input type="hidden" name="intervalo_sesion" value="{{ auth()->user()->profesional->intervalo_sesion ?? 15 }}">

@@ -160,6 +160,9 @@
                             if ($appt->estado === 'cancelado' && $appt->fecha_hora->isFuture() && (!$isCriticalZone || $isPaid) && !$hasPendingRecovery) {
                                 $showRecoverBtn = true;
                             }
+
+                            // Link del consultorio (Global)
+                            $consultorioLink = \App\Models\Setting::get('consultorio_link', '');
                         @endphp
                         <tr style="border-bottom: 1px solid #2D2D2D;">
                             <td style="padding: 0.5rem; white-space: nowrap; text-align: center;">{{ $appt->fecha_hora->format('d/m') }}</td>
@@ -225,15 +228,24 @@
                                 @elseif($appt->estado != 'cancelado' || $showRecoverBtn || $hasPendingRecovery)
                                     <div class="actions-wrapper" style="display: flex; gap: 5px; flex-wrap: wrap; justify-content: center;">
                                         
-                                        {{-- JOIN BUTTON --}}
-                                        @if(($isPaid || $paymentPending || $isCreditApplied) && $isVirtual && !$hasPendingRecovery && $appt->estado != 'cancelado')
-                                            <a href="{{ $appt->meet_link ?: '#' }}" 
-                                               target="_blank" 
-                                               class="neobrutalist-btn join-btn {{ $canJoin ? 'bg-celeste' : 'disabled-btn' }}" 
-                                               style="flex: 1 1 0%; padding: 0.3rem 0.6rem; font-size: 0.75rem; border: 2px solid #000; text-decoration: none; color: #000; display: inline-flex; align-items: center; gap: 4px; justify-content: center; min-width: 90px; height: 32px; white-space: nowrap;"
-                                               data-start="{{ $appt->fecha_hora->toISOString() }}">
-                                                <i class="fa-solid fa-video"></i> Unirse
-                                            </a>
+                                        {{-- JOIN/LOCATION BUTTONS --}}
+                                        @if($appt->estado != 'cancelado' && !$hasPendingRecovery && ($isPaid || $paymentPending || $isCreditApplied))
+                                            @if($isVirtual)
+                                                <a href="{{ $appt->meet_link ?: '#' }}" 
+                                                   target="_blank" 
+                                                   class="neobrutalist-btn join-btn {{ $canJoin ? 'bg-celeste' : 'disabled-btn' }}" 
+                                                   style="flex: 1 1 0%; padding: 0.3rem 0.6rem; font-size: 0.75rem; border: 2px solid #000; text-decoration: none; color: #000; display: inline-flex; align-items: center; gap: 4px; justify-content: center; min-width: 90px; height: 32px; white-space: nowrap;"
+                                                   data-start="{{ $appt->fecha_hora->toISOString() }}">
+                                                    <i class="fa-solid fa-video"></i> Unirse
+                                                </a>
+                                            @else
+                                                <a href="{{ $consultorioLink ?: 'https://www.google.com/maps/place/Adrogu%C3%A9/@-34.7978533,-58.396786,17z/data=!4m10!1m2!2m1!1sestacion+de+adrogue!3m6!1s0x95bcd33e279f87af:0x5b7018552a97a57f!8m2!3d-34.7977604!4d-58.3941247!15sChNlc3RhY2lvbiBkZSBhZHJvZ3VlkgENdHJhaW5fc3RhdGlvbuABAA!16s%2Fg%2F121lm_m7?entry=ttu&g_ep=EgoyMDI2MDIyMy4wIKXMDSoASAFQAw%3D%3D' }}" 
+                                                   target="_blank" 
+                                                   class="neobrutalist-btn bg-celeste" 
+                                                   style="flex: 1 1 0%; padding: 0.3rem 0.6rem; font-size: 0.75rem; border: 2px solid #000; text-decoration: none; color: #000; display: inline-flex; align-items: center; gap: 4px; justify-content: center; min-width: 90px; height: 32px; white-space: nowrap;">
+                                                    <i class="fa-solid fa-location-dot"></i> Ver dirección
+                                                </a>
+                                            @endif
                                         @endif
 
                                         {{-- PAY BUTTON --}}
@@ -334,6 +346,9 @@
                     if ($appt->estado === 'cancelado' && $appt->fecha_hora->isFuture() && (!$isCriticalZone || $isPaid) && !$hasPendingRecovery) {
                         $showRecoverBtn = true;
                     }
+
+                    // Link del consultorio (Global)
+                    $consultorioLink = \App\Models\Setting::get('consultorio_link', '');
                 @endphp
                 <div class="appointment-card">
                     <div class="card-row">
@@ -403,10 +418,16 @@
                     </div>
                     <div class="actions-wrapper">
                         @if(!$isFinished && ($appt->estado != 'cancelado' || $showRecoverBtn || $hasPendingRecovery))
-                            @if(($isPaid || $paymentPending || $isCreditApplied) && $isVirtual && !$hasPendingRecovery && $appt->estado != 'cancelado')
-                                <a href="{{ $appt->meet_link ?: '#' }}" target="_blank" class="neobrutalist-btn join-btn {{ $canJoin ? 'bg-celeste' : 'disabled-btn' }}" style="flex: 1; min-height: 38px; height: auto; padding: 0.4rem; font-size: 0.9rem; display: flex; align-items: center; justify-content: center; text-decoration: none; color: #000;" data-start="{{ $appt->fecha_hora->toISOString() }}">
-                                    <i class="fa-solid fa-video"></i> Unirse
-                                </a>
+                            @if($appt->estado != 'cancelado' && !$hasPendingRecovery && ($isPaid || $paymentPending || $isCreditApplied))
+                                @if($isVirtual)
+                                    <a href="{{ $appt->meet_link ?: '#' }}" target="_blank" class="neobrutalist-btn join-btn {{ $canJoin ? 'bg-celeste' : 'disabled-btn' }}" style="flex: 1; min-height: 38px; height: auto; padding: 0.4rem; font-size: 0.9rem; display: flex; align-items: center; justify-content: center; text-decoration: none; color: #000;" data-start="{{ $appt->fecha_hora->toISOString() }}">
+                                        <i class="fa-solid fa-video"></i> Unirse
+                                    </a>
+                                @else
+                                    <a href="{{ $consultorioLink ?: 'https://www.google.com/maps/place/Adrogu%C3%A9/@-34.7978533,-58.396786,17z/data=!4m10!1m2!2m1!1sestacion+de+adrogue!3m6!1s0x95bcd33e279f87af:0x5b7018552a97a57f!8m2!3d-34.7977604!4d-58.3941247!15sChNlc3RhY2lvbiBkZSBhZHJvZ3VlkgENdHJhaW5fc3RhdGlvbuABAA!16s%2Fg%2F121lm_m7?entry=ttu&g_ep=EgoyMDI2MDIyMy4wIKXMDSoASAFQAw%3D%3D' }}" target="_blank" class="neobrutalist-btn bg-celeste" style="flex: 1; min-height: 38px; height: auto; padding: 0.4rem; font-size: 0.9rem; display: flex; align-items: center; justify-content: center; text-decoration: none; color: #000;">
+                                        <i class="fa-solid fa-location-dot"></i> Ver dirección
+                                    </a>
+                                @endif
                             @endif
                             @if($showPayBtn)
                                 <button onclick="openPaymentModal({{ $appt->id ?? 0 }}, {{ auth()->user()->paciente->precio_sesion ?? $appt->monto_final }})" class="neobrutalist-btn bg-verde {{ $canPayThisOne ? '' : 'disabled-btn' }}" {{ $canPayThisOne ? '' : 'disabled' }} style="flex: 1; min-height: 38px; height: auto; padding: 0.4rem; font-size: 0.9rem;" title="{{ $appt->payment_block_reason }}">

@@ -513,6 +513,8 @@ class AppointmentController extends Controller
             'hora' => 'required',
             'modalidad' => 'required|in:virtual,presencial',
         ]);
+        
+        $fecha_hora = \Carbon\Carbon::parse($request->fecha . ' ' . $request->hora);
 
         $waitlist = \App\Models\Waitlist::with('user')->findOrFail($request->waitlist_id);
         $pacienteId = $waitlist->user->paciente->id ?? null;
