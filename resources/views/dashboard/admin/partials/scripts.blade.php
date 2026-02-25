@@ -340,12 +340,19 @@
 
             idInput.value = id;
             nameInput.value = name;
-            modal.style.display = 'flex';
+            modal.classList.add('active');
             
             if (modality) {
                 const modLow = modality.toLowerCase();
-                if (modLow.includes('virtual')) select.value = 'virtual';
-                else if (modLow.includes('presencial')) select.value = 'presencial';
+                const hiddenInput = document.getElementById('recover_modalidad_hidden');
+                const select = document.getElementById('recover_modalidad');
+                if (modLow.includes('virtual')) {
+                    select.value = 'virtual';
+                    if (hiddenInput) hiddenInput.value = 'virtual';
+                } else if (modLow.includes('presencial')) {
+                    select.value = 'presencial';
+                    if (hiddenInput) hiddenInput.value = 'presencial';
+                }
             }
             document.body.style.overflow = 'hidden';
         } catch (e) {
@@ -355,7 +362,7 @@
 
     window.closeRecoverAssignModal = function() {
         const modal = document.getElementById('recoverAssignModal');
-        if (modal) modal.style.display = 'none';
+        if (modal) modal.classList.remove('active');
         document.body.style.overflow = '';
     }
 </script>

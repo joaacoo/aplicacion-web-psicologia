@@ -36,6 +36,11 @@
                 display: none;
             }
         }
+        @media (max-width: 480px) {
+            .disabled-btn {
+                font-size: 0.5rem !important;
+            }
+        }
         .appointment-card {
             border: 2px solid #000;
             border-radius: 8px;
@@ -263,8 +268,8 @@
 
                                         @if($hasPendingRecovery)
                                             <button class="neobrutalist-btn disabled-btn" 
-                                                    style="flex: 1 1 100%; padding: 0.3rem 0.6rem; font-size: 0.75rem; height: 32px; display: inline-flex; align-items: center; justify-content: center; gap: 5px; background: #fffadc; border: 2px solid #000; color: #92400e; font-weight: 800; cursor: default;">
-                                                <i class="fa-solid fa-hourglass-half"></i> Recuperación enviada
+                                                    style="flex: 1 1 100%; padding: 0.3rem 0.6rem; font-size: 0.6rem; min-height: 32px; height: auto; white-space: normal; text-align: center; line-height: 1.2; display: inline-flex; align-items: center; justify-content: center; gap: 5px; background: #fffadc; border: 2px solid #000; color: #92400e; font-weight: 800; cursor: default;">
+                                                <i class="fa-solid fa-hourglass-half" style="flex-shrink: 0;"></i> Recuperación enviada
                                             </button>
                                         @endif
                                     </div>
@@ -419,8 +424,8 @@
 
                             @if($hasPendingRecovery)
                                 <button class="neobrutalist-btn disabled-btn" 
-                                        style="width: 100%; padding: 0.3rem 0.6rem; font-size: 0.75rem; height: 32px; display: flex; align-items: center; justify-content: center; gap: 5px; background: #fffadc; border: 2px solid #000; color: #92400e; font-weight: 800; cursor: default; margin-top: 4px;">
-                                    <i class="fa-solid fa-hourglass-half"></i> Recuperación enviada
+                                        style="width: 100%; padding: 0.4rem 0.6rem; font-size: 0.6rem; min-height: 32px; height: auto; white-space: normal; text-align: center; line-height: 1.2; display: flex; align-items: center; justify-content: center; gap: 5px; background: #fffadc; border: 2px solid #000; color: #92400e; font-weight: 800; cursor: default; margin-top: 4px;">
+                                    <i class="fa-solid fa-hourglass-half" style="flex-shrink: 0;"></i> Recuperación enviada
                                 </button>
                             @endif
 @else

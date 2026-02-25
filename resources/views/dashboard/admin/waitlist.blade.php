@@ -375,10 +375,7 @@
                             <td data-label="Acciones" style="padding: 0.8rem; text-align: center; width: 150px;">
                                     <div style="display: flex; gap: 5px; justify-content: center; align-items: center;">
                                         <button type="button" class="neobrutalist-btn bg-verde" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;" 
-                                                data-id="{{ $entry->id }}"
-                                                data-name="{{ trim($entry->name) }}"
-                                                data-modality="{{ trim($entry->modality) }}"
-                                                onclick="openRecoverAssignModal(this.dataset.id, this.dataset.name, this.dataset.modality)"
+                                                onclick="openRecoverAssignModal('{{ $entry->id }}', '{{ trim($entry->name) }}', '{{ trim($entry->modality) }}')"
                                                 title="Agendar recuperación">
                                             <i class="fa-solid fa-calendar-plus"></i>
                                         </button>
