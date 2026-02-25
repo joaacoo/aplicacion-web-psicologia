@@ -108,6 +108,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/admin/appointments', [AppointmentController::class, 'index'])->name('admin.appointments');
         Route::post('/admin/appointments/{id}/confirm', [AppointmentController::class, 'confirm'])->name('admin.appointments.confirm');
         Route::post('/admin/appointments/{id}/cancel', [AppointmentController::class, 'cancel'])->name('admin.appointments.cancel');
+        Route::post('/admin/appointments/cancel-projected', [AppointmentController::class, 'cancelProjected'])->name('admin.appointments.cancelProjected');
         Route::post('/admin/appointments/store-recovery', [AppointmentController::class, 'storeRecovery'])->name('admin.appointments.storeRecovery');
         Route::post('/admin/payments/{id}/verify', [PaymentController::class, 'verify'])->name('admin.payments.verify');
         Route::post('/admin/payments/{id}/reject', [PaymentController::class, 'reject'])->name('admin.payments.reject');

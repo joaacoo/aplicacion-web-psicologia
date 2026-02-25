@@ -1448,7 +1448,7 @@
 
                     <div style="margin-bottom: 1.5rem; text-align: left;">
                         <label style="font-size: 0.9rem; font-weight: 700; display: block; margin-bottom: 0.5rem;">Contraseña para confirmar:</label>
-                        <input type="password" name="password" class="neobrutalist-input" required placeholder="Tu contraseña actual" style="border: var(--border-thick); width: 100%; padding: 12px;">
+                        <input type="password" name="password" autocomplete="current-password" class="neobrutalist-input" required placeholder="Tu contraseña actual" style="border: var(--border-thick); width: 100%; padding: 12px;">
                         @error('password')
                             <span style="color: red; font-size: 0.85rem; font-weight: 700;">{{ $message }}</span>
                         @enderror

@@ -279,10 +279,17 @@ class DashboardController extends Controller
             // Is it the FIRST ACTIVE session in the queue?
             $isFirstActive = ($queueIndex === 0); 
             
+            // Check if this appointment already has a payment in progress or verified
+            $hasPaymentInProcess = false;
+            if ($appt->payment && in_array($appt->payment->estado, ['verificado', 'pendiente'])) {
+                $hasPaymentInProcess = true;
+            }
+            
             // Si es un turno real (no virtual)
             if (!$appt->is_virtual) {
-                // Caso 1: Tiene crédito activo y es el primero que puede recibirlo
-                if ($hasActiveCredit && !$creditAppliedToThisSession) {
+                // Caso 1: Tiene crédito activo, no se ha aplicado a ninguna sesión aún,
+                // y esta sesión NO tiene un pago ya realizado o en revisión.
+                if ($hasActiveCredit && !$creditAppliedToThisSession && !$hasPaymentInProcess) {
                     $appt->ui_status = 'credit_applied';
                     $appt->is_payable = false;
                     $creditAppliedToThisSession = true;
@@ -301,11 +308,11 @@ class DashboardController extends Controller
                 }
             } else {
                 // Turnos virtuales/proyectados
-                if ($hasActiveCredit && !$creditAppliedToThisSession) {
+                if ($hasActiveCredit && !$creditAppliedToThisSession && !$hasPaymentInProcess) {
                     $appt->ui_status = 'credit_applied';
                     $appt->is_payable = false;
                     $creditAppliedToThisSession = true;
-                } elseif ($isFirstActive) {
+                } elseif ($isFirstActive && !$hasPaymentInProcess) {
                     $appt->ui_status = 'payable';
                     $appt->is_payable = true;
                 } else {

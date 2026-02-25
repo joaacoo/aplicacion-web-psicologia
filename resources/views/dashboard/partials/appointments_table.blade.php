@@ -27,6 +27,11 @@
                 justify-content: center;
                 text-align: center;
             }
+            .join-btn {
+                font-size: 0.9rem !important;
+                font-weight: 800 !important;
+                height: 38px !important;
+            }
         }
         @media (min-width: 769px) {
             .appointments-table {
@@ -216,7 +221,7 @@
                                     <div class="actions-wrapper" style="display: flex; gap: 5px; flex-wrap: wrap; justify-content: center;">
                                         
                                         {{-- JOIN BUTTON --}}
-                                        @if(($isPaid || $paymentPending || $isCreditApplied) && $isVirtual && !$hasPendingRecovery)
+                                        @if(($isPaid || $paymentPending || $isCreditApplied) && $isVirtual && !$hasPendingRecovery && $appt->estado != 'cancelado')
                                             <a href="{{ $appt->meet_link ?: '#' }}" 
                                                target="_blank" 
                                                class="neobrutalist-btn join-btn {{ $canJoin ? 'bg-celeste' : 'disabled-btn' }}" 
@@ -388,7 +393,7 @@
                     </div>
                     <div class="actions-wrapper">
                         @if(!$isFinished && ($appt->estado != 'cancelado' || $showRecoverBtn || $hasPendingRecovery))
-                            @if(($isPaid || $paymentPending || $isCreditApplied) && $isVirtual && !$hasPendingRecovery)
+                            @if(($isPaid || $paymentPending || $isCreditApplied) && $isVirtual && !$hasPendingRecovery && $appt->estado != 'cancelado')
                                 <a href="{{ $appt->meet_link ?: '#' }}" target="_blank" class="neobrutalist-btn join-btn {{ $canJoin ? 'bg-celeste' : 'disabled-btn' }}" style="flex: 1; height: 32px; font-size: 0.75rem; display: flex; align-items: center; justify-content: center; text-decoration: none; color: #000;" data-start="{{ $appt->fecha_hora->toISOString() }}">
                                     <i class="fa-solid fa-video"></i> Unirse
                                 </a>
