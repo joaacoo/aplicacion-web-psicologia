@@ -240,14 +240,18 @@ class AppointmentController extends Controller
             $msg = 'Turno cancelado por la profesional.';
             // Si ya estaba pago, generamos crédito (porque la psicólogos canceló, el paciente no pierde su dinero)
             if ($isPaid) {
-                \App\Models\PatientCredit::create([
-                    'paciente_id' => $appointment->user->paciente->id,
-                    'appointment_id' => $appointment->id,
-                    'amount' => $appointment->monto_final,
-                    'reason' => 'Crédito por cancelación de la profesional (' . $appointment->fecha_hora->format('d/m H:i') . ')',
-                    'status' => 'active'
-                ]);
-                $msg .= ' Se generó crédito para la próxima sesión del paciente.';
+                if (!$appointment->user->paciente->credits()->where('status', 'active')->exists()) {
+                    \App\Models\PatientCredit::create([
+                        'paciente_id' => $appointment->user->paciente->id,
+                        'appointment_id' => $appointment->id,
+                        'amount' => $appointment->monto_final,
+                        'reason' => 'Crédito por cancelación de la profesional (' . $appointment->fecha_hora->format('d/m H:i') . ')',
+                        'status' => 'active'
+                    ]);
+                    $msg .= ' Se generó crédito para la próxima sesión del paciente.';
+                } else {
+                    $msg .= ' El paciente ya cuenta con un crédito activo.';
+                }
             }
         } elseif ($isCriticalZone) {
             // ZONA CRÍTICA: ≤ 24hs
@@ -261,15 +265,19 @@ class AppointmentController extends Controller
             ]);
             
             if ($isPaid) {
-                // Generar crédito por cancelación dentro de las 24hs si ya pagó
-                \App\Models\PatientCredit::create([
-                    'paciente_id' => $appointment->user->paciente->id,
-                    'appointment_id' => $appointment->id,
-                    'amount' => $appointment->monto_final,
-                    'reason' => 'Crédito por cancelación > 24hs del turno ' . $appointment->fecha_hora->format('d/m H:i'),
-                    'status' => 'active'
-                ]);
-                $msg = 'Turno cancelado. Puedes recuperar este turno.';
+                // Generar crédito por cancelación dentro de las 24hs si ya pagó, y no tiene otro activo
+                if (!$appointment->user->paciente->credits()->where('status', 'active')->exists()) {
+                    \App\Models\PatientCredit::create([
+                        'paciente_id' => $appointment->user->paciente->id,
+                        'appointment_id' => $appointment->id,
+                        'amount' => $appointment->monto_final,
+                        'reason' => 'Crédito por cancelación < 24hs del turno ' . $appointment->fecha_hora->format('d/m H:i'),
+                        'status' => 'active'
+                    ]);
+                    $msg = 'Turno cancelado. Puedes recuperar este turno y se generó un crédito para tu próxima sesión.';
+                } else {
+                    $msg = 'Turno cancelado. Puedes recuperar este turno. Ya cuentas con un crédito activo en tu cuenta.';
+                }
             } else {
                 // Sesión perdida - debe pagar
                 $msg = 'Sesión perdida. No se puede recuperar este turno hasta realizar el pago.';
@@ -285,14 +293,18 @@ class AppointmentController extends Controller
             ]);
 
             if ($isPaid) {
-                \App\Models\PatientCredit::create([
-                    'paciente_id' => $appointment->user->paciente->id,
-                    'appointment_id' => $appointment->id,
-                    'amount' => $appointment->monto_final,
-                    'reason' => 'Crédito por cancelación > 24hs del turno ' . $appointment->fecha_hora->format('d/m H:i'),
-                    'status' => 'active'
-                ]);
-                $msg = 'Turno cancelado y crédito generado para tu próxima sesión.';
+                if (!$appointment->user->paciente->credits()->where('status', 'active')->exists()) {
+                    \App\Models\PatientCredit::create([
+                        'paciente_id' => $appointment->user->paciente->id,
+                        'appointment_id' => $appointment->id,
+                        'amount' => $appointment->monto_final,
+                        'reason' => 'Crédito por cancelación > 24hs del turno ' . $appointment->fecha_hora->format('d/m H:i'),
+                        'status' => 'active'
+                    ]);
+                    $msg = 'Turno cancelado y crédito generado para tu próxima sesión.';
+                } else {
+                    $msg = 'Turno cancelado. Ya contás con un crédito activo en tu cuenta.';
+                }
             } else {
                 $msg = 'Turno cancelado correctamente. Puedes recuperar este turno.';
             }

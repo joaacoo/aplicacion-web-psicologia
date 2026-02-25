@@ -247,6 +247,14 @@ class Appointment extends Model
                 'estado' => 'completado',
                 'estado_realizado' => 'realizado',
             ]);
+
+            // Consumir el crédito activo si el paciente tiene uno
+            if ($this->user && $this->user->paciente) {
+                $activeCredit = $this->user->paciente->credits()->where('status', 'active')->first();
+                if ($activeCredit) {
+                    $activeCredit->update(['status' => 'used']);
+                }
+            }
         }
     }
 }

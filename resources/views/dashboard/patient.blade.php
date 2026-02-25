@@ -1682,6 +1682,11 @@ $fixedBlockedSlots = $fixedBlockedSlots ?? [];
             <div id="recovery-days-grid" class="days-grid" style="grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)); gap: 8px;">
                 <!-- Filled by JS -->
             </div>
+
+            <div style="margin-top: 1rem;">
+                <label style="font-size: 0.85rem; font-weight: 800; display: block; margin-bottom: 0.5rem; color: #444;">¿No encontrás ningún día? Dejá tu disponibilidad (Lun-Vie):</label>
+                <textarea id="recovery-custom-availability" class="neobrutalist-input w-full" rows="2" style="padding: 0.5rem; border-radius: 8px; font-weight: 600;" placeholder="Ej: Puedo los martes por la mañana o jueves a las 18hs..." oninput="checkRecoveryStepReady()"></textarea>
+            </div>
         </div>
 
         <div style="margin-bottom: 1.5rem; display: none;" id="recovery-time-section">
@@ -1745,6 +1750,7 @@ $fixedBlockedSlots = $fixedBlockedSlots ?? [];
         document.getElementById('recovery-overlay').style.display = 'none';
         recoverySelectedDay = null;
         recoverySelectedTime = null;
+        document.getElementById('recovery-custom-availability').value = '';
         document.getElementById('selected_recovery_modality').value = '';
         document.querySelectorAll('.recovery-mod-btn').forEach(b => {
              b.style.background = 'white';
@@ -1774,10 +1780,14 @@ $fixedBlockedSlots = $fixedBlockedSlots ?? [];
     function checkRecoveryStepReady() {
         const from = document.getElementById('recovery-time-from').value;
         const to = document.getElementById('recovery-time-to').value;
+        const customAvail = document.getElementById('recovery-custom-availability').value.trim();
         const mod = document.getElementById('selected_recovery_modality').value;
         const btn = document.getElementById('recovery-confirm-btn');
         
-        if (recoverySelectedDay && from && to && mod) {
+        const hasSpecificTime = recoverySelectedDay && from && to;
+        const hasCustomAvail = customAvail.length > 0;
+
+        if ((hasSpecificTime || hasCustomAvail) && mod) {
             btn.classList.remove('disabled-btn');
         } else {
             btn.classList.add('disabled-btn');
@@ -1831,14 +1841,17 @@ $fixedBlockedSlots = $fixedBlockedSlots ?? [];
     // Removed generateRecoveryTimes as we now use a custom range textarea
 
     async function sendRecoveryRequest() {
-        if (!recoverySelectedDay) return;
-        
         const from = document.getElementById('recovery-time-from').value;
         const to = document.getElementById('recovery-time-to').value;
         const mod = document.getElementById('selected_recovery_modality').value;
+        const customAvail = document.getElementById('recovery-custom-availability').value.trim();
 
-        if (!from || !to) return;
-        if (from >= to) return;
+        const hasSpecificTime = recoverySelectedDay && from && to;
+        const hasCustomAvail = customAvail.length > 0;
+
+        if (!hasSpecificTime && !hasCustomAvail) return;
+        if (hasSpecificTime && from >= to) return;
+        
         if (!mod) {
             window.showAlert('Por favor seleccioná la modalidad.');
             return;
@@ -1851,11 +1864,20 @@ $fixedBlockedSlots = $fixedBlockedSlots ?? [];
         btn.innerText = 'ENVIANDO...';
 
         try {
-            const availabilityData = {
-                modalidad: mod,
-                desde: from,
-                hasta: to
-            };
+            let availabilityData = "";
+            let fechaEspec = null;
+            
+            if (hasSpecificTime) {
+                availabilityData = JSON.stringify({
+                    modalidad: mod,
+                    desde: from,
+                    hasta: to
+                });
+                fechaEspec = recoverySelectedDay;
+            } else {
+                availabilityData = customAvail;
+            }
+
             const response = await fetch('{{ route("waitlist.store") }}', {
                 method: 'POST',
                 headers: {
@@ -1864,8 +1886,8 @@ $fixedBlockedSlots = $fixedBlockedSlots ?? [];
                     'X-CSRF-TOKEN': '{{ csrf_token() }}'
                 },
                 body: JSON.stringify({ 
-                    fecha_especifica: recoverySelectedDay, 
-                    availability: JSON.stringify(availabilityData),
+                    fecha_especifica: fechaEspec, 
+                    availability: availabilityData,
                     modality: mod.charAt(0).toUpperCase() + mod.slice(1),
                     is_recovery: true,
                     original_appointment_id: window.currentRecoveryApptId

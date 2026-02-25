@@ -365,7 +365,7 @@
                             <td data-label="Acciones" style="padding: 0.8rem; text-align: center; width: 150px;">
                                     <div style="display: flex; gap: 5px; justify-content: center; align-items: center;">
                                         <button type="button" class="neobrutalist-btn bg-verde" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;" 
-                                                onclick="window.openRecoverAssignModal({{ $entry->id }}, '{{ addslashes($entry->name) }}', '{{ addslashes($entry->modality) }}')"
+                                                onclick="openRecoverAssignModal({{ $entry->id }}, '{{ addslashes($entry->name) }}', '{{ addslashes($entry->modality) }}')"
                                                 title="Agendar recuperación">
                                             <i class="fa-solid fa-calendar-plus"></i>
                                         </button>
@@ -389,51 +389,6 @@
         </div>
     </div>
 </div>
-
-<!-- Modal: Agendar Recuperación -->
-    <!-- Scripts moved to admin partials -->
-<div id="recoverAssignModal" class="modal-overlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 2000000; align-items: center; justify-content: center; padding: 1rem;">
-    <div class="neobrutalist-card" style="background: #fff; width: 100%; max-width: 500px; padding: 2rem; position: relative;">
-        <button onclick="closeRecoverAssignModal()" style="position: absolute; top: 1rem; right: 1rem; background: none; border: none; font-size: 1.5rem; cursor: pointer;">&times;</button>
-        <h3 style="margin-top: 0; border-bottom: 3px solid #000; padding-bottom: 0.5rem; margin-bottom: 1.5rem;">
-            <i class="fa-solid fa-calendar-plus"></i> Agendar Recuperación
-        </h3>
-        <form action="{{ route('admin.appointments.storeRecovery') }}" method="POST">
-            @csrf
-            <input type="hidden" id="recover_waitlist_id" name="waitlist_id">
-            
-            <div style="margin-bottom: 1rem;">
-                <label style="display: block; font-weight: 800; margin-bottom: 0.5rem;">Paciente</label>
-                <input type="text" id="recover_patient_name" readonly style="width: 100%; padding: 0.5rem; border: 2px solid #000; border-radius: 4px; background: #eee;">
-            </div>
-
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
-                <div>
-                    <label style="display: block; font-weight: 800; margin-bottom: 0.5rem;">Fecha</label>
-                    <input type="date" name="fecha" required style="width: 100%; padding: 0.5rem; border: 2px solid #000; border-radius: 4px;">
-                </div>
-                <div>
-                    <label style="display: block; font-weight: 800; margin-bottom: 0.5rem;">Hora</label>
-                    <input type="time" name="hora" required style="width: 100%; padding: 0.5rem; border: 2px solid #000; border-radius: 4px;">
-                </div>
-            </div>
-
-            <div style="margin-bottom: 1.5rem;">
-                <label style="display: block; font-weight: 800; margin-bottom: 0.5rem;">Modalidad</label>
-                <select name="modalidad" id="recover_modalidad" required style="width: 100%; padding: 0.5rem; border: 2px solid #000; border-radius: 4px;">
-                    <option value="virtual">Virtual</option>
-                    <option value="presencial">Presencial</option>
-                </select>
-            </div>
-
-            <div style="display: flex; gap: 1rem; justify-content: flex-end;">
-                <button type="button" onclick="closeRecoverAssignModal()" class="neobrutalist-btn bg-white" style="padding: 0.5rem 1rem;">Cancelar</button>
-                <button type="submit" class="neobrutalist-btn bg-verde" style="padding: 0.5rem 1rem;">Confirmar y Agendar</button>
-            </div>
-        </form>
-    </div>
-</div>
-
 @include('dashboard.admin.partials.modals')
 @include('dashboard.admin.partials.scripts')
 @endsection
