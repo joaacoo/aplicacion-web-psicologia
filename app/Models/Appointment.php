@@ -43,6 +43,7 @@ class Appointment extends Model
         'waitlist_id',
         'ui_status',
         'cancelado_con_mas_de_24hs',
+        'recovery_requested_at',
     ];
 
     /**
@@ -61,6 +62,7 @@ class Appointment extends Model
         'cancelado_con_mas_de_24hs' => 'boolean',
         'vence_en' => 'datetime',
         'notificado_una_hora_en' => 'datetime',
+        'recovery_requested_at' => 'datetime',
     ];
 
     public function user()

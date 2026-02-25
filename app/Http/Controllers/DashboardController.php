@@ -804,7 +804,7 @@ class DashboardController extends Controller
         $paciente = Auth::user()->paciente;
         if ($paciente) {
             $creditBalance = \App\Models\PatientCredit::where('paciente_id', $paciente->id)
-                ->where('is_used', false)
+                ->where('status', 'active')
                 ->sum('amount');
         }
 

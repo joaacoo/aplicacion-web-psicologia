@@ -420,6 +420,7 @@ class AppointmentController extends Controller
             'es_recurrente' => true,
             'frecuencia' => $baseReservation->frecuencia,
             'debe_pagarse' => false, // Siempre false si es proyección o admin cancela
+            'cancelado_con_mas_de_24hs' => true,
         ]);
 
         return back()->with('success', 'Turno cancelado correctamente.');
@@ -524,6 +525,21 @@ class AppointmentController extends Controller
             'frecuencia' => 'eventual',
             'debe_pagarse' => false, // No se vuelve a cobrar si ya pagó, o si es recuperación > 24hs
         ]);
+
+        // Consumir crédito si existe
+        if ($waitlist->original_appointment_id) {
+            \App\Models\PatientCredit::where('paciente_id', $waitlist->user->paciente->id ?? 0)
+                ->where('appointment_id', $waitlist->original_appointment_id)
+                ->where('status', 'active')
+                ->update(['status' => 'used']);
+        } else {
+            // Fallback: consumir el más antiguo activo si no hay original_id directo
+            \App\Models\PatientCredit::where('paciente_id', $waitlist->user->paciente->id ?? 0)
+                ->where('status', 'active')
+                ->orderBy('created_at', 'asc')
+                ->limit(1)
+                ->update(['status' => 'used']);
+        }
 
         // Eliminar de la lista de espera
         $waitlist->delete();

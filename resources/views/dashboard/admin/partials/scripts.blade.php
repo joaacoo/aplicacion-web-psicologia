@@ -1,13 +1,4 @@
 <script>
-    window.showLoader = function() {
-        console.log('Loader shown');
-        // If there's a global loader element, show it here
-        // document.getElementById('global-loader')?.style.display = 'flex';
-    };
-    window.hideLoader = function() {
-        console.log('Loader hidden');
-        // document.getElementById('global-loader')?.style.display = 'none';
-    };
     // Confirm Action Logic
     let pendingActionFormId = null;
 
@@ -332,4 +323,39 @@
             });
         }
     });
+
+    // Recovery Assign Modal Logic
+    window.openRecoverAssignModal = function(id, name, modality) {
+        console.log('Opening recovery modal for:', id, name, modality);
+        try {
+            const idInput = document.getElementById('recover_waitlist_id');
+            const nameInput = document.getElementById('recover_patient_name');
+            const modal = document.getElementById('recoverAssignModal');
+            const select = document.getElementById('recover_modalidad');
+
+            if (!idInput || !nameInput || !modal || !select) {
+                console.warn('Recovery modal elements missing:', { idInput, nameInput, modal, select });
+                return;
+            }
+
+            idInput.value = id;
+            nameInput.value = name;
+            modal.style.display = 'flex';
+            
+            if (modality) {
+                const modLow = modality.toLowerCase();
+                if (modLow.includes('virtual')) select.value = 'virtual';
+                else if (modLow.includes('presencial')) select.value = 'presencial';
+            }
+            document.body.style.overflow = 'hidden';
+        } catch (e) {
+            console.error('Error in openRecoverAssignModal:', e);
+        }
+    }
+
+    window.closeRecoverAssignModal = function() {
+        const modal = document.getElementById('recoverAssignModal');
+        if (modal) modal.style.display = 'none';
+        document.body.style.overflow = '';
+    }
 </script>

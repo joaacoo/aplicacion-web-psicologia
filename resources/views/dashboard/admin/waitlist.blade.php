@@ -43,7 +43,7 @@
             <h3 style="margin: 0; font-size: 1.5rem;"><i class="fa-solid fa-clock"></i> Lista de Espera (Global)</h3>
         </div>
         
-        <div class="waitlist-card-container" style="overflow-x: auto; padding: 0;">
+        <div class="waitlist-card-container" style="padding: 0; max-width: 100%;">
             <style>
                 @media (max-width: 768px) {
                     .waitlist-table {
@@ -252,6 +252,21 @@
                         font-size: 0.65rem !important;
                     }
                 }
+                @media (min-width: 1025px) {
+                    .waitlist-table th, .waitlist-table td {
+                        white-space: nowrap !important;
+                        padding: 0.6rem 0.8rem !important;
+                        font-size: 0.85rem !important;
+                    }
+                    .waitlist-table td.waitlist-preference-cell {
+                        white-space: normal !important;
+                        min-width: 220px;
+                        max-width: 300px;
+                    }
+                    .waitlist-header h3 {
+                        font-size: 1.3rem !important;
+                    }
+                }
             </style>
             <table class="waitlist-table" style="width: 100%; border-collapse: collapse; background: white; border: 3px solid #000; box-shadow: 6px 6px 0px #000;">
                 <thead>
@@ -271,11 +286,12 @@
                                 <span class="waitlist-text-content">
                                 @if($entry->fecha_especifica)
                                     {{ \Carbon\Carbon::parse($entry->fecha_especifica)->format('d/m') }}
-                                @else
-                                    Global
                                 @endif
                                 @if($entry->hora_inicio)
-                                    - {{ \Carbon\Carbon::parse($entry->hora_inicio)->format('H:i') }} hs
+                                    {{ $entry->fecha_especifica ? '-' : '' }} {{ \Carbon\Carbon::parse($entry->hora_inicio)->format('H:i') }} hs
+                                @endif
+                                @if(!$entry->fecha_especifica && !$entry->hora_inicio)
+                                    S/F
                                 @endif
                                 </span>
                             </td>
@@ -303,18 +319,26 @@
                                     $displayEmail = $entry->email ?? ($entry->user ? $entry->user->email : null);
                                 @endphp
                                 @if($displayEmail)
-                                    <a href="mailto:{{ $displayEmail }}?subject=Turno disponible - Lic. Nazarena De Luca&body={{ urlencode($wpMessage) }}" target="_blank" style="color: #ff4d4d; font-weight: 800; text-decoration: none; display: inline-flex; align-items: center; gap: 5px; font-size: 0.85rem;" class="waitlist-link">
+                                    <a href="mailto:{{ $displayEmail }}?subject=Turno disponible - Lic. Nazarena De Luca&body={{ urlencode($wpMessage) }}" target="_blank" style="color: #ff4d4d; font-weight: 800; text-decoration: none; display: inline-flex; align-items: center; gap: 5px; font-size: 0.75rem;" class="waitlist-link">
                                         <i class="fa-solid fa-envelope"></i> <span>{{ $displayEmail }}</span>
                                     </a>
                                 @else
                                     <span style="color: #999;">-</span>
                                 @endif
                             </td>
-                            <td data-label="Preferencia" style="padding: 0.8rem;" class="waitlist-preference-cell">
+                             <td data-label="Preferencia" style="padding: 0.8rem;" class="waitlist-preference-cell">
                                 <div style="display: flex; flex-direction: column; gap: 0.4rem;" class="preference-wrapper">
                                     <div style="display: flex; gap: 5px; flex-wrap: wrap;">
                                         <span style="background: var(--color-celeste); padding: 2px 8px; border: 2px solid #000; border-radius: 6px; font-size: 0.7rem; font-weight: 800; text-transform: uppercase;">
-                                            <i class="fa-solid {{ $entry->modality == 'Virtual' ? 'fa-video' : ($entry->modality == 'Presencial' ? 'fa-house-user' : 'fa-door-open') }}"></i> {{ $entry->modality }}
+                                            @php
+                                                $modLow = strtolower($entry->modality ?? '');
+                                                $icon = match(true) {
+                                                    str_contains($modLow, 'virtual') => 'fa-laptop',
+                                                    str_contains($modLow, 'presencial') => 'fa-house-user',
+                                                    default => 'fa-door-open'
+                                                };
+                                            @endphp
+                                            <i class="fa-solid {{ $icon }}"></i> {{ $entry->modality }}
                                         </span>
                                     </div>
                                     <div style="font-size: 0.85rem; font-weight: 700; color: #000; background: #fffadc; padding: 0.5rem; border: 1px dashed #000; border-radius: 5px; word-break: break-word; display: flex; align-items: flex-start; gap: 5px;" class="availability-text">
@@ -322,9 +346,15 @@
                                         <span style="flex: 1; word-break: break-word;">
                                             @php
                                                 $availabilityText = $entry->availability ?? 'No especificó disponibilidad';
-                                                // Eliminar (PRESENCIAL) y (2026-02-20) o cualquier fecha en formato (YYYY-MM-DD)
-                                                $availabilityText = preg_replace('/\s*\(PRESENCIAL\)\s*/i', '', $availabilityText);
-                                                $availabilityText = preg_replace('/\s*\([0-9]{4}-[0-9]{2}-[0-9]{2}\)\s*/', '', $availabilityText);
+                                                $decoded = json_decode($availabilityText, true);
+                                                
+                                                if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                                                    $availabilityText = "De " . ($decoded['desde'] ?? '?') . " a " . ($decoded['hasta'] ?? '?');
+                                                } else {
+                                                    // Legacy / fallback
+                                                    $availabilityText = preg_replace('/\s*\(PRESENCIAL\)\s*/i', '', $availabilityText);
+                                                    $availabilityText = preg_replace('/\s*\([0-9]{4}-[0-9]{2}-[0-9]{2}\)\s*/', '', $availabilityText);
+                                                }
                                                 $availabilityText = trim($availabilityText);
                                             @endphp
                                             {{ $availabilityText }}
@@ -335,7 +365,7 @@
                             <td data-label="Acciones" style="padding: 0.8rem; text-align: center; width: 150px;">
                                     <div style="display: flex; gap: 5px; justify-content: center; align-items: center;">
                                         <button type="button" class="neobrutalist-btn bg-verde" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;" 
-                                                onclick="openRecoverAssignModal({{ $entry->id }}, '{{ addslashes($entry->name) }}', '{{ addslashes($entry->modality) }}')"
+                                                onclick="window.openRecoverAssignModal({{ $entry->id }}, '{{ addslashes($entry->name) }}', '{{ addslashes($entry->modality) }}')"
                                                 title="Agendar recuperación">
                                             <i class="fa-solid fa-calendar-plus"></i>
                                         </button>
@@ -361,7 +391,8 @@
 </div>
 
 <!-- Modal: Agendar Recuperación -->
-<div id="recoverAssignModal" class="modal-overlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; padding: 1rem;">
+    <!-- Scripts moved to admin partials -->
+<div id="recoverAssignModal" class="modal-overlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 2000000; align-items: center; justify-content: center; padding: 1rem;">
     <div class="neobrutalist-card" style="background: #fff; width: 100%; max-width: 500px; padding: 2rem; position: relative;">
         <button onclick="closeRecoverAssignModal()" style="position: absolute; top: 1rem; right: 1rem; background: none; border: none; font-size: 1.5rem; cursor: pointer;">&times;</button>
         <h3 style="margin-top: 0; border-bottom: 3px solid #000; padding-bottom: 0.5rem; margin-bottom: 1.5rem;">
@@ -402,33 +433,6 @@
         </form>
     </div>
 </div>
-
-<script>
-    function openRecoverAssignModal(id, name, modality) {
-        console.log('Opening recovery modal for:', id, name, modality);
-        
-        const idInput = document.getElementById('recover_waitlist_id');
-        const nameInput = document.getElementById('recover_patient_name');
-        const modal = document.getElementById('recoverAssignModal');
-        const select = document.getElementById('recover_modalidad');
-
-        if (!idInput || !nameInput || !modal || !select) {
-            console.error('Modal elements missing');
-            return;
-        }
-
-        idInput.value = id;
-        nameInput.value = name;
-        modal.style.display = 'flex';
-        
-        if (modality && modality.toLowerCase().includes('virtual')) select.value = 'virtual';
-        else if (modality && modality.toLowerCase().includes('presencial')) select.value = 'presencial';
-    }
-
-    function closeRecoverAssignModal() {
-        document.getElementById('recoverAssignModal').style.display = 'none';
-    }
-</script>
 
 @include('dashboard.admin.partials.modals')
 @include('dashboard.admin.partials.scripts')

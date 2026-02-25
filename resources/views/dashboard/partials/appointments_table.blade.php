@@ -135,28 +135,20 @@
 
                             // Mensaje de cancelación
                             if ($isPaid) {
-                                $cancelMsg = '¿Seguro querés cancelar este turno? El pago fue verificado, así que se generará un crédito para tu próxima sesión automáticamente.';
+                                $cancelMsg = '¿Seguro querés cancelar este turno? El pago fue verificado, así que se generará un crédito a tu favor automáticamente.';
                             } elseif ($paymentPending) {
                                 $cancelMsg = 'Tu comprobante está siendo verificado. Si cancelás ahora, el análisis quedará pendiente.';
                             } else {
                                 $cancelMsg = '¿Seguro querés cancelar este turno?' . ($isCriticalZone ? ' Al faltar menos de 24hs, se considerará sesión perdida.' : '');
                             }
 
-                            // REGLAS RECUPERAR (SEGÚN TABLA DE VERDAD):
-                            // > 24hs + No pagó    -> ✅ Sí puede recuperar
-                            // > 24hs + Sí pagó    -> ✅ Sí puede recuperar
-                            // ≤ 24hs + No pagó    -> ❌ NO puede recuperar
-                            // ≤ 24hs + Sí pagó    -> ✅ Sí puede recuperar
+                            // REGLAS RECUPERAR:
+                            // Visible si: horas > 24 OR (horas ≤ 24 AND pagado)
+                            // Oculto si: horas ≤ 24 AND no pagado
                             $showRecoverBtn = false;
                             $hasPendingRecovery = in_array($appt->id, $pendingRecoveryIds ?? []);
-                            $canceladoConMasDe24hs = $appt->cancelado_con_mas_de_24hs ?? false;
-                            
-                            // El turno está cancelado, es futuro, y no tiene recuperación pendiente
-                            if ($appt->estado === 'cancelado' && $appt->fecha_hora->isFuture() && !$hasPendingRecovery) {
-                                // Puede recuperar si: canceló con > 24hs (sin importar pago) O si canceló ≤ 24hs pero ya había pagado
-                                if ($canceladoConMasDe24hs || $isPaid) {
-                                    $showRecoverBtn = true;
-                                }
+                            if ($appt->estado === 'cancelado' && $appt->fecha_hora->isFuture() && (!$isCriticalZone || $isPaid) && !$hasPendingRecovery) {
+                                $showRecoverBtn = true;
                             }
                         @endphp
                         <tr style="border-bottom: 1px solid #2D2D2D;">
@@ -215,11 +207,11 @@
                             <td style="padding: 0.5rem;">
                                 @if($isFinished)
                                     <div style="text-align: center; color: #666; font-weight: 900;">—</div>
-                                @elseif($appt->estado != 'cancelado')
+                                @elseif($appt->estado != 'cancelado' || $showRecoverBtn || $hasPendingRecovery)
                                     <div class="actions-wrapper" style="display: flex; gap: 5px; flex-wrap: wrap; justify-content: center;">
                                         
                                         {{-- JOIN BUTTON --}}
-                                        @if(($isPaid || $paymentPending || $isCreditApplied) && $isVirtual)
+                                        @if(($isPaid || $paymentPending || $isCreditApplied) && $isVirtual && !$hasPendingRecovery)
                                             <a href="{{ $appt->meet_link ?: '#' }}" 
                                                target="_blank" 
                                                class="neobrutalist-btn join-btn {{ $canJoin ? 'bg-celeste' : 'disabled-btn' }}" 
@@ -270,9 +262,10 @@
                                         @endif
 
                                         @if($hasPendingRecovery)
-                                            <div style="flex: 1 1 100%; text-align: center; font-size: 0.7rem; color: #92400e; font-weight: 800; margin-top: 4px;">
-                                                <i class="fa-solid fa-hourglass-half"></i> Recuperación pendiente
-                                            </div>
+                                            <button class="neobrutalist-btn disabled-btn" 
+                                                    style="flex: 1 1 100%; padding: 0.3rem 0.6rem; font-size: 0.75rem; height: 32px; display: inline-flex; align-items: center; justify-content: center; background: #fffadc; border: 2px solid #000; color: #92400e; font-weight: 800; cursor: default;">
+                                                <i class="fa-solid fa-hourglass-half"></i> Recuperación enviada
+                                            </button>
                                         @endif
                                     </div>
                                 @endif
@@ -316,18 +309,15 @@
                     }
 
                     if ($isPaid) {
-                        $cancelMsg = '¿Seguro querés cancelar? El pago fue verificado, se generará un crédito para tu próxima sesión.';
+                        $cancelMsg = '¿Seguro querés cancelar? El pago fue verificado, se generará un crédito a tu favor.';
                     } else {
                         $cancelMsg = '¿Seguro querés cancelar este turno?' . ($isCriticalZone ? ' Al faltar menos de 24hs, se considerará sesión perdida.' : '');
                     }
 
                     $showRecoverBtn = false;
                     $hasPendingRecovery = in_array($appt->id, $pendingRecoveryIds ?? []);
-                    $canceladoConMasDe24hs = $appt->cancelado_con_mas_de_24hs ?? false;
-                    if ($appt->estado === 'cancelado' && $appt->fecha_hora->isFuture() && !$hasPendingRecovery) {
-                        if ($canceladoConMasDe24hs || $isPaid) {
-                            $showRecoverBtn = true;
-                        }
+                    if ($appt->estado === 'cancelado' && $appt->fecha_hora->isFuture() && (!$isCriticalZone || $isPaid) && !$hasPendingRecovery) {
+                        $showRecoverBtn = true;
                     }
                 @endphp
                 <div class="appointment-card">
@@ -392,8 +382,8 @@
                         </span>
                     </div>
                     <div class="actions-wrapper">
-                        @if(!$isFinished && $appt->estado != 'cancelado')
-                            @if(($isPaid || $paymentPending || $isCreditApplied) && $isVirtual)
+                        @if(!$isFinished && ($appt->estado != 'cancelado' || $showRecoverBtn || $hasPendingRecovery))
+                            @if(($isPaid || $paymentPending || $isCreditApplied) && $isVirtual && !$hasPendingRecovery)
                                 <a href="{{ $appt->meet_link ?: '#' }}" target="_blank" class="neobrutalist-btn join-btn {{ $canJoin ? 'bg-celeste' : 'disabled-btn' }}" style="flex: 1; height: 32px; font-size: 0.75rem; display: flex; align-items: center; justify-content: center; text-decoration: none; color: #000;" data-start="{{ $appt->fecha_hora->toISOString() }}">
                                     <i class="fa-solid fa-video"></i> Unirse
                                 </a>
@@ -428,9 +418,10 @@
                             @endif
 
                             @if($hasPendingRecovery)
-                                <div style="width: 100%; text-align: center; font-size: 0.7rem; color: #92400e; font-weight: 800;">
-                                    <i class="fa-solid fa-hourglass-half"></i> Recuperación pendiente
-                                </div>
+                                <button class="neobrutalist-btn disabled-btn" 
+                                        style="width: 100%; padding: 0.3rem 0.6rem; font-size: 0.75rem; height: 32px; display: flex; align-items: center; justify-content: center; background: #fffadc; border: 2px solid #000; color: #92400e; font-weight: 800; cursor: default; margin-top: 4px;">
+                                    <i class="fa-solid fa-hourglass-half"></i> Recuperación enviada
+                                </button>
                             @endif
 @else
                            <div style="width: 100%; text-align: center; color: #666;">—</div>

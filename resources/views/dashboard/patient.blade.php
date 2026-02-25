@@ -880,26 +880,6 @@ function togglePatientMenu() {
 
 
 
-        <!-- Custom Alert Modal (Cartel) -->
-        <div id="alert-modal-overlay" class="confirm-modal-overlay" style="display: none; align-items: center; justify-content: center; background: rgba(0,0,0,0.7);">
-            <div class="confirm-modal" style="max-width: 400px; padding: 0 !important; border: 5px solid #000; box-shadow: 10px 10px 0px #000; border-radius: 20px;">
-                <div style="background-color: var(--color-celeste); padding: 1rem; border-bottom: 5px solid #000; text-align: center;">
-                    <h3 style="margin: 0; font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.5rem;">¡ATENCIÓN!</h3>
-                </div>
-
-                <div style="padding: 2rem; text-align: center;">
-                    <p id="alert-modal-message" style="font-family: 'Manrope', sans-serif; font-weight: 700; margin-bottom: 1.5rem;">
-                        Primero debes seleccionar un día para continuar.
-                    </p>
-
-                    <div style="display: flex; justify-content: center;">
-                        <button onclick="closeAlert()" class="neobrutalist-btn bg-amarillo" style="min-width: 120px; margin-top: 0;">
-                            ENTENDIDO
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
 
     </div>
         
@@ -1326,14 +1306,6 @@ $fixedBlockedSlots = $fixedBlockedSlots ?? [];
         });
     }
 
-    window.showAlert = function(msg) {
-        document.getElementById('alert-modal-message').innerText = msg;
-        document.getElementById('alert-modal-overlay').style.display = 'flex';
-    };
-
-    function closeAlert() {
-        document.getElementById('alert-modal-overlay').style.display = 'none';
-    }
 
     function openEventualRecoveryModal() {
         document.getElementById('recovery-modal-overlay').style.display = 'flex';
@@ -1865,24 +1837,25 @@ $fixedBlockedSlots = $fixedBlockedSlots ?? [];
         const to = document.getElementById('recovery-time-to').value;
         const mod = document.getElementById('selected_recovery_modality').value;
 
-        // Final validation
-        if (!from || !to) {
-            return;
-        }
-        if (from >= to) {
-            return;
-        }
+        if (!from || !to) return;
+        if (from >= to) return;
         if (!mod) {
             window.showAlert('Por favor seleccioná la modalidad.');
             return;
         }
+
+        if (typeof window.showLoader === 'function') window.showLoader();
 
         const btn = document.getElementById('recovery-confirm-btn');
         btn.disabled = true;
         btn.innerText = 'ENVIANDO...';
 
         try {
-            const rangeStr = `de ${from} a ${to}`;
+            const availabilityData = {
+                modalidad: mod,
+                desde: from,
+                hasta: to
+            };
             const response = await fetch('{{ route("waitlist.store") }}', {
                 method: 'POST',
                 headers: {
@@ -1892,7 +1865,7 @@ $fixedBlockedSlots = $fixedBlockedSlots ?? [];
                 },
                 body: JSON.stringify({ 
                     fecha_especifica: recoverySelectedDay, 
-                    availability: `SOLICITUD RECUPERACIÓN (${recoverySelectedDay}) - Preferencia: ${rangeStr} (${mod.toUpperCase()})`,
+                    availability: JSON.stringify(availabilityData),
                     modality: mod.charAt(0).toUpperCase() + mod.slice(1),
                     is_recovery: true,
                     original_appointment_id: window.currentRecoveryApptId
@@ -1901,27 +1874,39 @@ $fixedBlockedSlots = $fixedBlockedSlots ?? [];
 
             if (response.ok) {
                 closeRecoveryModal();
-                window.showAlert('Solicitud de recuperación enviada con éxito. Nazarena recibirá tu pedido y te contactará pronto por WhatsApp para confirmar.');
+                if (typeof window.showSuccess === 'function') {
+                    window.showSuccess('¡Solicitud de recuperación enviada con éxito! Nazarena recibirá tu pedido y te contactará pronto por WhatsApp para confirmar la nueva fecha.');
+                } else {
+                    window.showAlert('Solicitud de recuperación enviada con éxito.');
+                }
                 
-                // Fade and disable the specific recover button in the table
                 const apptId = window.currentRecoveryApptId;
                 if (apptId) {
-                    const tableBtn = document.querySelector(`button[onclick="openRecoveryModal(${apptId})"]`);
-                    if (tableBtn) {
-                        tableBtn.disabled = true;
-                        tableBtn.style.opacity = '0.4';
-                        tableBtn.style.pointerEvents = 'none';
-                        tableBtn.innerHTML = '<i class="fa-solid fa-clock"></i> Solicitado';
-                    }
+                    const tableBtns = document.querySelectorAll(`button[onclick*="openRecoveryModal(${apptId}"]`);
+                    tableBtns.forEach(btn => {
+                        btn.disabled = true;
+                        btn.style.opacity = '0.4';
+                        btn.style.pointerEvents = 'none';
+                        btn.innerHTML = '<i class="fa-solid fa-clock"></i> Solicitado';
+                    });
                 }
             } else {
-                window.showAlert('Error al enviar la solicitud.');
+                let errorMsg = 'Error al enviar la solicitud.';
+                try {
+                    const errorData = await response.json();
+                    errorMsg = errorData.error || errorData.message || errorMsg;
+                } catch (e) {
+                    console.error('Non-JSON error response:', e);
+                }
+                window.showAlert(errorMsg);
             }
         } catch (error) {
+            console.error('Recovery Error:', error);
             window.showAlert('Error de conexión.');
         } finally {
             btn.disabled = false;
             btn.innerText = 'SOLICITAR';
+            if (typeof window.hideLoader === 'function') window.hideLoader();
         }
     }
     function applyFilters(e) {
@@ -2056,41 +2041,6 @@ $fixedBlockedSlots = $fixedBlockedSlots ?? [];
         }
     });
 
-    // Handle Recovery logic locally for instant feedback
-    const originalSendRecoveryRequest = window.sendRecoveryRequest;
-    window.sendRecoveryRequest = async function() {
-        const response = await fetch('{{ route("waitlist.store") }}', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-                'X-CSRF-TOKEN': '{{ csrf_token() }}'
-            },
-            body: JSON.stringify({ 
-                fecha_especifica: recoverySelectedDay, 
-                availability: `SOLICITUD RECUPERACIÓN (${recoverySelectedDay}) - Preferencia: de ${document.getElementById('recovery-time-from').value} a ${document.getElementById('recovery-time-to').value} (${document.getElementById('selected_recovery_modality').value.toUpperCase()})`,
-                modality: document.getElementById('selected_recovery_modality').value.charAt(0).toUpperCase() + document.getElementById('selected_recovery_modality').value.slice(1),
-                is_recovery: true,
-                original_appointment_id: window.currentRecoveryApptId
-            })
-        });
-
-        if (response.ok) {
-            document.querySelectorAll('button[onclick^="openRecoveryModal"]').forEach(btn => {
-                btn.classList.add('disabled-btn');
-                btn.disabled = true;
-                if (btn.innerText.includes('RECUPERAR') || btn.innerText.includes('Recuperar')) {
-                    btn.innerHTML = '<i class="fa-solid fa-redo"></i> Solicitado';
-                } else {
-                    btn.innerHTML = '<i class="fa-solid fa-calendar-xmark"></i> RECUPERACIÓN SOLICITADA';
-                }
-            });
-            window.showAlert('Solicitud de recuperación enviada. Nazarena te avisará por WhatsApp.');
-            closeRecoveryModal();
-        } else {
-            alert('Error al enviar la solicitud.');
-        }
-    };
     // Handle Payment Modal logic
     let currentPaymentAppointmentId = null;
 
@@ -2160,7 +2110,7 @@ $fixedBlockedSlots = $fixedBlockedSlots ?? [];
                 <div id="payment-file-preview" style="display: none; margin-top: 1rem; border: 2px solid #000; padding: 5px; background: #eee; border-radius: 4px; text-align: center;"></div>
             </div>
 
-            <button type="submit" class="neobrutalist-btn bg-verde" style="width: 100%; padding: 0.8rem; font-size: 1rem; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 8px;">
+            <button type="submit" onclick="if(this.form.checkValidity()) window.showLoader()" class="neobrutalist-btn bg-verde" style="width: 100%; padding: 0.8rem; font-size: 1rem; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 8px;">
                 <i class="fa-solid fa-paper-plane"></i> Enviar Comprobante
             </button>
         </form>

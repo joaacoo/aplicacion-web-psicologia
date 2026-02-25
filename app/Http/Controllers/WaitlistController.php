@@ -42,11 +42,22 @@ class WaitlistController extends Controller
                 abort(403, 'Solo se pueden recuperar turnos cancelados.');
             }
 
+            // Verificar que no se haya solicitado ya la recuperación
+            if ($appointment->recovery_requested_at) {
+                if ($request->ajax() || $request->wantsJson()) {
+                    return response()->json(['error' => 'Ya has solicitado la recuperación de este turno.'], 403);
+                }
+                return back()->with('error', 'Ya has solicitado la recuperación de este turno.');
+            }
+
             // Aplicar reglas de recuperación
             $canRecover = !$appointment->isInCriticalZone() || ($appointment->payment && $appointment->payment->estado == 'verificado');
             if (!$canRecover) {
                 abort(403, 'No cumples con las condiciones para recuperar este turno.');
             }
+
+            // Marcar como solicitado
+            $appointment->update(['recovery_requested_at' => now()]);
         }
 
         $waitlist = Waitlist::create([

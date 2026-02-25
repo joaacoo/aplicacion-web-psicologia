@@ -791,17 +791,19 @@
                                         
                                     <!-- Dropdown -->
                                     <div id="patient-notif-dropdown" class="notification-dropdown" onclick="event.stopPropagation()" style="display: none; position: absolute; top: calc(100% + 15px); right: -10px; width: 360px; max-width: 95vw; background: white; border-radius: 16px; box-shadow: 0 16px 40px rgba(0,0,0,0.18), 0 4px 12px rgba(0,0,0,0.08); overflow: hidden; z-index: 10005; border: 3px solid #000;">
-                                            <div class="notification-header" style="padding: 1rem 1.2rem; border-bottom: 3px solid #000; display: flex; justify-content: space-between; align-items: center; background: #f8f9fa;">
-                                                <span style="font-weight: 800; font-size: 1.05rem; color: #111; font-family: 'Manrope', sans-serif;">Notificaciones</span>
+                                        <div class="notification-header" style="padding: 1rem 1.2rem; border-bottom: 3px solid #000; display: flex; justify-content: space-between; align-items: center; background: #f8f9fa;">
+                                            <span style="font-weight: 800; font-size: 1.05rem; color: #111; font-family: 'Manrope', sans-serif;">Notificaciones</span>
                                             <button onclick="markAllRead()" style="background: var(--color-celeste); border: 2px solid #000; color: #000; font-size: 0.75rem; font-weight: 700; cursor: pointer; padding: 0.4rem 0.8rem; border-radius: 8px; box-shadow: 2px 2px 0px #000;">
-                                                    Leer todas
-                                                </button>
-                                            </div>
+                                                Leer todas
+                                            </button>
+                                        </div>
                                         <div id="patient-notif-items" class="notification-items-container" style="max-height: 420px; overflow-y: auto;">
                                             @if(isset($notifications) && $notifications->count() > 0)
                                                 @foreach($notifications as $notification)
-                                                    <div class="notification-item" style="padding: 1rem 1.2rem; border-bottom: 1px solid #eee; display: flex; gap: 1rem; align-items: flex-start; transition: background 0.2s; cursor: pointer;" onclick="window.location.href='{{ $notification->data['link'] ?? '#' }}'">
-                                                        <div class="notif-icon" style="background: {{ $notification->data['type'] == 'success' ? '#dcfce7' : '#f3f4f6' }}; color: {{ $notification->data['type'] == 'success' ? '#166534' : '#374151' }}; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; border: 2px solid #000; flex-shrink: 0;">
+                                                    <div class="notification-item" 
+                                                         style="padding: 1rem 1.2rem; border-bottom: 1px solid #eee; display: flex; gap: 1rem; align-items: flex-start; transition: background 0.2s; cursor: pointer; background: {{ $notification->unread() ? '#f9fafb' : 'white' }};" 
+                                                         onclick="markAsRead('{{ $notification->id }}', '{{ $notification->data['link'] ?? '#' }}')">
+                                                        <div class="notif-icon" style="background: {{ ($notification->data['type'] ?? '') == 'success' ? '#dcfce7' : '#f3f4f6' }}; color: {{ ($notification->data['type'] ?? '') == 'success' ? '#166534' : '#374151' }}; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; border: 2px solid #000; flex-shrink: 0;">
                                                             @if(($notification->data['type'] ?? '') == 'success')
                                                                 <i class="fa-solid fa-check"></i>
                                                             @elseif(($notification->data['type'] ?? '') == 'pago')
@@ -811,11 +813,13 @@
                                                             @endif
                                                         </div>
                                                         <div class="notif-content" style="flex: 1;">
-                                                            <div style="font-weight: 800; color: #111; font-size: 0.95rem; margin-bottom: 0.2rem; font-family: 'Manrope', sans-serif;">{{ $notification->data['title'] ?? 'Nueva Notificación' }}</div>
+                                                            <div style="font-weight: {{ $notification->unread() ? '800' : '600' }}; color: #111; font-size: 0.95rem; margin-bottom: 0.2rem; font-family: 'Manrope', sans-serif;">{{ $notification->data['title'] ?? 'Nueva Notificación' }}</div>
                                                             <div style="font-size: 0.85rem; color: #555; line-height: 1.4;">{{ $notification->data['mensaje'] ?? '' }}</div>
                                                             <div style="font-size: 0.75rem; color: #999; margin-top: 0.4rem; font-weight: 600;">{{ $notification->created_at->diffForHumans() }}</div>
                                                         </div>
-                                                        <div class="notif-indicator" style="width: 8px; height: 8px; background: var(--color-rojo); border-radius: 50%;"></div>
+                                                        @if($notification->unread())
+                                                            <div class="notif-indicator" style="width: 8px; height: 8px; background: var(--color-rojo); border-radius: 50%;"></div>
+                                                        @endif
                                                     </div>
                                                 @endforeach
                                             @else
@@ -826,8 +830,8 @@
                                                 </div>
                                             @endif
                                         </div>
-                                        </div>
                                     </div>
+                                </div>
 
                                 <!-- Logout Button -->
                                 <form action="{{ route('logout') }}" method="POST" style="display: inline;" class="header-logout-form">
@@ -1046,7 +1050,7 @@
     </form>
 
     <!-- Custom Confirmation Modal -->
-    <div id="confirm-modal-overlay" class="confirm-modal-overlay" style="display: none;">
+    <div id="confirm-modal-overlay" class="confirm-modal-overlay" style="display: none; z-index: 300000; background: rgba(0,0,0,0.7);">
         <div class="confirm-modal">
             <div class="confirm-modal-title" style="font-family: 'Syne', sans-serif; background: var(--color-rojo); color: white;">Confirmar acción</div>
             <div id="confirm-modal-message" class="confirm-modal-message" style="font-family: 'Inter', sans-serif;"></div>
@@ -1074,7 +1078,6 @@
                      overlay.style.display = 'flex';
                      document.body.style.overflow = 'hidden';
                      
-                     // Use cloneNode to wipe old listeners
                      const newOk = okBtn.cloneNode(true);
                      const newCancel = cancelBtn.cloneNode(true);
                      okBtn.parentNode.replaceChild(newOk, okBtn);
@@ -1083,7 +1086,10 @@
                      newOk.addEventListener('click', function() {
                          overlay.style.display = 'none';
                          document.body.style.overflow = '';
-                         if(callback) callback();
+                         if(callback) {
+                             if (typeof window.showLoader === 'function') window.showLoader();
+                             callback();
+                         }
                      });
                      newCancel.addEventListener('click', function() {
                          overlay.style.display = 'none';
@@ -1092,7 +1098,10 @@
                      return;
                 }
             }
-            if(confirm(message) && callback) callback();
+            if(confirm(message)) {
+                if (typeof window.showLoader === 'function') window.showLoader();
+                if(callback) callback();
+            }
         };
 
         // Función para verificar cancelación - siempre permite cancelar, pero avisa si ya pagó
@@ -1121,6 +1130,81 @@
             }
         };
     </script>
+
+    <!-- Success Modal (Polished Neobrutalist) -->
+    <div id="success-modal-overlay" class="confirm-modal-overlay" style="display: none; z-index: 400000; background: rgba(0,0,0,0.7); backdrop-filter: blur(8px); position: fixed; inset: 0; align-items: center; justify-content: center;">
+        <div class="confirm-modal" style="max-width: 450px; width: 92%; border: 5px solid #000; box-shadow: 12px 12px 0px #000; background: white; border-radius: 20px; overflow: hidden;">
+            <div style="background: var(--color-verde); padding: 1.5rem; border-bottom: 5px solid #000; text-align: center;">
+                <i class="fa-solid fa-circle-check" style="font-size: 4rem; color: #000;"></i>
+                <h3 style="margin: 1rem 0 0 0; font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.8rem; color: #000;">¡Exitoso!</h3>
+            </div>
+            <div style="padding: 2.5rem; text-align: center;">
+                <p id="success-modal-message" style="font-family: 'Manrope', sans-serif; font-weight: 700; font-size: 1.1rem; color: #111; line-height: 1.5; margin-bottom: 2rem;"></p>
+                <button onclick="closeSuccessModal()" class="neobrutalist-btn bg-amarillo" style="min-width: 180px; padding: 1rem; font-size: 1.1rem; font-weight: 800; border: 3px solid #000; box-shadow: 5px 5px 0px #000;">
+                    ENTENDIDO
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        window.showSuccess = function(message) {
+            const overlay = document.getElementById('success-modal-overlay');
+            const msgEl = document.getElementById('success-modal-message');
+            if (overlay && msgEl) {
+                msgEl.innerText = message;
+                overlay.style.display = 'flex';
+                document.body.style.overflow = 'hidden';
+            } else {
+                window.showAlert(message);
+            }
+        };
+
+        window.closeSuccessModal = function() {
+            const overlay = document.getElementById('success-modal-overlay');
+            if (overlay) {
+                overlay.style.display = 'none';
+                document.body.style.overflow = '';
+            }
+        };
+
+        window.showAlert = function(message) {
+            const overlay = document.getElementById('global-alert-modal-overlay');
+            const msgEl = document.getElementById('global-alert-modal-message');
+            if (overlay && msgEl) {
+                msgEl.innerText = message;
+                overlay.style.display = 'flex';
+                document.body.style.overflow = 'hidden';
+            } else {
+                alert(message);
+            }
+        };
+
+        window.closeAlert = function() {
+            const overlay = document.getElementById('global-alert-modal-overlay');
+            if (overlay) {
+                overlay.style.display = 'none';
+                document.body.style.overflow = '';
+            }
+        };
+    </script>
+
+    <!-- Global Alert Modal (Nuclear Priority) -->
+    <div id="global-alert-modal-overlay" class="confirm-modal-overlay" style="display: none; z-index: 500000; background: rgba(0,0,0,0.8); backdrop-filter: blur(5px); position: fixed; inset: 0; align-items: center; justify-content: center;">
+        <div class="confirm-modal" style="max-width: 400px; width: 92%; padding: 0 !important; border: 5px solid #000; box-shadow: 10px 10px 0px #000; border-radius: 20px; background: white; overflow: hidden;">
+            <div style="background-color: var(--color-celeste); padding: 1rem; border-bottom: 5px solid #000; text-align: center;">
+                <h3 style="margin: 0; font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.5rem; color: #000;">¡ATENCIÓN!</h3>
+            </div>
+            <div style="padding: 2rem; text-align: center;">
+                <p id="global-alert-modal-message" style="font-family: 'Manrope', sans-serif; font-weight: 700; margin-bottom: 1.5rem; color: #000; font-size: 1rem;"></p>
+                <div style="display: flex; justify-content: center;">
+                    <button onclick="closeAlert()" class="neobrutalist-btn bg-amarillo" style="min-width: 140px; margin-top: 0; padding: 0.8rem; font-weight: 800; border: 3px solid #000; box-shadow: 4px 4px 0px #000;">
+                        ENTENDIDO
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Report Problem Modal (Polished Neobrutalist) -->
     <div id="report-modal-overlay" class="confirm-modal-overlay" style="display: none; z-index: 100000; background: rgba(0,0,0,0.6);">
@@ -1400,23 +1484,6 @@
  
         // Navbar scroll logic removed - new neobrutalist navbar is always visible
 
-        window.showConfirm = function(message, callback) {
-            confirmMessage.innerText = message;
-            _pendingConfirmAction = callback;
-            confirmOverlay.style.display = 'flex';
-            document.body.style.overflow = 'hidden'; // Lock scroll
-        };
-
-        confirmOk.addEventListener('click', () => {
-            if (_pendingConfirmAction) _pendingConfirmAction();
-            confirmOverlay.style.display = 'none';
-            document.body.style.overflow = 'auto'; // Restore scroll
-        });
-
-        confirmCancel.addEventListener('click', () => {
-            confirmOverlay.style.display = 'none';
-            document.body.style.overflow = 'auto'; // Restore scroll
-        });
         
         // Ensure Cancel button has black border
         if (confirmCancel) confirmCancel.style.border = '2.5px solid #000';
@@ -1521,23 +1588,38 @@
         }
 
         async function markAllRead() {
-            // Optimistic UI update: instantly mark UI as read before wait
+            // Sin eliminación, solo cambio visual a "leído"
             document.querySelectorAll('.notification-item').forEach(item => {
                 item.style.background = 'white';
-                const text = item.querySelector('p');
-                if (text) text.style.fontWeight = '400';
-                const dot = item.querySelector('.unread-dot');
-                if (dot) dot.remove();
+                // Para items cargados por fetch (JS)
+                const textP = item.querySelector('p');
+                if (textP) textP.style.fontWeight = '400';
+                const dotUnread = item.querySelector('.unread-dot');
+                if (dotUnread) dotUnread.remove();
+                
+                // Para items pre-cargados (Blade patient)
+                const titleDiv = item.querySelector('.notif-content > div:first-child');
+                if (titleDiv) titleDiv.style.fontWeight = '600';
+                const indicator = item.querySelector('.notif-indicator');
+                if (indicator) indicator.remove();
             });
-            const counters = [document.getElementById('notif-count'), document.getElementById('notif-count-mobile'), document.getElementById('patient-notif-count')];
+
+            const counters = [
+                document.getElementById('notif-count'), 
+                document.getElementById('notif-count-mobile'), 
+                document.getElementById('patient-notif-count')
+            ];
             counters.forEach(c => { if(c) c.style.display = 'none'; });
 
-            await fetch('{{ route("notifications.read-all") }}', {
-                method: 'POST',
-                headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' }
-            });
-            // We do not re-fetch here because the optimistic UI update already made them look read,
-            // and re-fetching might cause the dropdown to re-render or blink.
+            try {
+                await fetch('{{ route("notifications.read-all") }}', {
+                    method: 'POST',
+                    headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' }
+                });
+                // No re-fetch to keep the state we just set optimistically
+            } catch (e) {
+                console.error("Error marking all as read", e);
+            }
         }
         
         // Mobile Menu Logic
