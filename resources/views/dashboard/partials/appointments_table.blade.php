@@ -474,7 +474,7 @@
 
         <!-- Pagination -->
         @if(method_exists($appointments, 'onFirstPage'))
-        <div class="pagination-container" style="display: flex; justify-content: center; gap: 0.8rem; margin-top: auto; padding-top: 1.5rem; align-items: center; flex-wrap: nowrap; overflow-x: auto; padding-bottom: 0.5rem; width: 100%;">
+        <div class="pagination-container" style="display: flex; justify-content: center; gap: 0.8rem; margin-top: auto; padding-top: 1.5rem; align-items: center; flex-wrap: nowrap; padding-bottom: 0.5rem; width: 100%;">
             @if($appointments->onFirstPage())
                 <span class="neobrutalist-btn pagination-mobile-btn" style="background: #eee; cursor: not-allowed; opacity: 0.6; box-shadow: none;">Anterior</span>
             @else
@@ -484,15 +484,15 @@
             <span class="pagination-mobile-indicator" style="font-weight: 800; font-family: 'Inter', sans-serif; font-size: 0.9rem; color: #000; padding: 0.4rem 0.2rem; white-space: nowrap;">
                 {{ $appointments->currentPage() }} / {{ $appointments->lastPage() }}
             </span>
-
+ 
             @if($appointments->hasMorePages())
                 <a href="{{ $appointments->nextPageUrl() }}#mis-turnos" class="neobrutalist-btn bg-amarillo pagination-mobile-btn" style="text-decoration: none; color: #000;">Siguiente</a>
             @else
                 <span class="neobrutalist-btn pagination-mobile-btn" style="background: #eee; cursor: not-allowed; opacity: 0.6; box-shadow: none;">Siguiente</span>
             @endif
         </div>
-        <div class="pagination-container" style="display: flex; justify-content: center; gap: 0.8rem; margin-top: auto; padding-top: 1.5rem; align-items: center; flex-wrap: nowrap; overflow-x: auto; padding-bottom: 0.5rem; width: 100%;">
-            <span style="font-weight: 800; font-family: 'Inter', sans-serif; font-size: 0.85rem; color: #666;">
+        <div style="display: flex; justify-content: center; width: 100%; margin-top: 5px;">
+            <span style="font-weight: 800; font-family: 'Inter', sans-serif; font-size: 0.75rem; color: #666; opacity: 0.8;">
                 Mostrando {{ $appointments->count() }} turno(s)
             </span>
         </div>

@@ -1000,8 +1000,11 @@ class DashboardController extends Controller
         
         if (!$date) return response()->json(['error' => 'No date provided'], 400);
 
+        $dayStartLocal = \Carbon\Carbon::parse($date, 'America/Argentina/Buenos_Aires')->startOfDay();
+        $dayEndLocal = $dayStartLocal->copy()->endOfDay();
+
         $appointments = Appointment::with(['user', 'payment'])
-            ->whereDate('fecha_hora', $date)
+            ->whereBetween('fecha_hora', [$dayStartLocal->copy()->timezone('UTC'), $dayEndLocal->copy()->timezone('UTC')])
             ->where(function($q) {
                 $q->where('estado', '!=', 'cancelado')
                   ->orWhere('motivo_cancelacion', 'not like', '%Reserva fija%');
@@ -1019,8 +1022,8 @@ class DashboardController extends Controller
         }
 
         // Project fixed sessions for this specific day if not in DB
-        $dayStart = \Carbon\Carbon::parse($date)->startOfDay();
-        $dayEnd = $dayStart->copy()->endOfDay();
+        $dayStart = $dayStartLocal;
+        $dayEnd = $dayEndLocal;
         
         $fixedReservations = Appointment::where('es_recurrente', true)
             ->where('estado', '!=', 'cancelado')
@@ -1066,9 +1069,11 @@ class DashboardController extends Controller
         $allApps = $appointments->concat($projected)->sortBy('fecha_hora')->values();
 
         // Fetch external events for the day
-        $externalEvents = ExternalEvent::where(function($q) use ($dayStart, $dayEnd) {
-                $q->whereBetween('start_time', [$dayStart, $dayEnd])
-                  ->orWhereBetween('end_time', [$dayStart, $dayEnd]);
+        $externalEvents = ExternalEvent::where(function($q) use ($dayStartLocal, $dayEndLocal) {
+                $startUtc = $dayStartLocal->copy()->timezone('UTC');
+                $endUtc = $dayEndLocal->copy()->timezone('UTC');
+                $q->whereBetween('start_time', [$startUtc, $endUtc])
+                  ->orWhereBetween('end_time', [$startUtc, $endUtc]);
             })->orderBy('start_time', 'asc')->get();
 
         return response()->json([
@@ -1086,7 +1091,7 @@ class DashboardController extends Controller
 
                 return [
                     'id' => $app->id,
-                    'time' => $app->fecha_hora->format('H:i'),
+                    'time' => $app->fecha_hora->timezone('America/Argentina/Buenos_Aires')->format('H:i'),
                     'duration' => $sessionDuration,
                     'user_name' => $app->user ? $app->user->nombre : 'Paciente Desconocido',
                     'estado' => $app->estado,
@@ -1099,8 +1104,8 @@ class DashboardController extends Controller
             'external_events' => $externalEvents->map(function($evt) {
                 return [
                     'title' => $evt->title,
-                    'start' => $evt->start_time->format('H:i'),
-                    'end' => $evt->end_time->format('H:i'),
+                    'start' => $evt->start_time->timezone('America/Argentina/Buenos_Aires')->format('H:i'),
+                    'end' => $evt->end_time->timezone('America/Argentina/Buenos_Aires')->format('H:i'),
                 ];
             })
         ]);

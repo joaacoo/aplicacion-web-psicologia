@@ -203,6 +203,24 @@
              max-height: 55vh !important;
         }
     }
+
+    /* Overlay for closing WhatsApp chat when clicking outside */
+    #whatsapp-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 10000;
+        background: transparent;
+    }
+
+    @media (max-width: 768px) {
+        .reservation-time-text {
+            font-size: 1rem !important;
+        }
+    }
 </style>
 
 <!-- Top-Down Menu Overlay (Replaces Bottom Nav) -->
@@ -210,8 +228,7 @@
 
 <div id="patient-top-menu" style="display: flex; flex-direction: column; position: fixed; top: -150%; left: 0; width: 100%; background: white; border-bottom: 4px solid #000; z-index: 9999; padding: 1.5rem 1rem 2rem; transition: transform 0.4s cubic-bezier(0.165, 0.84, 0.44, 1); gap: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
     
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; padding: 0 0.5rem;">
-        <span style="font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.2rem; text-transform: uppercase;">Menú de Paciente</span>
+    <div style="display: flex; justify-content: flex-end; align-items: center; margin-bottom: 1rem; padding: 0 0.5rem;">
         <button onclick="togglePatientMenu()" style="background: none; border: none; font-size: 1.8rem; cursor: pointer; color: #000;"><i class="fa-solid fa-xmark"></i></button>
     </div>
 
@@ -322,6 +339,7 @@ function togglePatientMenu() {
     </style>
         
     <link rel="stylesheet" href="{{ asset('css/whatsapp_widget.css') }}">
+    <div id="whatsapp-overlay" onclick="toggleWhatsApp()"></div>
     
     <style>
         .dashboard-flex-container {
@@ -389,7 +407,7 @@ function togglePatientMenu() {
                     <p style="margin: 0; font-weight: 800; color: #166534; font-size: 1rem;">
                         <i class="fa-solid fa-check-circle"></i> Ya tenés tu reserva fija para los días:
                     </p>
-                    <p style="margin: 5px 0 0 0; font-size: 1.2rem; font-weight: 900; color: #000; letter-spacing: -0.5px;">
+                    <p class="reservation-time-text" style="margin: 5px 0 0 0; font-size: 1.2rem; font-weight: 900; color: #000; letter-spacing: -0.5px;">
                         {{ ucfirst(\Carbon\Carbon::parse($fixedReservation->fecha_hora)->isoFormat('dddd')) }} de {{ \Carbon\Carbon::parse($fixedReservation->fecha_hora)->format('H:i') }} a {{ \Carbon\Carbon::parse($fixedReservation->fecha_hora)->addMinutes(45)->format('H:i') }} hs
                     </p>
                     <span style="display: inline-block; background: #166534; color: white; padding: 2px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: 800; margin-top: 8px; text-transform: uppercase;">
@@ -560,10 +578,21 @@ function togglePatientMenu() {
                                         gap: 0.8rem !important;
                                     }
                                     .booking-footer-btns .neobrutalist-btn {
-                                        min-width: 110px !important;
-                                        padding: 0.5rem 0.6rem !important;
-                                        font-size: 0.75rem !important;
-                                        margin: 0 !important;
+                                        min-width: 120px !important;
+                                        padding: 0.8rem 1rem !important;
+                                        font-size: 0.85rem !important;
+                                    }
+                                }
+                                @media (max-width: 480px) {
+                                    .booking-footer-btns {
+                                        flex-direction: column-reverse !important;
+                                        gap: 0.8rem !important;
+                                        align-items: center;
+                                    }
+                                    .booking-footer-btns .neobrutalist-btn {
+                                        width: 100% !important;
+                                        max-width: 280px;
+                                        min-width: unset !important;
                                     }
                                 }
                             </style>
@@ -1585,6 +1614,21 @@ $fixedBlockedSlots = $fixedBlockedSlots ?? [];
             sidebar.classList.add('open');
             overlay.style.display = 'block';
             document.body.style.overflow = 'hidden'; 
+        }
+    }
+
+    function toggleWhatsApp(e) {
+        if (e) e.stopPropagation();
+        const win = document.getElementById('whatsapp-chat-window');
+        const overlay = document.getElementById('whatsapp-overlay');
+        if (!win) return;
+        
+        if (win.style.display === 'none' || win.style.display === '') {
+            win.style.display = 'block';
+            if (overlay) overlay.style.display = 'block';
+        } else {
+            win.style.display = 'none';
+            if (overlay) overlay.style.display = 'none';
         }
     }
 </script>

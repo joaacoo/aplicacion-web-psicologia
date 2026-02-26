@@ -76,10 +76,15 @@
             <div style="margin-bottom: 1.5rem;">
                 <label style="display: block; font-weight: 800; margin-bottom: 0.5rem;">Modalidad</label>
                 <input type="hidden" name="modalidad" id="recover_modalidad_hidden">
-                <select id="recover_modalidad" required disabled style="width: 100%; padding: 0.5rem; border: 3px solid #000; box-shadow: 4px 4px 0px #000; background: #eee; font-family: 'Inter', sans-serif;">
-                    <option value="virtual">Virtual</option>
-                    <option value="presencial">Presencial</option>
-                </select>
+                <div style="position: relative;">
+                    <select id="recover_modalidad" required disabled style="width: 100%; padding: 0.8rem 1rem; border: 3px solid #000; box-shadow: 4px 4px 0px #000; background: #f8fafc; font-family: 'Inter', sans-serif; font-size: 1.05rem; font-weight: 700; border-radius: 12px; appearance: none; cursor: not-allowed; opacity: 0.9;">
+                        <option value="virtual">💻 Virtual</option>
+                        <option value="presencial">🏢 Presencial</option>
+                    </select>
+                    <div style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); pointer-events: none;">
+                        <i class="fa-solid fa-chevron-down" style="font-size: 0.8rem;"></i>
+                    </div>
+                </div>
             </div>
 
             <div style="display: flex; gap: 1rem; justify-content: flex-end;">

@@ -58,7 +58,7 @@ class DocumentController extends Controller
             abort(403);
         }
 
-        return Storage::download('public/' . $document->file_path, $document->name . '.' . pathinfo($document->file_path, PATHINFO_EXTENSION));
+        return Storage::disk('public')->download($document->file_path, $document->name . '.' . pathinfo($document->file_path, PATHINFO_EXTENSION));
     }
 
     public function destroy(Document $document)
@@ -77,7 +77,7 @@ class DocumentController extends Controller
 
         if (!$othersUsingFile) {
             // If no one else uses it, delete the physical file
-            Storage::delete('public/' . $filePath);
+            Storage::disk('public')->delete($filePath);
         }
 
         return back()->with('success', 'Documento eliminado.');

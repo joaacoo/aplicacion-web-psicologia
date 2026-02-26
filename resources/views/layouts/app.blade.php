@@ -298,6 +298,49 @@
         border-radius: 0 !important;
     }
     
+    @media (max-width: 768px) {
+        .notification-dropdown {
+            width: 320px !important;
+            max-width: 90vw !important;
+            right: -20px !important; /* Better centering on mobile */
+            box-shadow: 4px 4px 0px #000 !important;
+        }
+        .hide-on-mobile {
+            display: none !important;
+        }
+        .notification-header {
+            padding: 0.7rem 1rem !important;
+        }
+        .notification-header span {
+            font-size: 0.95rem !important;
+        }
+        .notification-header button {
+            padding: 0.3rem 0.6rem !important;
+            font-size: 0.7rem !important;
+        }
+    }
+    
+    /* Confirmation Modal Buttons Mobile Fix */
+    .confirm-modal-buttons {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        padding-top: 1rem;
+    }
+    
+    @media (max-width: 480px) {
+        .confirm-modal-buttons {
+            gap: 0.8rem;
+            flex-direction: row; /* Keep side by side but smaller */
+        }
+        .confirm-modal-buttons button {
+            flex: 1;
+            padding: 0.6rem 0.5rem !important;
+            font-size: 0.85rem !important;
+            min-width: 0 !important;
+        }
+    }
+    
     /* Remove any hover effect that changes shadow or scale */
     .notification-dropdown:hover, .notification-item:hover {
         box-shadow: 6px 6px 0px #000 !important;
@@ -1855,7 +1898,7 @@
         </div>
 
         <!-- FAB -->
-        <button onclick="toggleWhatsApp()" style="width: 55px; height: 55px; background: #25D366; color: white; border-radius: 50%; border: 3px solid #000; box-shadow: 4px 4px 0px #000; font-size: 2rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); position: relative; z-index: 10002;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
+        <button id="whatsapp-fab" onclick="toggleWhatsApp(event)" style="width: 55px; height: 55px; background: #25D366; color: white; border-radius: 50%; border: 3px solid #000; box-shadow: 4px 4px 0px #000; font-size: 2rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); position: relative; z-index: 10002;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
             <i class="fa-brands fa-whatsapp"></i>
         </button>
     </div>
@@ -1873,7 +1916,8 @@
             }
         }
         
-        function toggleWhatsApp() {
+        function toggleWhatsApp(e) {
+            if (e) e.stopPropagation();
             const win = document.getElementById('whatsapp-chat-window');
             if(win) {
                 win.style.display = (win.style.display === 'none') ? 'block' : 'none';
@@ -2341,6 +2385,26 @@
             <p style="margin: 0; font-weight: 600; font-size: 0.95rem; color: #444; text-align: center;">Por favor, esperá un momento.</p>
         </div>
     </div>
+
+    <!-- WhatsApp Click-Outside Logic -->
+    <script>
+        document.addEventListener('click', function(e) {
+            // Close WhatsApp
+            const chatWindow = document.getElementById('whatsapp-chat-window');
+            const fab = document.getElementById('whatsapp-fab');
+            
+            if (chatWindow && chatWindow.style.display !== 'none') {
+                if (!chatWindow.contains(e.target) && (!fab || !fab.contains(e.target))) {
+                    chatWindow.style.display = 'none';
+                }
+            }
+
+            // Close Notifications
+            if (!e.target.closest('.notification-dropdown') && !e.target.closest('[onclick*="toggleNotifications"]')) {
+                 document.querySelectorAll('.notification-dropdown').forEach(d => d.style.display = 'none');
+            }
+        });
+    </script>
 
     <script>
         window.showProcessing = function(text = 'Procesando...') {

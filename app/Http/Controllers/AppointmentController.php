@@ -480,6 +480,12 @@ class AppointmentController extends Controller
             }
         }
 
+        // Final step: Clear the recurrence flag from ALL appointments of this user 
+        // to prevent DashboardController from picking them up for projections.
+        Appointment::where('usuario_id', $user->id)
+                  ->where('es_recurrente', true)
+                  ->update(['es_recurrente' => false]);
+
         $this->logActivity('reserva_fija_cancelada', "Canceló su reserva fija. Se cancelaron {$count} turnos futuros.", [
             'paciente' => $user->nombre,
             'turnos_cancelados' => $count,
