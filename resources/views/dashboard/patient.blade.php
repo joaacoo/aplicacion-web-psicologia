@@ -397,11 +397,7 @@ function togglePatientMenu() {
                     </span>
                 </div>
 
-                    @if(isset($nextAppointment) && $nextAppointment->es_recurrente && $nextAppointment->estado == 'confirmado' && ($nextAppointment->modalidad ?? 'virtual') == 'virtual')
-                        <a href="{{ $nextAppointment->meet_link ?: ($patient->meet_link ?: '#') }}" target="_blank" class="neobrutalist-btn" style="width: 100%; margin-top: 1.5rem; background: white; color: #000; border: 2px solid #000; padding: 0.8rem 1rem; text-decoration: none; font-weight: 800; font-size: 1rem; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 4px 4px 0px #000;">
-                            <i class="fa-solid fa-video"></i> Unirse a la sesión
-                        </a>
-                    @endif
+
 
                     <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 1.5rem;">
                         <form action="{{ route('appointments.cancelFixed') }}" method="POST" style="width: 100%;">

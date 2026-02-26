@@ -199,7 +199,35 @@
             height: 6px;
         }
 
+        .details-time-pill {
+            flex-shrink: 0; 
+            min-width: 130px; 
+            text-align: center;
+        }
 
+        @media (max-width: 480px) {
+            .details-time-pill {
+                min-width: 110px !important;
+            }
+            .details-time-pill span {
+                font-size: 0.75rem !important;
+                padding: 2px 5px !important;
+            }
+            #day-details-section {
+                padding: 1.2rem 1rem !important;
+            }
+            .appointment-row {
+                padding: 8px 10px !important;
+                gap: 8px !important;
+            }
+            .appointment-name {
+                font-size: 0.9rem !important;
+            }
+            .appointment-badge {
+                font-size: 0.65rem !important;
+                padding: 2px 5px !important;
+            }
+        }
     }
 </style>
 
@@ -399,21 +427,26 @@
                         // Badge Selection
                         let badgeHtml = '';
                         switch (app.status_type) {
-                            case 'confirmado': badgeHtml = '<span style="background: var(--color-verde); color: #fff; padding: 2px 8px; border: 2px solid #000; border-radius: 6px; font-size: 0.75rem; font-weight: 800;">CONFIRMADO</span>'; break;
-                            case 'cancelado': badgeHtml = '<span style="background: var(--color-rojo); color: #fff; padding: 2px 8px; border: 2px solid #000; border-radius: 6px; font-size: 0.75rem; font-weight: 800;">CANCELADO</span>'; break;
-                            case 'cancelado_fijo': badgeHtml = '<span style="background: var(--color-rojo); color: #fff; padding: 2px 8px; border: 2px solid #000; border-radius: 6px; font-size: 0.75rem; font-weight: 800;">CANCELADO - FIJO</span>'; break;
-                            case 'fijo': badgeHtml = '<span style="background: var(--color-celeste); padding: 2px 8px; border: 2px solid #000; border-radius: 6px; font-size: 0.75rem; font-weight: 800;">FIJO</span>'; break;
-                            case 'recuperado': badgeHtml = '<span style="background: var(--color-lila); padding: 2px 8px; border: 2px solid #000; border-radius: 6px; font-size: 0.75rem; font-weight: 800;">RECUPERADO</span>'; break;
-                            case 'ausente': badgeHtml = '<span style="background: #000; color: #fff; padding: 2px 8px; border: 2px solid #000; border-radius: 6px; font-size: 0.75rem; font-weight: 800;">AUSENTE</span>'; break;
-                            case 'finalizado': badgeHtml = '<span style="background: #fff; border: 2px solid #000; padding: 2px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 800;">FINALIZADO</span>'; break;
-                            default: badgeHtml = '<span style="background: #eee; border: 2px solid #000; padding: 2px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 800;">' + app.status_type.toUpperCase() + '</span>';
+                            case 'confirmado': badgeHtml = '<span style="background: var(--color-verde); color: #fff; padding: 2px 8px; border: 2px solid #000; border-radius: 6px; font-size: 0.75rem; font-weight: 800; display: inline-block; white-space: nowrap;">CONFIRMADO</span>'; break;
+                            case 'cancelado': badgeHtml = '<span style="background: var(--color-rojo); color: #fff; padding: 2px 8px; border: 2px solid #000; border-radius: 6px; font-size: 0.75rem; font-weight: 800; display: inline-block; white-space: nowrap;">CANCELADO</span>'; break;
+                            case 'cancelado_fijo': badgeHtml = '<span style="background: var(--color-rojo); color: #fff; padding: 2px 8px; border: 2px solid #000; border-radius: 6px; font-size: 0.75rem; font-weight: 800; display: inline-block; white-space: nowrap;">CANCELADO - FIJO</span>'; break;
+                            case 'fijo': badgeHtml = '<span style="background: var(--color-celeste); padding: 2px 8px; border: 2px solid #000; border-radius: 6px; font-size: 0.75rem; font-weight: 800; display: inline-block; white-space: nowrap;">FIJO</span>'; break;
+                            case 'recuperado': badgeHtml = '<span style="background: var(--color-lila); padding: 2px 8px; border: 2px solid #000; border-radius: 6px; font-size: 0.75rem; font-weight: 800; display: inline-block; white-space: nowrap;">RECUPERADO</span>'; break;
+                            case 'ausente': badgeHtml = '<span style="background: #000; color: #fff; padding: 2px 8px; border: 2px solid #000; border-radius: 6px; font-size: 0.75rem; font-weight: 800; display: inline-block; white-space: nowrap;">AUSENTE</span>'; break;
+                            case 'finalizado': badgeHtml = '<span style="background: #fff; border: 2px solid #000; padding: 2px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 800; display: inline-block; white-space: nowrap;">FINALIZADO</span>'; break;
+                            default: badgeHtml = '<span style="background: #eee; border: 2px solid #000; padding: 2px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 800; display: inline-block; white-space: nowrap;">' + app.status_type.toUpperCase() + '</span>';
                         }
 
-                        // Calculate end time
+                        // Calculate end time using session duration
                         let [h, m] = app.time.split(':').map(Number);
-                        let eh = (h + 1) % 24;
-                        let endTime = `${eh.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+                        let durationMinutes = app.duration || 45;
+                        
+                        let totalMinutes = h * 60 + m + durationMinutes;
+                        let eh = Math.floor(totalMinutes / 60) % 24;
+                        let em = totalMinutes % 60;
+                        let endTime = `${eh.toString().padStart(2, '0')}:${em.toString().padStart(2, '0')}`;
 
+                        div.className = 'appointment-row';
                         div.style.cssText = `
                             padding: 10px 15px;
                             font-size: 1.05rem;
@@ -429,17 +462,18 @@
                         `;
                         
                         div.innerHTML = `
-                            <div style="flex-shrink: 0; min-width: 130px; text-align: center;">
+                            <div class="details-time-pill">
                                 <span style="background: #eee; padding: 3px 8px; border: 2px solid #000; border-radius: 6px; font-size: 0.85rem; white-space: nowrap;">${app.time} - ${endTime} hs</span>
                             </div>
                             <div style="flex: 1; min-width: 0;">
                                 <a href="/admin/pacientes?search=${encodeURIComponent(app.user_name)}" 
+                                   class="appointment-name"
                                    style="color: #000; text-decoration: underline; font-weight: 800; font-size: 1rem; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                                     ${app.user_name}
                                 </a>
                             </div>
                             <div style="flex-shrink: 0;">
-                                ${badgeHtml}
+                                <span class="appointment-badge">${badgeHtml}</span>
                             </div>
                         `;
                         internalContainer.appendChild(div);

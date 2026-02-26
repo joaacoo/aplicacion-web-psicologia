@@ -156,7 +156,8 @@ class PaymentController extends Controller
             \Illuminate\Support\Facades\Mail::to($payment->appointment->user->email)->send(new \App\Mail\PaymentVerified(
                 $payment->appointment->user->nombre,
                 $payment->appointment->fecha_hora->format('d/m H:i'),
-                $payment->appointment->link_reunion
+                $payment->appointment->link_reunion,
+                $payment->appointment
             ));
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error("Error al enviar mail de pago verificado: " . $e->getMessage());

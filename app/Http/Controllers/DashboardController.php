@@ -1009,6 +1009,15 @@ class DashboardController extends Controller
             ->orderBy('fecha_hora', 'asc')
             ->get();
 
+        // Get session duration from Admin
+        $adminUser = \App\Models\User::where('rol', 'admin')->first();
+        $sessionDuration = 45; // Default fallback
+        
+        if ($adminUser) {
+            // Use the accessor which handles professional profile and defaults
+            $sessionDuration = $adminUser->duracion_sesion; 
+        }
+
         // Project fixed sessions for this specific day if not in DB
         $dayStart = \Carbon\Carbon::parse($date)->startOfDay();
         $dayEnd = $dayStart->copy()->endOfDay();
@@ -1064,7 +1073,7 @@ class DashboardController extends Controller
 
         return response()->json([
             'date' => $date,
-            'appointments' => $allApps->map(function($app) {
+            'appointments' => $allApps->map(function($app) use ($sessionDuration) {
                 // Determine display status based on rules
                 $statusType = 'confirmado';
                 if ($app->estado === 'cancelado') {
@@ -1078,6 +1087,7 @@ class DashboardController extends Controller
                 return [
                     'id' => $app->id,
                     'time' => $app->fecha_hora->format('H:i'),
+                    'duration' => $sessionDuration,
                     'user_name' => $app->user ? $app->user->nombre : 'Paciente Desconocido',
                     'estado' => $app->estado,
                     'is_projected' => $app->is_projected ?? false,

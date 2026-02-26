@@ -229,7 +229,7 @@
                                     <div class="actions-wrapper" style="display: flex; gap: 5px; flex-wrap: wrap; justify-content: center;">
                                         
                                         {{-- JOIN/LOCATION BUTTONS --}}
-                                        @if($appt->estado != 'cancelado' && !$hasPendingRecovery && ($isPaid || $paymentPending || $isCreditApplied))
+                                        @if($appt->estado != 'cancelado' && !$hasPendingRecovery)
                                             @if($isVirtual)
                                                 <a href="{{ $appt->meet_link ?: '#' }}" 
                                                    target="_blank" 
@@ -239,7 +239,7 @@
                                                     <i class="fa-solid fa-video"></i> Unirse
                                                 </a>
                                             @else
-                                                <a href="{{ $consultorioLink ?: 'https://www.google.com/maps/place/Adrogu%C3%A9/@-34.7978533,-58.396786,17z/data=!4m10!1m2!2m1!1sestacion+de+adrogue!3m6!1s0x95bcd33e279f87af:0x5b7018552a97a57f!8m2!3d-34.7977604!4d-58.3941247!15sChNlc3RhY2lvbiBkZSBhZHJvZ3VlkgENdHJhaW5fc3RhdGlvbuABAA!16s%2Fg%2F121lm_m7?entry=ttu&g_ep=EgoyMDI2MDIyMy4wIKXMDSoASAFQAw%3D%3D' }}" 
+                                                <a href="{{ $consultorioLink ?: 'https://www.google.com/maps/place/Adrogu%C3%A9/@-34.7988324,-58.3932301,3a,46y,321.03h,83.59t/data=!3m7!1e1!3m5!1s1PDRcDL0B2QDySTFe3RLeA!2e0!6shttps:%2F%2Fstreetviewpixels-pa.googleapis.com%2Fv1%2Fthumbnail%3Fcb_client%3Dmaps_sv.tactile%26w%3D900%26h%3D600%26pitch%3D6.412813024248052%26panoid%3D1PDRcDL0B2QDySTFe3RLeA%26yaw%3D321.03038456478566!7i16384!8i8192!4m10!1m2!2m1!1sestacion+de+adrogue!3m6!1s0x95bcd33e279f87af:0x5b7018552a97a57f!8m2!3d-34.7977604!4d-58.3941247!15sChNlc3RhY2lvbiBkZSBhZHJvZ3VlkgENdHJhaW5fc3RhdGlvbuABAA!16s%2Fg%2F121lm_m7?entry=ttu&g_ep=EgoyMDI2MDIyMy4wIKXMDSoASAFQAw%3D%3D' }}" 
                                                    target="_blank" 
                                                    class="neobrutalist-btn bg-celeste" 
                                                    style="flex: 1 1 0%; padding: 0.3rem 0.6rem; font-size: 0.75rem; border: 2px solid #000; text-decoration: none; color: #000; display: inline-flex; align-items: center; gap: 4px; justify-content: center; min-width: 90px; height: 32px; white-space: nowrap;">
@@ -418,13 +418,13 @@
                     </div>
                     <div class="actions-wrapper">
                         @if(!$isFinished && ($appt->estado != 'cancelado' || $showRecoverBtn || $hasPendingRecovery))
-                            @if($appt->estado != 'cancelado' && !$hasPendingRecovery && ($isPaid || $paymentPending || $isCreditApplied))
+                            @if($appt->estado != 'cancelado' && !$hasPendingRecovery)
                                 @if($isVirtual)
                                     <a href="{{ $appt->meet_link ?: '#' }}" target="_blank" class="neobrutalist-btn join-btn {{ $canJoin ? 'bg-celeste' : 'disabled-btn' }}" style="flex: 1; min-height: 38px; height: auto; padding: 0.4rem; font-size: 0.9rem; display: flex; align-items: center; justify-content: center; text-decoration: none; color: #000;" data-start="{{ $appt->fecha_hora->toISOString() }}">
                                         <i class="fa-solid fa-video"></i> Unirse
                                     </a>
                                 @else
-                                    <a href="{{ $consultorioLink ?: 'https://www.google.com/maps/place/Adrogu%C3%A9/@-34.7978533,-58.396786,17z/data=!4m10!1m2!2m1!1sestacion+de+adrogue!3m6!1s0x95bcd33e279f87af:0x5b7018552a97a57f!8m2!3d-34.7977604!4d-58.3941247!15sChNlc3RhY2lvbiBkZSBhZHJvZ3VlkgENdHJhaW5fc3RhdGlvbuABAA!16s%2Fg%2F121lm_m7?entry=ttu&g_ep=EgoyMDI2MDIyMy4wIKXMDSoASAFQAw%3D%3D' }}" target="_blank" class="neobrutalist-btn bg-celeste" style="flex: 1; min-height: 38px; height: auto; padding: 0.4rem; font-size: 0.9rem; display: flex; align-items: center; justify-content: center; text-decoration: none; color: #000;">
+                                    <a href="{{ $consultorioLink ?: 'https://www.google.com/maps/place/Adrogu%C3%A9/@-34.7988324,-58.3932301,3a,46y,321.03h,83.59t/data=!3m7!1e1!3m5!1s1PDRcDL0B2QDySTFe3RLeA!2e0!6shttps:%2F%2Fstreetviewpixels-pa.googleapis.com%2Fv1%2Fthumbnail%3Fcb_client%3Dmaps_sv.tactile%26w%3D900%26h%3D600%26pitch%3D6.412813024248052%26panoid%3D1PDRcDL0B2QDySTFe3RLeA%26yaw%3D321.03038456478566!7i16384!8i8192!4m10!1m2!2m1!1sestacion+de+adrogue!3m6!1s0x95bcd33e279f87af:0x5b7018552a97a57f!8m2!3d-34.7977604!4d-58.3941247!15sChNlc3RhY2lvbiBkZSBhZHJvZ3VlkgENdHJhaW5fc3RhdGlvbuABAA!16s%2Fg%2F121lm_m7?entry=ttu&g_ep=EgoyMDI2MDIyMy4wIKXMDSoASAFQAw%3D%3D' }}" target="_blank" class="neobrutalist-btn bg-celeste" style="flex: 1; min-height: 38px; height: auto; padding: 0.4rem; font-size: 0.9rem; display: flex; align-items: center; justify-content: center; text-decoration: none; color: #000;">
                                         <i class="fa-solid fa-location-dot"></i> Ver dirección
                                     </a>
                                 @endif

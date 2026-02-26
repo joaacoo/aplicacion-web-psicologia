@@ -57,7 +57,7 @@ class ProcessAppointments extends Command
                         : 'Recordá que tenés una sesión mañana a las ' . $appointmentTime->format('H:i') . ' hs. Recordá subir el comprobante para confirmar.';
 
                     // Mail
-                    \Illuminate\Support\Facades\Mail::to($user->email)->send(new \App\Mail\AppointmentReminder($user->nombre, $appointmentTime->format('d/m H:i'), $tipoAviso));
+                    \Illuminate\Support\Facades\Mail::to($user->email)->send(new \App\Mail\AppointmentReminder($user->nombre, $appointmentTime->format('d/m H:i'), $tipoAviso, $appt));
                     
                     // Web Notification
                     $user->notify(new \App\Notifications\PatientNotification([
@@ -81,7 +81,7 @@ class ProcessAppointments extends Command
                 
                 try {
                     // Mail
-                    \Illuminate\Support\Facades\Mail::to($user->email)->send(new \App\Mail\AppointmentReminder($user->nombre, $appointmentTime->format('H:i'), 'proxima_sesion'));
+                    \Illuminate\Support\Facades\Mail::to($user->email)->send(new \App\Mail\AppointmentReminder($user->nombre, $appointmentTime->format('H:i'), 'proxima_sesion', $appt));
                     
                     // Web Notification
                     $user->notify(new \App\Notifications\PatientNotification([
@@ -116,7 +116,7 @@ class ProcessAppointments extends Command
                 $now->lessThan($appointmentTime->copy()->subHours(20)) &&
                 !$appt->notificado_ultimatum_en) {
                 
-                \Illuminate\Support\Facades\Mail::to($appt->user->email)->send(new \App\Mail\AppointmentReminder($appt->user->nombre, $appt->fecha_hora->format('d/m H:i'), 'ultimatum'));
+                \Illuminate\Support\Facades\Mail::to($appt->user->email)->send(new \App\Mail\AppointmentReminder($appt->user->nombre, $appt->fecha_hora->format('d/m H:i'), 'ultimatum', $appt));
                 $appt->update(['notificado_ultimatum_en' => $now]);
                 $this->info("Sent ultimatum to: " . $appt->user->email);
             }

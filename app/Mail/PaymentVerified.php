@@ -16,15 +16,17 @@ class PaymentVerified extends Mailable
     public $nombre;
     public $fecha;
     public $link_reunion;
+    public $appointment;
 
     /**
      * Create a new message instance.
      */
-    public function __construct($nombre, $fecha, $link_reunion = null)
+    public function __construct($nombre, $fecha, $link_reunion = null, $appointment = null)
     {
         $this->nombre = $nombre;
         $this->fecha = $fecha;
         $this->link_reunion = $link_reunion;
+        $this->appointment = $appointment;
     }
 
     /**

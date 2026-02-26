@@ -15,16 +15,18 @@ class AppointmentReminder extends Mailable
 
     public $nombre;
     public $fecha;
-    public $tipo_aviso; // recordatorio, ultimatum
+    public $tipo_aviso; // recordatorio, ultimatum, proxima_sesion, recordatorio_confirmado
+    public $appointment;
 
     /**
      * Create a new message instance.
      */
-    public function __construct($nombre, $fecha, $tipo_aviso = 'recordatorio')
+    public function __construct($nombre, $fecha, $tipo_aviso = 'recordatorio', $appointment = null)
     {
         $this->nombre = $nombre;
         $this->fecha = $fecha;
         $this->tipo_aviso = $tipo_aviso;
+        $this->appointment = $appointment;
     }
 
     /**
