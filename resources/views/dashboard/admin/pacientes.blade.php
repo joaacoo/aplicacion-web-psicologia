@@ -13,69 +13,91 @@
                 padding-right: 15px !important;
                 box-sizing: border-box;
             }
-            /* Card View for Mobile Table */
-            .patients-table table, .patients-table thead, .patients-table tbody, .patients-table th, .patients-table td, .patients-table tr { 
-                display: block; 
+            /* Hide table and show cards */
+            .patients-table {
+                display: none;
             }
-            .patients-table thead tr { 
-                position: absolute;
-                top: -9999px;
-                left: -9999px;
+            .patients-cards {
+                display: block;
             }
-            .patients-table tr { 
-                border: 3px solid #000 !important; 
-                margin-bottom: 2rem !important; 
-                background: white !important;
-                background: white !important;
-                border-radius: 12px;
+        }
+        @media (min-width: 769px) {
+            .patients-table {
+                display: table;
+                table-layout: fixed;
             }
-            .patients-table td { 
-                border: none;
-                border-bottom: 1px solid #eee; 
-                position: relative;
-                padding-left: 50% !important; 
-                text-align: right !important;
-                min-height: 40px;
-                display: flex;
-                align-items: center;
-                justify-content: flex-end;
+            .patients-cards {
+                display: none;
             }
-            .patients-table td:last-child { border-bottom: none; }
-             .patients-table td:before { 
-                position: absolute;
-                top: 50%;
-                left: 15px;
-                transform: translateY(-50%);
-                width: 40%; 
-                padding-right: 10px; 
-                white-space: nowrap;
-                text-align: left;
-                font-weight: 800;
-                content: attr(data-label);
-                font-size: 0.8rem;
-                color: #666;
-            }
-            .fixed-res-mobile-align {
-                justify-content: flex-start !important;
-                text-align: left !important;
-                margin-left: -15% !important; /* Shifting left as requested */
-            }
-            /* Names Header in Mobile */
-            .patients-table td:first-child {
-                background: #f8f8f8;
-                border-bottom: 2px solid #000 !important;
-                justify-content: center !important;
-                padding-left: 15px !important;
-                text-align: center !important;
-                font-size: 1.1rem;
-            }
-            .patients-table td:first-child:before { content: none; }
-            
-            /* Action buttons on full width */
-            .action-buttons-container {
-                width: 100%;
-                justify-content: center !important;
-            }
+        }
+        .patient-card {
+            border: 3px solid #000;
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            background: white;
+            box-shadow: 6px 6px 0px #000;
+        }
+        .patient-card .card-header {
+            font-weight: 800;
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+            text-align: center;
+            border-bottom: 2px solid #000;
+            padding-bottom: 0.5rem;
+        }
+        .patient-card .card-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            align-items: center;
+        }
+        .patient-card .card-label {
+            font-weight: bold;
+            font-size: 0.8rem;
+            color: #666;
+            flex: 0 0 30%;
+        }
+        .patient-card .card-value {
+            flex: 1;
+            text-align: right;
+        }
+        .patient-card .actions-wrapper {
+            margin-top: 1rem;
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .patient-card .fixed-res-info {
+            text-align: center;
+            margin-bottom: 0.5rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-size: 0.75rem;
+        }
+        .patient-card .fixed-res-info .day {
+            font-weight: 800;
+            color: #000;
+            font-size: 0.8rem;
+            margin-bottom: 0.2rem;
+        }
+        .patient-card .fixed-res-info .time {
+            font-size: 0.7rem;
+            color: #444;
+            margin-bottom: 0.2rem;
+        }
+        .patient-card .frequency {
+            font-size: 0.6rem;
+            background: #000;
+            color: #fff;
+            padding: 1px 6px;
+            border-radius: 3px;
+            font-weight: 800;
+            text-transform: uppercase;
+            white-space: nowrap;
+            display: inline-block;
         }
     </style>
     <!-- Filtros y Búsqueda -->
@@ -113,11 +135,11 @@
             </div>
         </div>
         
-        <div style="overflow-x: auto;">
-            <table class="patients-table" style="width: 100%; border-collapse: collapse; margin-top: 1rem; background: white; border: 3px solid #000; box-shadow: 6px 6px 0px #000;">
+        <div style="overflow-x: auto; width: 100%; border: 3px solid #000; box-shadow: 6px 6px 0px #000; background: white; margin-top: 1rem;">
+            <table class="patients-table" style="width: 100%; border-collapse: collapse; background: white; margin: 0;">
                 <thead>
                     <tr style="background: #000; color: #fff; border-bottom: 3px solid #fff;">
-                        <th style="padding: 0.8rem; text-align: left;">
+                        <th style="padding: 0.8rem; text-align: left; width: 25%;">
                              <a href="{{ route('admin.pacientes', array_merge(request()->all(), ['sort' => 'name', 'order' => request('order') == 'asc' ? 'desc' : 'asc'])) }}" style="color: #fff; text-decoration: none; display: flex; align-items: center; gap: 5px;">
                                 Nombre
                                 @if(request('sort', 'name') == 'name')
@@ -127,13 +149,13 @@
                                 @endif
                             </a>
                         </th>
-                        <th style="padding: 0.8rem; text-align: left;">Email</th>
-                        <th style="padding: 0.8rem; text-align: left;">Teléfono</th>
-                        <th style="padding: 0.8rem; text-align: left;">Tipo</th>
-                        <th style="padding: 0.8rem; text-align: center; color: #fff;">
+                        <th style="padding: 0.8rem; text-align: left; width: 20%;">Email</th>
+                        <th style="padding: 0.8rem; text-align: left; width: 15%;">Teléfono</th>
+                        <th style="padding: 0.8rem; text-align: left; width: 10%;">Tipo</th>
+                        <th style="padding: 0.8rem; text-align: center; color: #fff; width: 15%;">
                             Reserva Fija
                         </th>
-                        <th style="padding: 0.8rem; text-align: center;">Acciones</th>
+                        <th style="padding: 0.8rem; text-align: center; width: 15%;">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -187,6 +209,63 @@
                     @endforeach
                 </tbody>
             </table>
+        </div>
+
+        <!-- Mobile Cards -->
+        <div class="patients-cards">
+            @foreach($patients as $patient)
+                <div class="patient-card">
+                    <div class="card-header">{{ $patient->nombre }}</div>
+                    <div class="card-row">
+                        <span class="card-label">Email:</span>
+                        <span class="card-value">{{ $patient->email }}</span>
+                    </div>
+                    <div class="card-row">
+                        <span class="card-label">Teléfono:</span>
+                        <span class="card-value">{{ $patient->telefono ?? '-' }}</span>
+                    </div>
+                    <div class="card-row">
+                        <span class="card-label">Tipo:</span>
+                        <span class="card-value">
+                            <span class="no-select" style="font-weight: bold; background: {{ $patient->tipo_paciente == 'frecuente' ? 'var(--color-verde)' : 'var(--color-amarillo)' }}; padding: 0.3rem 0.6rem; border: 2px solid #000; border-radius: 5px; text-transform: uppercase; font-size: 0.85rem;">
+                                {{ ucfirst($patient->tipo_paciente) }}
+                            </span>
+                        </span>
+                    </div>
+                    <div class="card-row">
+                        <span class="card-label">Reserva Fija:</span>
+                        <span class="card-value">
+                            @php
+                                $fixed = $patient->turnos->first();
+                            @endphp
+                            @if($fixed)
+                                <div class="fixed-res-info">
+                                    <div class="day">{{ $fixed->fecha_hora->locale('es')->isoFormat('dddd') }}</div>
+                                    <div class="time">{{ $fixed->fecha_hora->format('H:i') }} - {{ $fixed->fecha_hora->addMinutes(45)->format('H:i') }} hs</div>
+                                    <div class="frequency">{{ $fixed->frecuencia ?? 'Semanal' }}</div>
+                                </div>
+                            @else
+                                <span style="color: #999; font-style: italic; font-size: 0.75rem;">Sin reserva fija</span>
+                            @endif
+                        </span>
+                    </div>
+                    <div class="actions-wrapper">
+                        <button class="neobrutalist-btn no-select bg-amarillo" style="padding: 0.5rem 1rem; font-size: 0.8rem; flex: 1; white-space: nowrap; justify-content: center;"
+                                onclick="openManageModal('{{ $patient->id }}', '{{ $patient->nombre }}', '{{ $patient->email }}', '{{ $patient->telefono ?? 'No registrado' }}', '{{ $patient->tipo_paciente }}', '{{ $patient->meet_link }}', '{{ $patient->paciente->precio_personalizado ?? 0 }}')">
+                            Gestionar
+                        </button>
+                        <button class="neobrutalist-btn bg-celeste" style="padding: 0.5rem 1rem; font-size: 0.8rem; flex: 1; white-space: nowrap; justify-content: center;"
+                                onclick='openDocumentsModal({{ $patient->id }}, "{{ $patient->nombre }}", @json($patient->documents))'>
+                            <i class="fa-solid fa-folder"></i> Docs
+                        </button>
+                        <a href="{{ route('admin.clinical-history.initialize', $patient->id) }}" 
+                           class="neobrutalist-btn bg-white" 
+                           style="padding: 0.5rem 1rem; font-size: 0.8rem; text-decoration: none; color: black; border: 2px solid #000; flex: 1; white-space: nowrap; justify-content: center;">
+                            <i class="fa-solid fa-file-medical"></i> Historia
+                        </a>
+                    </div>
+                </div>
+            @endforeach
         </div>
 
         <!-- Paginación -->
